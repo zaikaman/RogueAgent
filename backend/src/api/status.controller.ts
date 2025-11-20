@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabaseService } from '../services/supabase.service';
 import { logger } from '../utils/logger.util';
+import { config } from '../config/env.config';
 
 export const getLatestStatus = async (req: Request, res: Response) => {
   try {
@@ -10,13 +11,15 @@ export const getLatestStatus = async (req: Request, res: Response) => {
       return res.json({
         status: 'idle',
         last_run: null,
-        next_run_in: 0, // Should calculate based on schedule
+        next_run_in: 0,
+        interval_minutes: config.RUN_INTERVAL_MINUTES
       });
     }
 
-    // Calculate time until next run (assuming 60 min cycle)
+    // Calculate time until next run
+    const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;
     const lastRunTime = new Date(latestRun.created_at).getTime();
-    const nextRunTime = lastRunTime + 60 * 60 * 1000;
+    const nextRunTime = lastRunTime + intervalMs;
     const now = Date.now();
     const timeUntilNextRun = Math.max(0, nextRunTime - now);
 
@@ -24,6 +27,7 @@ export const getLatestStatus = async (req: Request, res: Response) => {
       status: timeUntilNextRun > 0 ? 'idle' : 'due',
       last_run: latestRun,
       next_run_in: timeUntilNextRun,
+      interval_minutes: config.RUN_INTERVAL_MINUTES
     });
   } catch (error) {
     logger.error('Failed to get status:', error);

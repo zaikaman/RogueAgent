@@ -140,6 +140,22 @@ export class SupabaseService {
     return count || 0;
   }
 
+  async getRecentIntelTopics(limit: number = 5): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('content')
+      .eq('type', 'intel')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent intel topics:', error);
+      return [];
+    }
+
+    return data.map((row: any) => row.content?.topic).filter(Boolean);
+  }
+
   async getLogs(limit: number = 10, offset: number = 0) {
     const { data, error, count } = await this.client
       .from('runs')

@@ -3,16 +3,17 @@ import { Timer } from 'lucide-react';
 
 interface CountdownProps {
   lastRunTime: string | null;
+  intervalMinutes?: number;
 }
 
-export function Countdown({ lastRunTime }: CountdownProps) {
+export function Countdown({ lastRunTime, intervalMinutes = 60 }: CountdownProps) {
   const [timeLeft, setTimeLeft] = useState<string>('00:00');
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (!lastRunTime) return;
 
-    const CYCLE_DURATION = 60 * 60 * 1000; // 60 minutes
+    const CYCLE_DURATION = intervalMinutes * 60 * 1000;
     
     const interval = setInterval(() => {
       const lastRun = new Date(lastRunTime).getTime();
@@ -34,7 +35,7 @@ export function Countdown({ lastRunTime }: CountdownProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [lastRunTime]);
+  }, [lastRunTime, intervalMinutes]);
 
   return (
     <div className="flex flex-col gap-1">

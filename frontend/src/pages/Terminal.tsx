@@ -75,7 +75,10 @@ export function Terminal() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Countdown lastRunTime={lastRunTime} />
+            <Countdown 
+              lastRunTime={lastRunTime} 
+              intervalMinutes={runStatus?.interval_minutes}
+            />
             <div className="h-8 w-px bg-gray-800" />
             <WalletConnect />
           </div>

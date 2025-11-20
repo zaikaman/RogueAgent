@@ -10,6 +10,7 @@ import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
 import { birdeyeService } from '../services/birdeye.service';
+import { defillamaService } from '../services/defillama.service';
 
 interface ScannerResult {
   candidates: Array<{
@@ -66,10 +67,12 @@ export class Orchestrator {
     try {
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
-      const [trendingCg, trendingBe, topGainers] = await Promise.all([
+      const [trendingCg, trendingBe, topGainers, defiChains, defiProtocols] = await Promise.all([
         coingeckoService.getTrending().catch(e => { logger.error('CG Trending Error', e); return []; }),
         birdeyeService.getTrendingTokens(10).catch(e => { logger.error('Birdeye Trending Error', e); return []; }),
-        coingeckoService.getTopGainersLosers().catch(e => { logger.error('CG Gainers Error', e); return []; })
+        coingeckoService.getTopGainersLosers().catch(e => { logger.error('CG Gainers Error', e); return []; }),
+        defillamaService.getGlobalTVL().catch(e => { logger.error('DeFi Llama Chains Error', e); return []; }),
+        defillamaService.getProtocolStats().catch(e => { logger.error('DeFi Llama Protocols Error', e); return []; })
       ]);
 
       const marketData = {
@@ -88,7 +91,9 @@ export class Orchestrator {
           name: c.name,
           symbol: c.symbol,
           change_24h: c.price_change_percentage_24h
-        }))
+        })),
+        defi_tvl_top_chains: defiChains,
+        defi_top_growing_protocols: defiProtocols
       };
 
       // Check signal quota
@@ -173,9 +178,15 @@ export class Orchestrator {
         // Fallback to Intel
         logger.info('Running Intel Flow...');
         
+        // Fetch recent topics to avoid repetition
+        const recentTopics = await supabaseService.getRecentIntelTopics(5);
+        logger.info('Recent Intel Topics:', recentTopics);
+        
         // 1. Intel Agent
         const { runner: intelAgent } = await IntelAgent.build();
-        const intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}`;
+        const intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
+        
+        AVOID these recently covered topics: ${recentTopics.join(', ')}`;
         
         const intelResult = await intelAgent.ask(intelPrompt) as unknown as IntelResult;
         logger.info('Intel result:', intelResult);
@@ -183,7 +194,25 @@ export class Orchestrator {
         // 2. Generator (Intel)
         logger.info('Running Generator Agent (Intel)...');
         const { runner: generator } = await GeneratorAgent.build();
-        const generatorPrompt = `Generate a tweet for this INTEL REPORT. Ignore signal formatting instructions. Report: ${JSON.stringify(intelResult)}`;
+        const generatorPrompt = `Generate a tweet for this INTEL REPORT. 
+        
+        FORMATTING RULES:
+        1. Output MUST be a SINGLE SHORT TWEET (not a thread).
+        2. ALL TEXT MUST BE IN LOWERCASE. NO CAPITAL LETTERS AT ALL.
+        3. Use a casual, "alpha" leaker vibe.
+        4. Use this - for bullet points if listing items: " - @user did something"
+        5. Ensure the insight is unique and not generic.
+        
+        Example Style:
+        $SAME saw mindshare jump 2300% while price fell 9%. the controversy? two versions fighting it out with kols caught in crossfire.
+
+         - @dxrnell called out hypocrisy 
+         - @Dior100x defending the new ca amid rug accusations
+         - @sadcrissy lost respect over the vamp drama
+
+        kol drama drove attention but killed price action
+        
+        Report: ${JSON.stringify(intelResult)}`;
         
         const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
         logger.info('Generator result:', generatorResult);
