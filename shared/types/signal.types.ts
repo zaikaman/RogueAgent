@@ -21,6 +21,10 @@ export interface SignalContent {
   trigger_event: TriggerEvent;
   analysis: string;
   formatted_tweet: string;
+  status?: 'active' | 'tp_hit' | 'sl_hit' | 'closed';
+  current_price?: number;
+  pnl_percent?: number;
+  closed_at?: string;
 }
 
 export interface SignalRun {

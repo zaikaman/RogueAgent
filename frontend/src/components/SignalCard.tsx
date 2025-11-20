@@ -1,4 +1,4 @@
-import { ArrowUpRight, Activity } from 'lucide-react';
+import { ArrowUpRight, Activity, Target, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 
@@ -23,7 +23,24 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
     );
   }
 
-  const { token, confidence, reason, metrics } = signal.content;
+  const { token, confidence, analysis, entry_price, target_price, stop_loss, status, pnl_percent, current_price } = signal.content;
+
+  const getStatusBadge = () => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/50 animate-pulse">ACTIVE</Badge>;
+      case 'tp_hit':
+        return <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/50">TP HIT</Badge>;
+      case 'sl_hit':
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/50">SL HIT</Badge>;
+      case 'closed':
+        return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/50">CLOSED</Badge>;
+      default:
+        return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/50">PENDING</Badge>;
+    }
+  };
+
+  const pnlColor = (pnl_percent || 0) >= 0 ? 'text-green-400' : 'text-red-400';
 
   return (
     <Card className="bg-gray-900/50 border-gray-800 overflow-hidden relative group">
@@ -32,17 +49,29 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Latest Signal</div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="text-xs text-gray-500 uppercase tracking-wider">Latest Signal</div>
+              {getStatusBadge()}
+            </div>
             <CardTitle className="text-3xl font-bold text-white flex items-center gap-2">
-              {token.symbol}
+              {token?.symbol || 'UNKNOWN'}
               <Badge variant="outline" className="text-cyan-400 border-cyan-500/30 bg-cyan-950/30">
                 {confidence}/10
               </Badge>
             </CardTitle>
-            <div className="text-sm text-gray-400 mt-1">{token.name}</div>
+            <div className="text-sm text-gray-400 mt-1">{token?.name}</div>
           </div>
-          <div className="p-2 bg-cyan-500/10 rounded-lg">
-            <ArrowUpRight className="w-6 h-6 text-cyan-400" />
+          <div className="text-right">
+             {current_price && (
+                <div className="text-2xl font-mono font-bold text-white">
+                  ${current_price < 1 ? current_price.toFixed(6) : current_price.toFixed(2)}
+                </div>
+             )}
+             {pnl_percent !== undefined && (
+                <div className={`text-sm font-mono ${pnlColor}`}>
+                  {pnl_percent > 0 ? '+' : ''}{pnl_percent.toFixed(2)}%
+                </div>
+             )}
           </div>
         </div>
       </CardHeader>
@@ -50,18 +79,30 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
       <CardContent>
         <div className="space-y-4">
           <div className="p-3 bg-gray-950/50 rounded-lg border border-gray-800/50">
-            <p className="text-sm text-gray-300 leading-relaxed">
-              {reason}
+            <p className="text-sm text-gray-300 leading-relaxed line-clamp-3">
+              {analysis}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {metrics && Object.entries(metrics).slice(0, 4).map(([key, value]: [string, any]) => (
-              <div key={key} className="flex flex-col p-2 bg-gray-800/30 rounded border border-gray-800/50">
-                <span className="text-xs text-gray-500 uppercase">{key.replace(/_/g, ' ')}</span>
-                <span className="font-mono text-sm text-gray-300">{value}</span>
+          <div className="grid grid-cols-3 gap-3">
+             <div className="flex flex-col p-2 bg-gray-800/30 rounded border border-gray-800/50">
+                <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" /> Entry
+                </span>
+                <span className="font-mono text-sm text-gray-300">${entry_price}</span>
               </div>
-            ))}
+              <div className="flex flex-col p-2 bg-gray-800/30 rounded border border-gray-800/50">
+                <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                  <Target className="w-3 h-3 text-cyan-400" /> Target
+                </span>
+                <span className="font-mono text-sm text-cyan-300">${target_price}</span>
+              </div>
+              <div className="flex flex-col p-2 bg-gray-800/30 rounded border border-gray-800/50">
+                <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                  <ShieldAlert className="w-3 h-3 text-red-400" /> Stop
+                </span>
+                <span className="font-mono text-sm text-red-300">${stop_loss}</span>
+              </div>
           </div>
         </div>
       </CardContent>

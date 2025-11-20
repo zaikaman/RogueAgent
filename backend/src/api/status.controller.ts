@@ -5,12 +5,18 @@ import { config } from '../config/env.config';
 
 export const getLatestStatus = async (req: Request, res: Response) => {
   try {
-    const latestRun = await supabaseService.getLatestRun();
+    const [latestRun, latestSignal, latestIntel] = await Promise.all([
+      supabaseService.getLatestRun(),
+      supabaseService.getLatestSignal(),
+      supabaseService.getLatestIntel()
+    ]);
     
     if (!latestRun) {
       return res.json({
         status: 'idle',
         last_run: null,
+        latest_signal: null,
+        latest_intel: null,
         next_run_in: 0,
         interval_minutes: config.RUN_INTERVAL_MINUTES
       });
@@ -26,6 +32,8 @@ export const getLatestStatus = async (req: Request, res: Response) => {
     res.json({
       status: timeUntilNextRun > 0 ? 'idle' : 'due',
       last_run: latestRun,
+      latest_signal: latestSignal,
+      latest_intel: latestIntel,
       next_run_in: timeUntilNextRun,
       interval_minutes: config.RUN_INTERVAL_MINUTES
     });

@@ -223,6 +223,32 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
+
+  async getLatestSignal() {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('*')
+      .eq('type', 'signal')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async getLatestIntel() {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('*')
+      .eq('type', 'intel')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
 }
 
 export const supabaseService = new SupabaseService();

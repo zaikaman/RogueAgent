@@ -4,6 +4,7 @@ import { logger } from './utils/logger.util';
 import { telegramService } from './services/telegram.service';
 import { orchestrator } from './agents/orchestrator';
 import { supabaseService } from './services/supabase.service';
+import { signalMonitorService } from './services/signal-monitor.service';
 
 const app = createServer();
 const port = config.PORT;
@@ -17,6 +18,15 @@ const server = app.listen(port, () => {
     telegramService.setupCommandHandlers();
     telegramService.startPolling();
   }
+
+  // Start Signal Monitor (every 1 minute)
+  logger.info('Starting Signal Monitor (Interval: 1m)');
+  setInterval(() => {
+    signalMonitorService.checkActiveSignals().catch(err => logger.error('Signal monitor failed:', err));
+  }, 60 * 1000);
+  
+  // Run once immediately on startup
+  signalMonitorService.checkActiveSignals().catch(err => logger.error('Initial signal monitor failed:', err));
 
   // Start Swarm Scheduler
   const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;

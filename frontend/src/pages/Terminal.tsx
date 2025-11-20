@@ -51,8 +51,8 @@ export function Terminal() {
   };
 
   const lastRun = runStatus?.last_run;
-  const latestSignal = lastRun?.type === 'signal' ? lastRun : null;
-  const latestIntel = lastRun?.type === 'intel' ? lastRun : null;
+  const latestSignal = runStatus?.latest_signal;
+  const latestIntel = runStatus?.latest_intel;
   const lastRunTime = lastRun?.created_at;
 
   return (
