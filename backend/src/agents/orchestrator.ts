@@ -7,6 +7,8 @@ import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
 import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
+import { coingeckoService } from '../services/coingecko.service';
+import { birdeyeService } from '../services/birdeye.service';
 
 interface ScannerResult {
   candidates: Array<{
@@ -56,8 +58,38 @@ export class Orchestrator {
     try {
       // 1. Scanner
       logger.info('Running Scanner Agent...');
+
+      // Fetch data manually to avoid tool calling issues with custom LLM
+      logger.info('Fetching market data for Scanner...');
+      const [trendingCg, trendingBe, topGainers] = await Promise.all([
+        coingeckoService.getTrending().catch(e => { logger.error('CG Trending Error', e); return []; }),
+        birdeyeService.getTrendingTokens(10).catch(e => { logger.error('Birdeye Trending Error', e); return []; }),
+        coingeckoService.getTopGainersLosers().catch(e => { logger.error('CG Gainers Error', e); return []; })
+      ]);
+
+      const marketData = {
+        trending_coingecko: trendingCg.map((c: any) => ({
+          name: c.item.name,
+          symbol: c.item.symbol,
+          rank: c.item.market_cap_rank
+        })),
+        trending_birdeye: trendingBe.map((c: any) => ({
+          name: c.name,
+          symbol: c.symbol,
+          rank: c.rank,
+          volume24h: c.volume24hUSD
+        })),
+        top_gainers: topGainers.slice(0, 15).map((c: any) => ({
+          name: c.name,
+          symbol: c.symbol,
+          change_24h: c.price_change_percentage_24h
+        }))
+      };
+
       const { runner: scanner } = await ScannerAgent.build();
-      const scannerResult = await scanner.ask('Scan the market for top trending tokens.') as unknown as ScannerResult;
+      const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}`;
+      
+      const scannerResult = await scanner.ask(scannerPrompt) as unknown as ScannerResult;
       
       logger.info('Scanner result:', scannerResult);
 
@@ -103,34 +135,9 @@ export class Orchestrator {
 
       logger.info('Generator result:', generatorResult);
 
-      // 4. Publisher (Twitter only via Agent, Telegram via Broadcast)
+      // 4. Publisher (Twitter check)
       logger.info('Running Publisher Agent (Twitter check)...');
-      // We skip asking PublisherAgent to do Telegram because we will broadcast manually below.
-      // We can still ask it to "prepare" or just skip this step if we only use it for Twitter which is delayed anyway.
-      // Actually, let's just do the broadcast directly.
       
-      logger.info('Broadcasting signal to subscribed users...');
-      const subscribedUsers = await supabaseService.getSubscribedUsers();
-      let telegramSentCount = 0;
-
-      if (subscribedUsers.length > 0) {
-        logger.info(`Found ${subscribedUsers.length} users to notify.`);
-        for (const user of subscribedUsers) {
-          if (user.telegram_user_id) {
-            const sent = await telegramService.sendMessage(
-              generatorResult.formatted_content, 
-              user.telegram_user_id.toString()
-            );
-            if (sent) telegramSentCount++;
-          }
-        }
-        logger.info(`Broadcast complete. Sent to ${telegramSentCount}/${subscribedUsers.length} users.`);
-      } else {
-        logger.info('No subscribed users found for broadcast.');
-      }
-
-      const telegramDeliveredAt = telegramSentCount > 0 ? new Date().toISOString() : null;
-
       // 5. Save Result
       const signalContent = {
         token: analyzerResult.selected_token,
@@ -162,7 +169,7 @@ export class Orchestrator {
         analyzerResult.signal_details.confidence,
         undefined,
         publicPostedAt,
-        telegramDeliveredAt
+        null
       );
       
       logger.info('Run completed successfully.');

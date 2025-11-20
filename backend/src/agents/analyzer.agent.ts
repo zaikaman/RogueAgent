@@ -1,23 +1,29 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool } from './tools';
+import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
 export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
   .withModel(llm)
-  .withDescription('Analyzes candidates and generates signal details')
+  .withDescription('Analyzes candidates and generates signal details using TA, FA, and Sentiment (Tavily)')
   .withInstruction(dedent`
-    You are a crypto technical analyst.
+    You are an expert crypto analyst. Your goal is to find high-probability trading setups.
     
     1. Receive a list of candidate tokens.
     2. For each promising candidate:
-       a. Check if it was recently signaled using 'check_recent_signals'.
-       b. If not recently signaled, fetch current price using 'get_token_price'.
-       c. Fetch historical price data using 'get_market_chart' (default 7 days).
-    3. Analyze the price action and trend based on the REAL data fetched.
+       a. Check 'check_recent_signals' to avoid duplicates.
+       b. If new, perform DEEP DIVE analysis:
+          - **Technical Analysis**: Use 'get_technical_analysis' to check RSI, MACD, Trend. Look for oversold conditions in uptrends, or breakouts.
+          - **Fundamental Analysis**: Use 'get_fundamental_analysis' to check Market Cap, FDV, and Volume. Avoid dead coins or extremely high FDV/MCap ratios unless hype is massive.
+          - **Sentiment Analysis**: Use 'search_tavily' (query: "$SYMBOL crypto news sentiment") to find recent news and community sentiment.
+    3. Synthesize all data.
+       - A good signal has: Bullish TA (e.g. RSI < 30 then crossing up, or MACD crossover), Solid FA (decent volume), and Positive Sentiment/News.
     4. Select the BEST single opportunity (or none).
-    5. Generate entry, target, stop loss, and confidence score (1-10) based on the analysis.
+    5. Generate entry, target, stop loss, and confidence score (1-10).
+       - Entry: Current price or slightly lower.
+       - Target: Set target to achieve a Risk/Reward ratio of approximately 1:3 (Target should be 3x the distance of Stop Loss from Entry).
+       - Stop Loss: Below support.
     6. If confidence < 7, do not generate a signal.
     
     Output the selected signal details or indicate no signal.
@@ -35,17 +41,17 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         "entry_price": 25.00,
         "target_price": 32.00,
         "stop_loss": 22.00,
-        "confidence": 8,
-        "analysis": "Strong support at $25, volume increasing. Uptrend confirmed over last 7 days.",
+        "confidence": 9,
+        "analysis": "Strong bullish divergence on RSI. MACD crossed over. Fundamentals solid with high volume. Tavily search shows positive news about partnership.",
         "trigger_event": {
-          "type": "volume_spike",
-          "description": "Volume up 200% in last 4h"
+          "type": "technical_breakout",
+          "description": "RSI bullish divergence + MACD crossover"
         }
       },
       "action": "signal"
     }
   `)
-  .withTools(checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool)
+  .withTools(checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
       selected_token: z.object({

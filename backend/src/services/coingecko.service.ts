@@ -64,6 +64,30 @@ class CoinGeckoService {
     }
   }
 
+  async getTopGainersLosers(): Promise<any> {
+    try {
+      // Note: This endpoint might require Pro API or specific parameters on public.
+      // Public API doesn't have a direct "top gainers" endpoint easily accessible without parsing large lists.
+      // However, we can use /coins/markets with order=price_change_percentage_24h_desc
+      
+      const response = await axios.get(`${this.baseUrl}/coins/markets`, {
+        params: {
+          vs_currency: 'usd',
+          order: 'price_change_percentage_24h_desc',
+          per_page: 20,
+          page: 1,
+          sparkline: false,
+          price_change_percentage: '24h',
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+      return response.data || [];
+    } catch (error) {
+      logger.error('CoinGecko Top Gainers API error:', error);
+      return [];
+    }
+  }
+
   async getTokenPriceByAddress(platformId: string, contractAddress: string): Promise<number | null> {
     const cacheKey = `${platformId}:${contractAddress}`;
     const cached = this.cache.get(cacheKey);
@@ -92,6 +116,26 @@ class CoinGeckoService {
       return null;
     } catch (error) {
       logger.error(`CoinGecko Token Price API error for ${platformId}:${contractAddress}:`, error);
+      return null;
+    }
+  }
+
+  async getCoinDetails(tokenId: string): Promise<any | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/coins/${tokenId}`, {
+        params: {
+          localization: false,
+          tickers: false,
+          market_data: true,
+          community_data: true,
+          developer_data: true,
+          sparkline: false,
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      logger.error(`CoinGecko Coin Details API error for ${tokenId}:`, error);
       return null;
     }
   }

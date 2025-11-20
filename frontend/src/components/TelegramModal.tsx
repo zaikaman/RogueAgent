@@ -18,7 +18,7 @@ export function TelegramModal({ isOpen, onClose, walletAddress }: TelegramModalP
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4 text-sm text-gray-300">
-          <p>1. Start the bot <a href="https://t.me/rogueadkbot" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">@Rogue</a></p>
+          <p>1. - <a href="https://t.me/rogueadkbot" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">@Rogue</a></p>
           <p>2. Send the following command to the bot:</p>
           <div className="bg-gray-950 p-3 rounded border border-gray-800 font-mono text-xs select-all">
             /verify {walletAddress}

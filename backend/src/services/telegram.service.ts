@@ -59,6 +59,12 @@ export class TelegramService {
     }
   }
   
+  stopPolling() {
+    if (this.bot && this.bot.isPolling()) {
+      this.bot.stopPolling();
+    }
+  }
+  
   getBot() {
       return this.bot;
   }
