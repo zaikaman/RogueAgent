@@ -12,7 +12,7 @@ export function Countdown({ lastRunTime }: CountdownProps) {
   useEffect(() => {
     if (!lastRunTime) return;
 
-    const CYCLE_DURATION = 20 * 60 * 1000; // 20 minutes
+    const CYCLE_DURATION = 60 * 60 * 1000; // 60 minutes
     
     const interval = setInterval(() => {
       const lastRun = new Date(lastRunTime).getTime();

@@ -50,8 +50,10 @@ export function Terminal() {
     setShowTelegramModal(false);
   };
 
-  const latestSignal = runStatus?.latestRun?.type === 'signal' ? runStatus.latestRun : null;
-  const lastRunTime = runStatus?.latestRun?.created_at;
+  const lastRun = runStatus?.last_run;
+  const latestSignal = lastRun?.type === 'signal' ? lastRun : null;
+  const latestIntel = lastRun?.type === 'intel' ? lastRun : null;
+  const lastRunTime = lastRun?.created_at;
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500/30">
@@ -111,8 +113,8 @@ export function Terminal() {
               <History className="w-5 h-5 text-cyan-400" />
               Latest Intel Thread
             </h2>
-            {latestSignal?.content?.formatted_tweet ? (
-              <IntelThread content={latestSignal.content.formatted_tweet} />
+            {latestIntel?.content?.formatted_tweet ? (
+              <IntelThread content={latestIntel.content.formatted_tweet} />
             ) : (
               <div className="p-8 text-center border border-gray-800 rounded-xl bg-gray-900/30 text-gray-500">
                 No intel thread available for the latest run.

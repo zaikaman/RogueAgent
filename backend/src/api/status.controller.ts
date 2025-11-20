@@ -14,9 +14,9 @@ export const getLatestStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate time until next run (assuming 20 min cycle)
+    // Calculate time until next run (assuming 60 min cycle)
     const lastRunTime = new Date(latestRun.created_at).getTime();
-    const nextRunTime = lastRunTime + 20 * 60 * 1000;
+    const nextRunTime = lastRunTime + 60 * 60 * 1000;
     const now = Date.now();
     const timeUntilNextRun = Math.max(0, nextRunTime - now);
 

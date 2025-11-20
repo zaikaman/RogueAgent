@@ -1,6 +1,5 @@
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Separator } from './ui/separator';
 
 interface IntelThreadProps {
   content: string;
