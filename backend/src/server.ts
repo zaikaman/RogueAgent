@@ -12,7 +12,7 @@ export const createServer = () => {
   // CORS Configuration
   const allowedOrigins = [
     'http://localhost:5173', // Vite dev
-    'https://rogue-agent-frontend.vercel.app', // Production (example)
+    'https://rogue-adk.vercel.app', // Production 
     process.env.FRONTEND_URL // Configurable
   ].filter(Boolean);
 

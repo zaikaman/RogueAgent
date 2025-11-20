@@ -51,6 +51,19 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        noir: {
+          black: '#0A0A0A',
+          dark: '#1E1E1E',
+          gray: '#2D2D2D',
+          light: '#3F3F3F',
+        },
+        teal: {
+          glow: '#00D4FF',
+          dark: '#00A8CC',
+        },
+        success: '#00FF88',
+        danger: '#FF0055',
+        warning: '#FFB800',
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -66,10 +79,18 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'glitch': 'glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
+        'scan': 'scan 3s linear infinite',
+        'marquee': 'marquee 25s linear infinite',
       },
     },
   },
