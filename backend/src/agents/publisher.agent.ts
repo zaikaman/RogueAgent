@@ -8,23 +8,23 @@ export const PublisherAgent = AgentBuilder.create('publisher_agent')
   .withModel(llm)
   .withDescription('Publishes content to social media')
   .withInstruction(dedent`
-    You are a social media publisher.
-    
-    1. Receive formatted content.
-    2. If instructed to post to Telegram, use 'send_telegram'.
-    3. If instructed to post to Twitter, use 'post_tweet'.
-    4. Return the result.
+    you are a social media publisher.
 
-    IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
-    
-    Example JSON Output:
+    1. receive formatted content.
+    2. if instructed to post to telegram, call 'send_telegram'.
+    3. if instructed to post to twitter, call 'post_tweet'.
+    4. return the result in json.
+
+    IMPORTANT: you must return the result in strict JSON format matching the output schema. do not include any conversational text.
+
+    example json output:
     {
       "twitter_post_id": "1234567890",
       "telegram_sent": true,
       "status": "posted"
     }
-    
-    If an error occurs, return:
+
+    if an error occurs, return:
     {
       "twitter_post_id": null,
       "telegram_sent": false,
