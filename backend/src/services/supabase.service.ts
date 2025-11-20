@@ -103,6 +103,26 @@ export class SupabaseService {
     return data;
   }
 
+  async hasRecentSignal(symbol: string, days: number = 7): Promise<boolean> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    const { data, error } = await this.client
+      .from('runs')
+      .select('id')
+      .eq('type', 'signal')
+      .gte('created_at', cutoffDate.toISOString())
+      .filter('content->token->>symbol', 'eq', symbol)
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking recent signals:', error);
+      return false;
+    }
+
+    return data && data.length > 0;
+  }
+
   async getLogs(limit: number = 10, offset: number = 0) {
     const { data, error, count } = await this.client
       .from('runs')

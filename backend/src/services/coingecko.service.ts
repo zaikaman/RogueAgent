@@ -95,6 +95,26 @@ class CoinGeckoService {
       return null;
     }
   }
+
+  async getMarketChart(tokenId: string, days: number = 7): Promise<{ prices: [number, number][] } | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/coins/${tokenId}/market_chart`, {
+        params: {
+          vs_currency: 'usd',
+          days: days,
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) {
+        logger.warn(`CoinGecko Market Chart not found for ${tokenId} (404)`);
+      } else {
+        logger.error(`CoinGecko Market Chart API error for ${tokenId}:`, error.message);
+      }
+      return null;
+    }
+  }
 }
 
 export const coingeckoService = new CoinGeckoService();

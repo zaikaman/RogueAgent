@@ -12,6 +12,7 @@ export const getTrendingCoinsTool = createTool({
     const coins = await coingeckoService.getTrending();
     return {
       coins: coins.map((c: any) => ({
+        id: c.item.id,
         name: c.item.name,
         symbol: c.item.symbol,
         market_cap_rank: c.item.market_cap_rank,
@@ -34,6 +35,26 @@ export const getTokenPriceTool = createTool({
   },
 });
 
+export const getMarketChartTool = createTool({
+  name: 'get_market_chart',
+  description: 'Get historical market data (prices) for a token',
+  schema: z.object({
+    tokenId: z.string().describe('The CoinGecko API ID of the token'),
+    days: z.number().optional().default(7).describe('Number of days of data to fetch (default: 7)'),
+  }) as any,
+  fn: async ({ tokenId, days }) => {
+    const data = await coingeckoService.getMarketChart(tokenId, days || 7);
+    if (!data) return { error: 'Failed to fetch market chart data' };
+    
+    // Simplify data to reduce token usage - just return prices
+    // Format: [timestamp, price]
+    return { 
+      prices: data.prices,
+      summary: `Fetched ${data.prices.length} data points for ${tokenId} over last ${days} days`
+    };
+  },
+});
+
 export const checkRecentSignalsTool = createTool({
   name: 'check_recent_signals',
   description: 'Check if a token has been signaled in the last 7 days',
@@ -41,8 +62,8 @@ export const checkRecentSignalsTool = createTool({
     symbol: z.string(),
   }) as any,
   fn: async ({ symbol }) => {
-    // Mock implementation for now until we add the method to supabaseService
-    return { has_recent_signal: false, last_signal_date: null };
+    const hasRecent = await supabaseService.hasRecentSignal(symbol, 7);
+    return { has_recent_signal: hasRecent, last_signal_date: hasRecent ? 'recent' : null };
   },
 });
 

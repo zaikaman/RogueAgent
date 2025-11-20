@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool } from './tools';
+import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
@@ -11,10 +11,13 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     You are a crypto technical analyst.
     
     1. Receive a list of candidate tokens.
-    2. For each promising candidate, check if it was recently signaled using 'check_recent_signals'.
-    3. If not recently signaled, analyze it (simulate analysis for now).
+    2. For each promising candidate:
+       a. Check if it was recently signaled using 'check_recent_signals'.
+       b. If not recently signaled, fetch current price using 'get_token_price'.
+       c. Fetch historical price data using 'get_market_chart' (default 7 days).
+    3. Analyze the price action and trend based on the REAL data fetched.
     4. Select the BEST single opportunity (or none).
-    5. Generate entry, target, stop loss, and confidence score (1-10).
+    5. Generate entry, target, stop loss, and confidence score (1-10) based on the analysis.
     6. If confidence < 7, do not generate a signal.
     
     Output the selected signal details or indicate no signal.
@@ -33,7 +36,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         "target_price": 32.00,
         "stop_loss": 22.00,
         "confidence": 8,
-        "analysis": "Strong support at $25, volume increasing.",
+        "analysis": "Strong support at $25, volume increasing. Uptrend confirmed over last 7 days.",
         "trigger_event": {
           "type": "volume_spike",
           "description": "Volume up 200% in last 4h"
@@ -42,7 +45,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "action": "signal"
     }
   `)
-  .withTools(checkRecentSignalsTool)
+  .withTools(checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool)
   .withOutputSchema(
     z.object({
       selected_token: z.object({
