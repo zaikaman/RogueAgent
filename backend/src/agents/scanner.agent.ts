@@ -4,8 +4,8 @@ import { getTrendingCoinsTool, getTokenPriceTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
-export const ScannerAgent = AgentBuilder.withModel(llm)
-  .withName('scanner_agent')
+export const ScannerAgent = AgentBuilder.create('scanner_agent')
+  .withModel(llm)
   .withDescription('Scans the crypto ecosystem for potential signals')
   .withInstruction(dedent`
     You are a crypto market scanner. Your job is to identify potential tokens for trading signals.
@@ -14,7 +14,7 @@ export const ScannerAgent = AgentBuilder.withModel(llm)
     2. Filter for tokens that look interesting (e.g. low rank, high activity).
     3. Return a list of potential candidates with brief reasons.
   `)
-  .withTools([getTrendingCoinsTool, getTokenPriceTool])
+  .withTools(getTrendingCoinsTool, getTokenPriceTool)
   .withOutputSchema(
     z.object({
       candidates: z.array(
@@ -25,5 +25,5 @@ export const ScannerAgent = AgentBuilder.withModel(llm)
           reason: z.string(),
         })
       ),
-    })
+    }) as any
   );

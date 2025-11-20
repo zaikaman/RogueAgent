@@ -1,6 +1,6 @@
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { Terminal, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface LogEntry {
   id: string;

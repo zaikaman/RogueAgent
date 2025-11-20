@@ -1,4 +1,4 @@
-import { ArrowUpRight, Activity, BarChart3 } from 'lucide-react';
+import { ArrowUpRight, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 

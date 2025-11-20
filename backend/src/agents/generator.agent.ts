@@ -3,8 +3,8 @@ import { llm } from '../config/llm.config';
 import { z } from 'zod';
 import dedent from 'dedent';
 
-export const GeneratorAgent = AgentBuilder.withModel(llm)
-  .withName('generator_agent')
+export const GeneratorAgent = AgentBuilder.create('generator_agent')
+  .withModel(llm)
   .withDescription('Formats the signal into a tweet/post')
   .withInstruction(dedent`
     You are a social media content generator for 'Rogue Signals'.
@@ -32,5 +32,5 @@ export const GeneratorAgent = AgentBuilder.withModel(llm)
   .withOutputSchema(
     z.object({
       formatted_content: z.string(),
-    })
+    }) as any
   );

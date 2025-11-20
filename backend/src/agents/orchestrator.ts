@@ -8,6 +8,45 @@ import { randomUUID } from 'crypto';
 import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
 
+interface ScannerResult {
+  candidates: Array<{
+    symbol: string;
+    name: string;
+    coingecko_id?: string;
+    reason: string;
+  }>;
+}
+
+interface AnalyzerResult {
+  selected_token: {
+    symbol: string;
+    name: string;
+    coingecko_id: string;
+  } | null;
+  signal_details: {
+    entry_price: number;
+    target_price: number;
+    stop_loss: number;
+    confidence: number;
+    analysis: string;
+    trigger_event: {
+      type: string;
+      description: string;
+    };
+  } | null;
+  action: 'signal' | 'skip';
+}
+
+interface GeneratorResult {
+  formatted_content: string;
+}
+
+interface PublisherResult {
+  twitter_post_id: string | null;
+  telegram_sent?: boolean;
+  status: 'posted' | 'failed' | 'skipped';
+}
+
 export class Orchestrator {
   async runSwarm() {
     const runId = randomUUID();
@@ -18,7 +57,7 @@ export class Orchestrator {
       // 1. Scanner
       logger.info('Running Scanner Agent...');
       const { runner: scanner } = await ScannerAgent.build();
-      const scannerResult = await scanner.ask('Scan the market for top trending tokens.');
+      const scannerResult = await scanner.ask('Scan the market for top trending tokens.') as unknown as ScannerResult;
       
       logger.info('Scanner result:', scannerResult);
 
@@ -37,7 +76,7 @@ export class Orchestrator {
         ? `Analyze these candidates for a Sunday Deep Dive Report. Focus on weekly trends and major catalysts: ${JSON.stringify(scannerResult.candidates)}`
         : `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}`;
       
-      const analyzerResult = await analyzer.ask(analyzerPrompt);
+      const analyzerResult = await analyzer.ask(analyzerPrompt) as unknown as AnalyzerResult;
 
       logger.info('Analyzer result:', analyzerResult);
 
@@ -60,7 +99,7 @@ export class Orchestrator {
           details: analyzerResult.signal_details
         })}`;
 
-      const generatorResult = await generator.ask(generatorPrompt);
+      const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
 
       logger.info('Generator result:', generatorResult);
 
@@ -69,7 +108,7 @@ export class Orchestrator {
       const { runner: publisher } = await PublisherAgent.build();
       const publisherResult = await publisher.ask(
         `Post this content to Telegram: ${generatorResult.formatted_content}`
-      );
+      ) as unknown as PublisherResult;
       
       logger.info('Publisher result:', publisherResult);
       const telegramDeliveredAt = publisherResult.telegram_sent ? new Date().toISOString() : null;
@@ -129,21 +168,21 @@ export class Orchestrator {
       // 1. Scanner (Targeted)
       logger.info('Running Scanner Agent for custom request...');
       const { runner: scanner } = await ScannerAgent.build();
-      const scannerResult = await scanner.ask(`Get market data and news for ${tokenSymbol}.`);
+      const scannerResult = await scanner.ask(`Get market data and news for ${tokenSymbol}.`) as unknown as ScannerResult;
       
       // 2. Analyzer
       logger.info('Running Analyzer Agent for custom request...');
       const { runner: analyzer } = await AnalyzerAgent.build();
       const analyzerResult = await analyzer.ask(
         `Analyze this token for a custom report: ${JSON.stringify(scannerResult)}`
-      );
+      ) as unknown as AnalyzerResult;
 
       // 3. Generator
       logger.info('Running Generator Agent for custom request...');
       const { runner: generator } = await GeneratorAgent.build();
       const generatorResult = await generator.ask(
         `Generate a custom analysis report for ${tokenSymbol}: ${JSON.stringify(analyzerResult)}`
-      );
+      ) as unknown as GeneratorResult;
 
       // 4. Deliver via Telegram DM
       const user = await supabaseService.getUser(walletAddress);

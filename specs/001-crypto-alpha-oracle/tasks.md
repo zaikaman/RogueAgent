@@ -191,7 +191,7 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 **Purpose**: Production readiness, testing, deployment configuration
 
-- [ ] T096 [P] Add health check endpoint GET /health in backend/src/api/health.controller.ts
+- [x] T096 [P] Add health check endpoint GET /health in backend/src/api/health.controller.ts
 - [ ] T097 [P] Setup Cron-Job.org account and configure 20-minute ping
 - [ ] T098 [P] Create Jest test setup for backend in backend/jest.config.js
 - [ ] T099 [P] Create Vitest config for frontend in frontend/vitest.config.ts

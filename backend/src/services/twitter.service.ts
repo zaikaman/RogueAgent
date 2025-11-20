@@ -6,32 +6,50 @@ import { retry } from '../utils/retry.util';
 class TwitterService {
   private baseUrl = 'https://api.twitterapi.io/twitter';
 
+  private get apiKey() {
+    return config.TWITTERIO_API_KEY || config.TWITTER_API_KEY;
+  }
+
   constructor() {
-    if (!config.TWITTER_API_KEY) {
-      logger.warn('⚠️ TWITTER_API_KEY missing. Twitter service will not function.');
+    if (!this.apiKey) {
+      logger.warn('⚠️ TWITTER_API_KEY/TWITTERIO_API_KEY missing. Twitter service will not function.');
     }
   }
 
   async postTweet(text: string): Promise<string | null> {
-    if (!config.TWITTER_API_KEY) {
+    const apiKey = this.apiKey;
+    if (!apiKey) {
       logger.warn('Skipping tweet: No API key');
+      return null;
+    }
+
+    if (!config.TWITTER_LOGIN_COOKIES || !config.TWITTER_PROXY) {
+      logger.warn('Skipping tweet: Missing TWITTER_LOGIN_COOKIES or TWITTER_PROXY. These are required for twitterapi.io v2.');
       return null;
     }
 
     return retry(async () => {
       try {
         const response = await axios.post(
-          `${this.baseUrl}/tweet/create`,
-          { text },
+          `${this.baseUrl}/create_tweet_v2`,
+          {
+            tweet_text: text,
+            login_cookies: config.TWITTER_LOGIN_COOKIES,
+            proxy: config.TWITTER_PROXY,
+          },
           {
             headers: {
-              'X-API-Key': config.TWITTER_API_KEY,
+              'X-API-Key': apiKey,
             },
           }
         );
 
-        logger.info('Tweet posted successfully', { id: response.data?.id });
-        return response.data?.id || 'mock-id';
+        if (response.data?.status === 'success') {
+          logger.info('Tweet posted successfully', { id: response.data?.tweet_id });
+          return response.data?.tweet_id;
+        } else {
+          throw new Error(response.data?.msg || 'Unknown error from TwitterAPI.io');
+        }
       } catch (error: any) {
         if (error.response?.status === 429) {
           logger.warn('Twitter rate limit hit');

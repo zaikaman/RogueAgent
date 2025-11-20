@@ -1,5 +1,5 @@
 import { createTool } from '@iqai/adk';
-import * as z from 'zod';
+const z = require('@iqai/adk/node_modules/zod');
 import { coingeckoService } from '../services/coingecko.service';
 import { supabaseService } from '../services/supabase.service';
 import { twitterService } from '../services/twitter.service';

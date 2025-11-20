@@ -4,8 +4,8 @@ import { checkRecentSignalsTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
-export const AnalyzerAgent = AgentBuilder.withModel(llm)
-  .withName('analyzer_agent')
+export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
+  .withModel(llm)
   .withDescription('Analyzes candidates and generates signal details')
   .withInstruction(dedent`
     You are a crypto technical analyst.
@@ -19,7 +19,7 @@ export const AnalyzerAgent = AgentBuilder.withModel(llm)
     
     Output the selected signal details or indicate no signal.
   `)
-  .withTools([checkRecentSignalsTool])
+  .withTools(checkRecentSignalsTool)
   .withOutputSchema(
     z.object({
       selected_token: z.object({
@@ -39,5 +39,5 @@ export const AnalyzerAgent = AgentBuilder.withModel(llm)
         }),
       }).nullable(),
       action: z.enum(['signal', 'skip']),
-    })
+    }) as any
   );

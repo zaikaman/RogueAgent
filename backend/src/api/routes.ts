@@ -5,12 +5,12 @@ import * as logsController from './logs.controller';
 import { tiersController } from './tiers.controller';
 import { customRequestsController } from './custom-requests.controller';
 
+import * as healthController from './health.controller';
+
 const router = Router();
 
 // Health check
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+router.get('/health', healthController.healthCheck);
 
 // Trigger run
 router.post('/run', runController.triggerRun);
