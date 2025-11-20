@@ -26,20 +26,20 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project root directories (backend/, frontend/, shared/)
-- [ ] T002 [P] Initialize backend Node.js project with TypeScript in backend/package.json
-- [ ] T003 [P] Initialize frontend React/Vite project with TypeScript in frontend/package.json
-- [ ] T004 [P] Setup TypeScript config with strict mode in backend/tsconfig.json
-- [ ] T005 [P] Setup TypeScript config for React in frontend/tsconfig.json
-- [ ] T006 [P] Configure ESLint + Prettier for backend in backend/.eslintrc.json
-- [ ] T007 [P] Configure ESLint + Prettier for frontend in frontend/.eslintrc.json
-- [ ] T008 [P] Setup Tailwind CSS config in frontend/tailwind.config.js
-- [ ] T009 [P] Install shadcn/ui CLI and initialize in frontend/components/ui/
-- [ ] T010 Create environment template files (backend/.env.example, frontend/.env.example)
-- [ ] T011 [P] Setup Supabase project and copy connection details to .env
+- [x] T001 Create project root directories (backend/, frontend/, shared/)
+- [x] T002 [P] Initialize backend Node.js project with TypeScript in backend/package.json
+- [x] T003 [P] Initialize frontend React/Vite project with TypeScript in frontend/package.json
+- [x] T004 [P] Setup TypeScript config with strict mode in backend/tsconfig.json
+- [x] T005 [P] Setup TypeScript config for React in frontend/tsconfig.json
+- [x] T006 [P] Configure ESLint + Prettier for backend in backend/.eslintrc.json
+- [x] T007 [P] Configure ESLint + Prettier for frontend in frontend/.eslintrc.json
+- [x] T008 [P] Setup Tailwind CSS config in frontend/tailwind.config.js
+- [x] T009 [P] Install shadcn/ui CLI and initialize in frontend/components/ui/
+- [x] T010 Create environment template files (backend/.env.example, frontend/.env.example)
+- [x] T011 [P] Setup Supabase project and copy connection details to .env
 - [ ] T012 Run Supabase migration from data-model.md in Supabase dashboard
-- [ ] T013 [P] Create Procfile for Heroku deployment in backend/Procfile
-- [ ] T014 [P] Create vercel.json for frontend deployment in frontend/vercel.json
+- [x] T013 [P] Create Procfile for Heroku deployment in backend/Procfile
+- [x] T014 [P] Create vercel.json for frontend deployment in frontend/vercel.json
 
 ---
 
