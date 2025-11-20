@@ -64,7 +64,7 @@ heroku buildpacks:set https://github.com/timanovsky/subdir-heroku-buildpack.git 
 heroku buildpacks:add heroku/nodejs -a <APP_NAME>
 
 # Tell the subdir buildpack which subdirectory to use
-heroku config:set SUBDIR=backend -a <APP_NAME>
+heroku config:set PROJECT_PATH=backend -a <APP_NAME>
 ```
 
 Notes about the buildpack order: the subdir buildpack should run before the language buildpack so it changes into the `backend` folder for the subsequent Node build.
@@ -117,7 +117,7 @@ heroku logs --tail -a <APP_NAME>
 
 **Summary / Quick checklist**
 - **Frontend:** Deploy `frontend/` to Vercel (build: `npm run build`, outDir: `dist`).
-- **Backend:** Create Heroku app, set subdir buildpack and Node buildpack, set `SUBDIR=backend`, set environment variables, push to Heroku or connect GitHub.
+- **Backend:** Create Heroku app, set subdir buildpack and Node buildpack, set `PROJECT_PATH=backend`, set environment variables, push to Heroku or connect GitHub.
 
 If you want, I can:
 - Add a `heroku-postbuild` script to `backend/package.json` so Heroku always runs the TypeScript build during deployment.
