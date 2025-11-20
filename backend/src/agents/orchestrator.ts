@@ -2,6 +2,7 @@ import { ScannerAgent } from './scanner.agent';
 import { AnalyzerAgent } from './analyzer.agent';
 import { GeneratorAgent } from './generator.agent';
 import { PublisherAgent } from './publisher.agent';
+import { IntelAgent } from './intel.agent';
 import { logger } from '../utils/logger.util';
 import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
@@ -49,6 +50,13 @@ interface PublisherResult {
   status: 'posted' | 'failed' | 'skipped';
 }
 
+interface IntelResult {
+  topic: string;
+  insight: string;
+  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+  related_tokens: string[];
+}
+
 export class Orchestrator {
   async runSwarm() {
     const runId = randomUUID();
@@ -56,11 +64,8 @@ export class Orchestrator {
     logger.info(`Starting swarm run ${runId}`);
 
     try {
-      // 1. Scanner
-      logger.info('Running Scanner Agent...');
-
       // Fetch data manually to avoid tool calling issues with custom LLM
-      logger.info('Fetching market data for Scanner...');
+      logger.info('Fetching market data...');
       const [trendingCg, trendingBe, topGainers] = await Promise.all([
         coingeckoService.getTrending().catch(e => { logger.error('CG Trending Error', e); return []; }),
         birdeyeService.getTrendingTokens(10).catch(e => { logger.error('Birdeye Trending Error', e); return []; }),
@@ -86,91 +91,127 @@ export class Orchestrator {
         }))
       };
 
-      const { runner: scanner } = await ScannerAgent.build();
-      const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}`;
-      
-      const scannerResult = await scanner.ask(scannerPrompt) as unknown as ScannerResult;
-      
-      logger.info('Scanner result:', scannerResult);
+      // Check signal quota
+      const recentSignals = await supabaseService.getRecentSignalCount(24);
+      const shouldTrySignal = recentSignals < 3;
+      logger.info(`Recent signals (24h): ${recentSignals}. Should try signal: ${shouldTrySignal}`);
 
-      if (!scannerResult.candidates || scannerResult.candidates.length === 0) {
-        logger.info('No candidates found. Skipping run.');
-        await this.saveRun(runId, 'skip', {}, startTime);
-        return;
+      let signalGenerated = false;
+      let analyzerResult: AnalyzerResult | null = null;
+
+      if (shouldTrySignal) {
+        // 1. Scanner
+        logger.info('Running Scanner Agent...');
+        const { runner: scanner } = await ScannerAgent.build();
+        const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}`;
+        
+        const scannerResult = await scanner.ask(scannerPrompt) as unknown as ScannerResult;
+        logger.info('Scanner result:', scannerResult);
+
+        if (scannerResult.candidates && scannerResult.candidates.length > 0) {
+          // 2. Analyzer
+          logger.info('Running Analyzer Agent...');
+          const { runner: analyzer } = await AnalyzerAgent.build();
+          const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}`;
+          
+          analyzerResult = await analyzer.ask(analyzerPrompt) as unknown as AnalyzerResult;
+          logger.info('Analyzer result:', analyzerResult);
+
+          if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
+            signalGenerated = true;
+          } else {
+            logger.info('Analyzer decided to skip signal generation.');
+          }
+        } else {
+          logger.info('No candidates found by Scanner.');
+        }
       }
 
-      const isSunday = new Date().getDay() === 0;
-
-      // 2. Analyzer
-      logger.info('Running Analyzer Agent...');
-      const { runner: analyzer } = await AnalyzerAgent.build();
-      const analyzerPrompt = isSunday 
-        ? `Analyze these candidates for a Sunday Deep Dive Report. Focus on weekly trends and major catalysts: ${JSON.stringify(scannerResult.candidates)}`
-        : `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}`;
-      
-      const analyzerResult = await analyzer.ask(analyzerPrompt) as unknown as AnalyzerResult;
-
-      logger.info('Analyzer result:', analyzerResult);
-
-      if (analyzerResult.action === 'skip' || !analyzerResult.selected_token || !analyzerResult.signal_details) {
-        logger.info('Analyzer decided to skip.');
-        await this.saveRun(runId, 'skip', {}, startTime);
-        return;
-      }
-
-      // 3. Generator
-      logger.info('Running Generator Agent...');
-      const { runner: generator } = await GeneratorAgent.build();
-      const generatorPrompt = isSunday
-        ? `Generate a Sunday Deep Dive Report for this signal. Be extensive and detailed: ${JSON.stringify({
-          token: analyzerResult.selected_token,
-          details: analyzerResult.signal_details
-        })}`
-        : `Generate content for this signal: ${JSON.stringify({
+      if (signalGenerated && analyzerResult && analyzerResult.signal_details) {
+        // 3. Generator (Signal)
+        logger.info('Running Generator Agent (Signal)...');
+        const { runner: generator } = await GeneratorAgent.build();
+        const generatorPrompt = `Generate content for this signal: ${JSON.stringify({
           token: analyzerResult.selected_token,
           details: analyzerResult.signal_details
         })}`;
 
-      const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
+        const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
+        logger.info('Generator result:', generatorResult);
 
-      logger.info('Generator result:', generatorResult);
-
-      // 4. Publisher (Twitter check)
-      logger.info('Running Publisher Agent (Twitter check)...');
-      
-      // 5. Save Result
-      const signalContent = {
-        token: analyzerResult.selected_token,
-        ...analyzerResult.signal_details,
-        formatted_tweet: generatorResult.formatted_content,
-      };
-
-      // Post to Twitter immediately
-      logger.info(`Posting to Twitter for run ${runId}...`);
-      let publicPostedAt = null;
-      try {
-        const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
-        
-        if (tweetId) {
-          logger.info(`Twitter post successful: ${tweetId}`);
-          publicPostedAt = new Date().toISOString();
-        } else {
-          logger.warn(`Twitter post failed for run ${runId}. Check API keys and cookies.`);
+        // 4. Publisher
+        logger.info(`Posting Signal to Twitter for run ${runId}...`);
+        let publicPostedAt = null;
+        try {
+          const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
+          if (tweetId) {
+            logger.info(`Twitter post successful: ${tweetId}`);
+            publicPostedAt = new Date().toISOString();
+          }
+        } catch (error) {
+          logger.error(`Error in Twitter post for run ${runId}`, error);
         }
-      } catch (error) {
-        logger.error(`Error in Twitter post for run ${runId}`, error);
-      }
 
-      await this.saveRun(
-        runId, 
-        'signal', 
-        signalContent, 
-        startTime, 
-        analyzerResult.signal_details.confidence,
-        undefined,
-        publicPostedAt,
-        null
-      );
+        const signalContent = {
+          token: analyzerResult.selected_token,
+          ...analyzerResult.signal_details,
+          formatted_tweet: generatorResult.formatted_content,
+        };
+
+        await this.saveRun(
+          runId, 
+          'signal', 
+          signalContent, 
+          startTime, 
+          analyzerResult.signal_details.confidence,
+          undefined,
+          publicPostedAt,
+          null
+        );
+
+      } else {
+        // Fallback to Intel
+        logger.info('Running Intel Flow...');
+        
+        // 1. Intel Agent
+        const { runner: intelAgent } = await IntelAgent.build();
+        const intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}`;
+        
+        const intelResult = await intelAgent.ask(intelPrompt) as unknown as IntelResult;
+        logger.info('Intel result:', intelResult);
+
+        // 2. Generator (Intel)
+        logger.info('Running Generator Agent (Intel)...');
+        const { runner: generator } = await GeneratorAgent.build();
+        const generatorPrompt = `Generate a tweet for this INTEL REPORT. Ignore signal formatting instructions. Report: ${JSON.stringify(intelResult)}`;
+        
+        const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
+        logger.info('Generator result:', generatorResult);
+
+        // 3. Publisher
+        logger.info(`Posting Intel to Twitter for run ${runId}...`);
+        let publicPostedAt = null;
+        try {
+          const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
+          if (tweetId) {
+            logger.info(`Twitter post successful: ${tweetId}`);
+            publicPostedAt = new Date().toISOString();
+          }
+        } catch (error) {
+          logger.error(`Error in Twitter post for run ${runId}`, error);
+        }
+
+        await this.saveRun(
+          runId, 
+          'intel', 
+          { ...intelResult, formatted_tweet: generatorResult.formatted_content }, 
+          startTime, 
+          null,
+          undefined,
+          publicPostedAt,
+          null
+        );
+      }
       
       logger.info('Run completed successfully.');
 

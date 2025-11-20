@@ -123,6 +123,23 @@ export class SupabaseService {
     return data && data.length > 0;
   }
 
+  async getRecentSignalCount(hours: number = 24): Promise<number> {
+    const timeAgo = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    
+    const { count, error } = await this.client
+      .from('runs')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', 'signal')
+      .gte('created_at', timeAgo);
+
+    if (error) {
+      console.error('Error fetching recent signal count:', error);
+      return 0;
+    }
+    
+    return count || 0;
+  }
+
   async getLogs(limit: number = 10, offset: number = 0) {
     const { data, error, count } = await this.client
       .from('runs')

@@ -10,10 +10,18 @@ import { TechnicalAnalysis } from '../utils/ta.util';
 
 export const getTrendingCoinsTool = createTool({
   name: 'get_trending_coins',
-  description: 'Get top trending coins from CoinGecko and Birdeye (Solana)',
+  description: 'Get top trending coins from CoinGecko and Birdeye (Solana, Ethereum, Base, Arbitrum)',
   fn: async () => {
     const cgCoins = await coingeckoService.getTrending();
-    const beCoins = await birdeyeService.getTrendingTokens(5);
+    
+    const chains = ['solana', 'ethereum', 'base', 'arbitrum'];
+    const bePromises = chains.map(chain => 
+      birdeyeService.getTrendingTokens(3, chain)
+        .then(tokens => tokens.map(t => ({ ...t, chain })))
+        .catch(() => [])
+    );
+    const beResults = await Promise.all(bePromises);
+    const beCoins = beResults.flat();
 
     const mappedCg = cgCoins.map((c: any) => ({
       source: 'coingecko',
@@ -26,6 +34,7 @@ export const getTrendingCoinsTool = createTool({
 
     const mappedBe = beCoins.map((c: any) => ({
       source: 'birdeye',
+      chain: c.chain,
       id: c.address, // Birdeye uses address as ID often
       name: c.name,
       symbol: c.symbol,
@@ -80,33 +89,54 @@ export const searchTavilyTool = createTool({
 
 export const getTokenPriceTool = createTool({
   name: 'get_token_price',
-  description: 'Get current price of a token in USD',
+  description: 'Get current price of a token in USD. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
   schema: z.object({
-    tokenId: z.string().describe('The CoinGecko API ID of the token (e.g. "bitcoin", "solana")'),
+    tokenId: z.string().optional().describe('The CoinGecko API ID of the token (e.g. "bitcoin", "solana")'),
+    chain: z.string().optional().describe('The chain for address-based lookup (e.g. "solana", "ethereum")'),
+    address: z.string().optional().describe('The token address for chain-based lookup'),
   }) as any,
-  fn: async ({ tokenId }) => {
-    const price = await coingeckoService.getPrice(tokenId);
-    return { tokenId, price };
+  fn: async ({ tokenId, chain, address }) => {
+    if (chain && address) {
+      const overview = await birdeyeService.getTokenOverview(address, chain);
+      return { chain, address, price: overview?.price, priceChange24h: overview?.priceChange24hPercent };
+    }
+    if (tokenId) {
+      const price = await coingeckoService.getPrice(tokenId);
+      return { tokenId, price };
+    }
+    return { error: "Must provide tokenId OR (chain and address)" };
   },
 });
 
 export const getMarketChartTool = createTool({
   name: 'get_market_chart',
-  description: 'Get historical market data (prices) for a token',
+  description: 'Get historical market data (prices) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
   schema: z.object({
-    tokenId: z.string().describe('The CoinGecko API ID of the token'),
+    tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
+    chain: z.string().optional().describe('The chain for address-based lookup'),
+    address: z.string().optional().describe('The token address for chain-based lookup'),
     days: z.number().optional().default(7).describe('Number of days of data to fetch (default: 7)'),
   }) as any,
-  fn: async ({ tokenId, days }) => {
-    const data = await coingeckoService.getMarketChart(tokenId, days || 7);
-    if (!data) return { error: 'Failed to fetch market chart data' };
-    
-    // Simplify data to reduce token usage - just return prices
-    // Format: [timestamp, price]
-    return { 
-      prices: data.prices,
-      summary: `Fetched ${data.prices.length} data points for ${tokenId} over last ${days} days`
-    };
+  fn: async ({ tokenId, chain, address, days }) => {
+    if (chain && address) {
+      const history = await birdeyeService.getPriceHistory(address, chain, days || 7);
+      return {
+        prices: history.map((h: any) => [h.unixTime * 1000, h.value]),
+        summary: `Fetched ${history.length} data points for ${address} on ${chain} over last ${days} days`
+      };
+    }
+    if (tokenId) {
+      const data = await coingeckoService.getMarketChart(tokenId, days || 7);
+      if (!data) return { error: 'Failed to fetch market chart data' };
+      
+      // Simplify data to reduce token usage - just return prices
+      // Format: [timestamp, price]
+      return { 
+        prices: data.prices,
+        summary: `Fetched ${data.prices.length} data points for ${tokenId} over last ${days} days`
+      };
+    }
+    return { error: "Must provide tokenId OR (chain and address)" };
   },
 });
 
@@ -171,18 +201,32 @@ export const searchTweetsTool = createTool({
 
 export const getTechnicalAnalysisTool = createTool({
   name: 'get_technical_analysis',
-  description: 'Calculate technical indicators (RSI, MACD, SMA, EMA) for a token',
+  description: 'Calculate technical indicators (RSI, MACD, SMA, EMA) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
   schema: z.object({
-    tokenId: z.string().describe('The CoinGecko API ID of the token'),
+    tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
+    chain: z.string().optional().describe('The chain for address-based lookup'),
+    address: z.string().optional().describe('The token address for chain-based lookup'),
     days: z.number().optional().default(30).describe('Days of history to analyze (default: 30)'),
   }) as any,
-  fn: async ({ tokenId, days }) => {
-    const data = await coingeckoService.getMarketChart(tokenId, days || 30);
-    if (!data || !data.prices || data.prices.length === 0) {
+  fn: async ({ tokenId, chain, address, days }) => {
+    let prices: number[] = [];
+
+    if (chain && address) {
+      const history = await birdeyeService.getPriceHistory(address, chain, days || 30);
+      prices = history.map((h: any) => h.value);
+    } else if (tokenId) {
+      const data = await coingeckoService.getMarketChart(tokenId, days || 30);
+      if (data && data.prices) {
+        prices = data.prices.map(p => p[1]);
+      }
+    } else {
+      return { error: "Must provide tokenId OR (chain and address)" };
+    }
+
+    if (prices.length === 0) {
       return { error: 'No price data available' };
     }
 
-    const prices = data.prices.map(p => p[1]);
     const currentPrice = prices[prices.length - 1];
 
     const rsi = TechnicalAnalysis.calculateRSI(prices, 14);
@@ -215,32 +259,55 @@ export const getTechnicalAnalysisTool = createTool({
 
 export const getFundamentalAnalysisTool = createTool({
   name: 'get_fundamental_analysis',
-  description: 'Get fundamental metrics (Market Cap, FDV, Volume) for a token',
+  description: 'Get fundamental metrics (Market Cap, FDV, Volume) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
   schema: z.object({
-    tokenId: z.string().describe('The CoinGecko API ID of the token'),
+    tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
+    chain: z.string().optional().describe('The chain for address-based lookup'),
+    address: z.string().optional().describe('The token address for chain-based lookup'),
   }) as any,
-  fn: async ({ tokenId }) => {
-    const details = await coingeckoService.getCoinDetails(tokenId);
-    if (!details) return { error: 'Failed to fetch coin details' };
+  fn: async ({ tokenId, chain, address }) => {
+    if (chain && address) {
+      const overview = await birdeyeService.getTokenOverview(address, chain);
+      if (!overview) return { error: 'Failed to fetch token overview' };
+      return {
+        market_cap: overview.mc,
+        fully_diluted_valuation: overview.fdv, // Birdeye uses fdv usually
+        total_volume: overview.v24hUSD,
+        circulating_supply: overview.circulatingSupply,
+        total_supply: overview.supply,
+        max_supply: overview.maxSupply, // Check if available
+        description: 'Data from Birdeye',
+        links: {
+          homepage: overview.website,
+          twitter_screen_name: overview.twitter,
+        }
+      };
+    }
 
-    const marketData = details.market_data;
-    
-    return {
-      market_cap: marketData.market_cap?.usd,
-      fully_diluted_valuation: marketData.fully_diluted_valuation?.usd,
-      total_volume: marketData.total_volume?.usd,
-      circulating_supply: marketData.circulating_supply,
-      total_supply: marketData.total_supply,
-      max_supply: marketData.max_supply,
-      ath: marketData.ath?.usd,
-      ath_change_percentage: marketData.ath_change_percentage?.usd,
-      atl: marketData.atl?.usd,
-      atl_change_percentage: marketData.atl_change_percentage?.usd,
-      description: details.description?.en ? details.description.en.substring(0, 200) + '...' : 'No description',
-      links: {
-        homepage: details.links?.homepage?.[0],
-        twitter_screen_name: details.links?.twitter_screen_name,
-      }
-    };
+    if (tokenId) {
+      const details = await coingeckoService.getCoinDetails(tokenId);
+      if (!details) return { error: 'Failed to fetch coin details' };
+
+      const marketData = details.market_data;
+      
+      return {
+        market_cap: marketData.market_cap?.usd,
+        fully_diluted_valuation: marketData.fully_diluted_valuation?.usd,
+        total_volume: marketData.total_volume?.usd,
+        circulating_supply: marketData.circulating_supply,
+        total_supply: marketData.total_supply,
+        max_supply: marketData.max_supply,
+        ath: marketData.ath?.usd,
+        ath_change_percentage: marketData.ath_change_percentage?.usd,
+        atl: marketData.atl?.usd,
+        atl_change_percentage: marketData.atl_change_percentage?.usd,
+        description: details.description?.en ? details.description.en.substring(0, 200) + '...' : 'No description',
+        links: {
+          homepage: details.links?.homepage?.[0],
+          twitter_screen_name: details.links?.twitter_screen_name,
+        }
+      };
+    }
+    return { error: "Must provide tokenId OR (chain and address)" };
   },
 });

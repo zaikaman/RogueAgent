@@ -12,7 +12,6 @@ class BirdeyeService {
   private get headers() {
     return {
       'X-API-KEY': this.apiKey || '',
-      'x-chain': 'solana', // Defaulting to Solana as it's popular for low caps on Birdeye
       'accept': 'application/json'
     };
   }
@@ -23,12 +22,12 @@ class BirdeyeService {
     }
   }
 
-  async getTrendingTokens(limit: number = 10): Promise<any[]> {
+  async getTrendingTokens(limit: number = 10, chain: string = 'solana'): Promise<any[]> {
     if (!this.apiKey) return [];
 
     try {
       const response = await axios.get(`${this.baseUrl}/defi/token_trending`, {
-        headers: this.headers,
+        headers: { ...this.headers, 'x-chain': chain },
         params: {
           sort_by: 'rank',
           sort_type: 'asc',
@@ -47,12 +46,12 @@ class BirdeyeService {
     }
   }
 
-  async getTokenOverview(address: string): Promise<any | null> {
+  async getTokenOverview(address: string, chain: string = 'solana'): Promise<any | null> {
     if (!this.apiKey) return null;
 
     try {
       const response = await axios.get(`${this.baseUrl}/defi/token_overview`, {
-        headers: this.headers,
+        headers: { ...this.headers, 'x-chain': chain },
         params: { address }
       });
 
@@ -63,6 +62,35 @@ class BirdeyeService {
     } catch (error: any) {
       logger.error(`Birdeye Token Overview API error for ${address}:`, error.message);
       return null;
+    }
+  }
+
+  async getPriceHistory(address: string, chain: string = 'solana', days: number = 7): Promise<any[]> {
+    if (!this.apiKey) return [];
+    
+    // Calculate time_from and time_to
+    const timeTo = Math.floor(Date.now() / 1000);
+    const timeFrom = timeTo - (days * 24 * 60 * 60);
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/defi/history_price`, {
+        headers: { ...this.headers, 'x-chain': chain },
+        params: {
+          address: address,
+          address_type: 'token',
+          type: '1H', // 1 hour interval
+          time_from: timeFrom,
+          time_to: timeTo
+        }
+      });
+
+      if (response.data && response.data.success) {
+        return response.data.data.items || [];
+      }
+      return [];
+    } catch (error: any) {
+      logger.error(`Birdeye History API error for ${address}:`, error.message);
+      return [];
     }
   }
 }

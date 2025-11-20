@@ -32,6 +32,8 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           "symbol": "BONK",
           "name": "Bonk",
           "coingecko_id": "bonk",
+          "chain": "solana",
+          "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
           "reason": "Trending on Birdeye, 20% gain in 24h. X search confirms new exchange listing rumor."
         }
       ]
@@ -44,6 +46,8 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           symbol: z.string(),
           name: z.string(),
           coingecko_id: z.string().optional(),
+          chain: z.string().optional(),
+          address: z.string().optional(),
           reason: z.string(),
         })
       ),

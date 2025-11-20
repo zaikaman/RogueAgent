@@ -35,7 +35,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "selected_token": {
         "symbol": "SOL",
         "name": "Solana",
-        "coingecko_id": "solana"
+        "coingecko_id": "solana",
+        "chain": "solana",
+        "address": "So11111111111111111111111111111111111111112"
       },
       "signal_details": {
         "entry_price": 25.00,
@@ -57,7 +59,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       selected_token: z.object({
         symbol: z.string(),
         name: z.string(),
-        coingecko_id: z.string(),
+        coingecko_id: z.string().optional(),
+        chain: z.string().optional(),
+        address: z.string().optional(),
       }).nullable(),
       signal_details: z.object({
         entry_price: z.number(),
