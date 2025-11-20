@@ -2,7 +2,7 @@ import { supabaseService } from './supabase.service';
 import { birdeyeService } from './birdeye.service';
 import { coingeckoService } from './coingecko.service';
 import { logger } from '../utils/logger.util';
-import { SignalContent } from '../../../shared/types/signal.types';
+import { SignalContent } from '../../shared/types/signal.types';
 
 export class SignalMonitorService {
   

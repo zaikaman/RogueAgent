@@ -2,9 +2,9 @@
   "name": "rogue-agent-backend",
   "version": "1.0.0",
   "description": "Backend for Rogue Crypto Alpha Oracle",
-  "main": "dist/backend/src/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
-    "start": "node dist/backend/src/index.js",
+    "start": "node dist/src/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "heroku-postbuild": "npm run build",
