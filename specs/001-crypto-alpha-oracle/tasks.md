@@ -49,21 +49,21 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T015 [P] Create shared TypeScript types for Signal in shared/types/signal.types.ts
-- [ ] T016 [P] Create shared TypeScript types for IntelThread in shared/types/intel.types.ts
-- [ ] T017 [P] Create shared TypeScript types for User/Tier in shared/types/user.types.ts
-- [ ] T018 [P] Setup Zod schemas for runtime validation in backend/src/types/validation.ts
-- [ ] T019 Create Supabase service with connection pool in backend/src/services/supabase.service.ts
-- [ ] T020 [P] Create retry utility with exponential backoff in backend/src/utils/retry.util.ts
-- [ ] T021 [P] Create logger utility writing to Supabase in backend/src/utils/logger.util.ts
-- [ ] T022 Create Express app setup with CORS and middleware in backend/src/server.ts
-- [ ] T023 Create main entry point and port listener in backend/src/index.ts
-- [ ] T024 [P] Create API routes file with Express router in backend/src/api/routes.ts
-- [ ] T025 [P] Create environment config loader with validation in backend/src/config/env.config.ts
-- [ ] T026 [P] Setup React Query provider in frontend/src/App.tsx
-- [ ] T027 [P] Create Axios API service wrapper in frontend/src/services/api.service.ts
-- [ ] T028 [P] Create error message constants in frontend/src/constants/messages.ts
-- [ ] T029 [P] Create tier threshold constants in frontend/src/constants/tiers.ts
+- [x] T015 [P] Create shared TypeScript types for Signal in shared/types/signal.types.ts
+- [x] T016 [P] Create shared TypeScript types for IntelThread in shared/types/intel.types.ts
+- [x] T017 [P] Create shared TypeScript types for User/Tier in shared/types/user.types.ts
+- [x] T018 [P] Setup Zod schemas for runtime validation in backend/src/types/validation.ts
+- [x] T019 Create Supabase service with connection pool in backend/src/services/supabase.service.ts
+- [x] T020 [P] Create retry utility with exponential backoff in backend/src/utils/retry.util.ts
+- [x] T021 [P] Create logger utility writing to Supabase in backend/src/utils/logger.util.ts
+- [x] T022 Create Express app setup with CORS and middleware in backend/src/server.ts
+- [x] T023 Create main entry point and port listener in backend/src/index.ts
+- [x] T024 [P] Create API routes file with Express router in backend/src/api/routes.ts
+- [x] T025 [P] Create environment config loader with validation in backend/src/config/env.config.ts
+- [x] T026 [P] Setup React Query provider in frontend/src/App.tsx
+- [x] T027 [P] Create Axios API service wrapper in frontend/src/services/api.service.ts
+- [x] T028 [P] Create error message constants in frontend/src/constants/messages.ts
+- [x] T029 [P] Create tier threshold constants in frontend/src/constants/tiers.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

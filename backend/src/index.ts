@@ -1,15 +1,12 @@
-import express from 'express';
-import dotenv from 'dotenv';
+import { createServer } from './server';
+import { config } from './config/env.config';
+import { logger } from './utils/logger.util';
 
-dotenv.config();
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('Rogue Agent Backend');
-});
+const app = createServer();
+const port = config.PORT;
 
 app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+  logger.info(`Server is running at http://localhost:${port}`);
+  logger.info(`Environment: ${config.NODE_ENV}`);
 });
+
