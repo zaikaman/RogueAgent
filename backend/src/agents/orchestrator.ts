@@ -5,6 +5,8 @@ import { PublisherAgent } from './publisher.agent';
 import { logger } from '../utils/logger.util';
 import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
+import { twitterService } from '../services/twitter.service';
+import { telegramService } from '../services/telegram.service';
 
 export class Orchestrator {
   async runSwarm() {
@@ -26,12 +28,16 @@ export class Orchestrator {
         return;
       }
 
+      const isSunday = new Date().getDay() === 0;
+
       // 2. Analyzer
       logger.info('Running Analyzer Agent...');
       const { runner: analyzer } = await AnalyzerAgent.build();
-      const analyzerResult = await analyzer.ask(
-        `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}`
-      );
+      const analyzerPrompt = isSunday 
+        ? `Analyze these candidates for a Sunday Deep Dive Report. Focus on weekly trends and major catalysts: ${JSON.stringify(scannerResult.candidates)}`
+        : `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}`;
+      
+      const analyzerResult = await analyzer.ask(analyzerPrompt);
 
       logger.info('Analyzer result:', analyzerResult);
 
@@ -44,12 +50,17 @@ export class Orchestrator {
       // 3. Generator
       logger.info('Running Generator Agent...');
       const { runner: generator } = await GeneratorAgent.build();
-      const generatorResult = await generator.ask(
-        `Generate content for this signal: ${JSON.stringify({
+      const generatorPrompt = isSunday
+        ? `Generate a Sunday Deep Dive Report for this signal. Be extensive and detailed: ${JSON.stringify({
           token: analyzerResult.selected_token,
           details: analyzerResult.signal_details
         })}`
-      );
+        : `Generate content for this signal: ${JSON.stringify({
+          token: analyzerResult.selected_token,
+          details: analyzerResult.signal_details
+        })}`;
+
+      const generatorResult = await generator.ask(generatorPrompt);
 
       logger.info('Generator result:', generatorResult);
 
@@ -57,10 +68,11 @@ export class Orchestrator {
       logger.info('Running Publisher Agent...');
       const { runner: publisher } = await PublisherAgent.build();
       const publisherResult = await publisher.ask(
-        `Post this content to Twitter: ${generatorResult.formatted_content}`
+        `Post this content to Telegram: ${generatorResult.formatted_content}`
       );
       
       logger.info('Publisher result:', publisherResult);
+      const telegramDeliveredAt = publisherResult.telegram_sent ? new Date().toISOString() : null;
 
       // 5. Save Result
       const signalContent = {
@@ -69,7 +81,24 @@ export class Orchestrator {
         formatted_tweet: generatorResult.formatted_content,
       };
 
-      const publicPostedAt = publisherResult.status === 'posted' ? new Date().toISOString() : null;
+      // Schedule Twitter Post (30 mins delay)
+      const TWITTER_DELAY_MS = 30 * 60 * 1000; // 30 mins
+      
+      setTimeout(async () => {
+        try {
+          logger.info(`Executing delayed Twitter post for run ${runId}`);
+          const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
+          
+          if (tweetId) {
+            logger.info(`Delayed Twitter post successful: ${tweetId}`);
+            await supabaseService.updateRun(runId, { public_posted_at: new Date().toISOString() });
+          } else {
+            logger.error(`Delayed Twitter post failed for run ${runId}`);
+          }
+        } catch (error) {
+          logger.error(`Error in delayed Twitter post for run ${runId}`, error);
+        }
+      }, TWITTER_DELAY_MS);
 
       await this.saveRun(
         runId, 
@@ -78,14 +107,74 @@ export class Orchestrator {
         startTime, 
         analyzerResult.signal_details.confidence,
         undefined,
-        publicPostedAt
+        null,
+        telegramDeliveredAt
       );
       
-      logger.info('Run completed successfully.');
+      logger.info('Run completed successfully. Twitter post scheduled.');
 
     } catch (error: any) {
       logger.error('Swarm run failed:', error);
       await this.saveRun(runId, 'skip', { error: error.message }, startTime, null, error.message);
+    }
+  }
+
+  async processCustomRequest(requestId: string, tokenSymbol: string, walletAddress: string) {
+    logger.info(`Processing custom request ${requestId} for ${tokenSymbol}`);
+    
+    try {
+      // Update status to processing
+      await supabaseService.updateCustomRequest(requestId, { status: 'processing' });
+
+      // 1. Scanner (Targeted)
+      logger.info('Running Scanner Agent for custom request...');
+      const { runner: scanner } = await ScannerAgent.build();
+      const scannerResult = await scanner.ask(`Get market data and news for ${tokenSymbol}.`);
+      
+      // 2. Analyzer
+      logger.info('Running Analyzer Agent for custom request...');
+      const { runner: analyzer } = await AnalyzerAgent.build();
+      const analyzerResult = await analyzer.ask(
+        `Analyze this token for a custom report: ${JSON.stringify(scannerResult)}`
+      );
+
+      // 3. Generator
+      logger.info('Running Generator Agent for custom request...');
+      const { runner: generator } = await GeneratorAgent.build();
+      const generatorResult = await generator.ask(
+        `Generate a custom analysis report for ${tokenSymbol}: ${JSON.stringify(analyzerResult)}`
+      );
+
+      // 4. Deliver via Telegram DM
+      const user = await supabaseService.getUser(walletAddress);
+      if (user && user.telegram_user_id) {
+        await telegramService.sendMessage(
+          `**Custom Analysis for ${tokenSymbol}**\n\n${generatorResult.formatted_content}`,
+          user.telegram_user_id.toString()
+        );
+        
+        await supabaseService.updateCustomRequest(requestId, { 
+          status: 'completed',
+          analysis_result: generatorResult,
+          delivered_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
+        });
+      } else {
+        logger.warn(`User ${walletAddress} has no Telegram ID linked. Cannot deliver.`);
+        await supabaseService.updateCustomRequest(requestId, { 
+          status: 'completed',
+          error_message: 'User has no Telegram ID linked',
+          completed_at: new Date().toISOString()
+        });
+      }
+
+    } catch (error: any) {
+      logger.error(`Custom request processing failed for ${requestId}`, error);
+      await supabaseService.updateCustomRequest(requestId, { 
+        status: 'failed',
+        error_message: error.message,
+        completed_at: new Date().toISOString()
+      });
     }
   }
 
@@ -96,7 +185,8 @@ export class Orchestrator {
     startTime: number,
     confidence?: number | null,
     errorMessage?: string,
-    publicPostedAt?: string | null
+    publicPostedAt?: string | null,
+    telegramDeliveredAt?: string | null
   ) {
     const endTime = Date.now();
     await supabaseService.createRun({
@@ -109,6 +199,7 @@ export class Orchestrator {
       confidence_score: confidence,
       error_message: errorMessage,
       public_posted_at: publicPostedAt,
+      telegram_delivered_at: telegramDeliveredAt,
     });
   }
 }

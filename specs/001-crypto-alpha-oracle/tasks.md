@@ -126,27 +126,27 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 ### Implementation for User Story 2
 
-- [ ] T053 [P] [US2] Install node-telegram-bot-api in backend/package.json
-- [ ] T054 [US2] Create Telegram service with Bot API client in backend/src/services/telegram.service.ts
-- [ ] T055 [US2] Install @solana/web3.js and @solana/spl-token in backend/package.json
-- [ ] T056 [US2] Create Solana service for RPC wallet verification in backend/src/services/solana.service.ts
-- [ ] T057 [US2] Implement wallet balance query via Solana RPC in Solana service
-- [ ] T058 [US2] Add $RGE token USD conversion using cached CoinGecko price
-- [ ] T059 [US2] Implement tier calculation (NONE/SILVER/GOLD/DIAMOND) based on USD value
-- [ ] T060 [US2] Add 5-second timeout to Solana RPC calls with fallback to cached tier
-- [ ] T061 [US2] Create Tier Manager Agent for wallet verification in backend/src/agents/tier-manager.agent.ts
-- [ ] T062 [US2] Implement POST /api/tiers/verify endpoint in backend/src/api/tiers.controller.ts
-- [ ] T063 [US2] Save verified users to Supabase users table with tier
-- [ ] T064 [US2] Add Telegram bot /verify command handler for wallet connection
-- [ ] T065 [US2] Implement tier-based early delivery in Publisher Agent (T-30min Gold, T-15min Silver)
-- [ ] T066 [US2] Add Telegram message delivery with retry logic
-- [ ] T067 [US2] Save telegram_delivered_at timestamp to runs table
-- [ ] T068 [US2] Implement automatic tier downgrade on next verification if balance drops
-- [ ] T069 [US2] Add Sunday deep-dive report generation for Gold/Diamond tiers
-- [ ] T070 [US2] Implement Diamond tier custom request creation in backend/src/api/custom-requests.controller.ts
-- [ ] T071 [US2] Add daily quota check (1 request per 24 hours) for Diamond tier
-- [ ] T072 [US2] Create custom request processing logic in Analyzer Agent
-- [ ] T073 [US2] Deliver custom analysis privately via Telegram DM
+- [x] T053 [P] [US2] Install node-telegram-bot-api in backend/package.json
+- [x] T054 [US2] Create Telegram service with Bot API client in backend/src/services/telegram.service.ts
+- [x] T055 [US2] Install ethers in backend/package.json
+- [x] T056 [US2] Create Fraxtal service for RPC wallet verification in backend/src/services/fraxtal.service.ts
+- [x] T057 [US2] Implement wallet balance query via Fraxtal RPC in Fraxtal service
+- [x] T058 [US2] Add $RGE token USD conversion using cached CoinGecko price
+- [x] T059 [US2] Implement tier calculation (NONE/SILVER/GOLD/DIAMOND) based on USD value
+- [x] T060 [US2] Add 5-second timeout to Fraxtal RPC calls with fallback to cached tier
+- [x] T061 [US2] Create Tier Manager Agent for wallet verification in backend/src/agents/tier-manager.agent.ts
+- [x] T062 [US2] Implement POST /api/tiers/verify endpoint in backend/src/api/tiers.controller.ts
+- [x] T063 [US2] Save verified users to Supabase users table with tier
+- [x] T064 [US2] Add Telegram bot /verify command handler for wallet connection
+- [x] T065 [US2] Implement tier-based early delivery in Publisher Agent (T-30min Gold, T-15min Silver)
+- [x] T066 [US2] Add Telegram message delivery with retry logic
+- [x] T067 [US2] Save telegram_delivered_at timestamp to runs table
+- [x] T068 [US2] Implement automatic tier downgrade on next verification if balance drops
+- [x] T069 [US2] Add Sunday deep-dive report generation for Gold/Diamond tiers
+- [x] T070 [US2] Implement Diamond tier custom request creation in backend/src/api/custom-requests.controller.ts
+- [x] T071 [US2] Add daily quota check (1 request per 24 hours) for Diamond tier
+- [x] T072 [US2] Create custom request processing logic in Analyzer Agent
+- [x] T073 [US2] Deliver custom analysis privately via Telegram DM
 
 **Checkpoint**: Token-gated early access working - $RGE utility demonstrated, monetization live
 
@@ -160,9 +160,9 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 ### Implementation for User Story 3
 
-- [ ] T074 [P] [US3] Install @solana/wallet-adapter-react in frontend/package.json
+- [ ] T074 [P] [US3] Install wagmi viem @tanstack/react-query in frontend/package.json
 - [ ] T075 [P] [US3] Install Recharts for data visualization in frontend/package.json
-- [ ] T076 [P] [US3] Create WalletConnect component with Solana adapter in frontend/src/components/WalletConnect.tsx
+- [ ] T076 [P] [US3] Create WalletConnect component with Wagmi in frontend/src/components/WalletConnect.tsx
 - [ ] T077 [P] [US3] Create TierDisplay component showing badge and benefits in frontend/src/components/TierDisplay.tsx
 - [ ] T078 [P] [US3] Create Countdown component with 20-minute cycle timer in frontend/src/components/Countdown.tsx
 - [ ] T079 [P] [US3] Create SignalCard component for latest public signal in frontend/src/components/SignalCard.tsx
@@ -195,7 +195,7 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 - [ ] T097 [P] Setup Cron-Job.org account and configure 20-minute ping
 - [ ] T098 [P] Create Jest test setup for backend in backend/jest.config.js
 - [ ] T099 [P] Create Vitest config for frontend in frontend/vitest.config.ts
-- [ ] T100 [P] Write unit tests for Solana service wallet verification
+- [ ] T100 [P] Write unit tests for Fraxtal service wallet verification
 - [ ] T101 [P] Write unit tests for tier calculation logic
 - [ ] T102 [P] Write integration test for POST /api/run endpoint
 - [ ] T103 [P] Write integration test for GET /api/run-status endpoint

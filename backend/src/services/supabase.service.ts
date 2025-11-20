@@ -98,6 +98,63 @@ export class SupabaseService {
     if (error) throw error;
     return { data, count };
   }
+
+  async upsertUser(userData: {
+    wallet_address: string;
+    tier: string;
+    rge_balance_usd: number;
+    last_verified_at: string;
+    telegram_user_id?: number;
+    telegram_username?: string;
+  }) {
+    const { data, error } = await this.client
+      .from('users')
+      .upsert(userData, { onConflict: 'wallet_address' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getCustomRequestsCount(walletAddress: string, since: string) {
+    const { count, error } = await this.client
+      .from('custom_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_wallet_address', walletAddress)
+      .gte('requested_at', since);
+
+    if (error) throw error;
+    return count || 0;
+  }
+
+  async createCustomRequest(requestData: {
+    user_wallet_address: string;
+    token_symbol: string;
+    token_contract?: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+  }) {
+    const { data, error } = await this.client
+      .from('custom_requests')
+      .insert(requestData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateCustomRequest(id: string, updates: any) {
+    const { data, error } = await this.client
+      .from('custom_requests')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const supabaseService = new SupabaseService();

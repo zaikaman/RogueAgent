@@ -63,6 +63,38 @@ class CoinGeckoService {
       return [];
     }
   }
+
+  async getTokenPriceByAddress(platformId: string, contractAddress: string): Promise<number | null> {
+    const cacheKey = `${platformId}:${contractAddress}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.price;
+    }
+
+    try {
+      const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/token_price/${platformId}`, {
+        params: {
+          contract_addresses: contractAddress,
+          vs_currencies: 'usd',
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+
+      // The response format for token_price is { [contract_address]: { usd: number } }
+      // Note: contract address in response is usually lowercased
+      const lowerAddress = contractAddress.toLowerCase();
+      if (response.data[lowerAddress]) {
+        const price = response.data[lowerAddress].usd;
+        this.cache.set(cacheKey, { price, timestamp: Date.now() });
+        return price;
+      }
+      
+      return null;
+    } catch (error) {
+      logger.error(`CoinGecko Token Price API error for ${platformId}:${contractAddress}:`, error);
+      return null;
+    }
+  }
 }
 
 export const coingeckoService = new CoinGeckoService();

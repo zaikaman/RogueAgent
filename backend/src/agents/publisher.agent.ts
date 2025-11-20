@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { postTweetTool } from './tools';
+import { postTweetTool, sendTelegramTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
@@ -11,13 +11,15 @@ export const PublisherAgent = AgentBuilder.withModel(llm)
     You are a social media publisher.
     
     1. Receive formatted content.
-    2. Post it to Twitter using 'post_tweet'.
-    3. Return the result.
+    2. If instructed to post to Telegram, use 'send_telegram'.
+    3. If instructed to post to Twitter, use 'post_tweet'.
+    4. Return the result.
   `)
-  .withTools([postTweetTool])
+  .withTools([postTweetTool, sendTelegramTool])
   .withOutputSchema(
     z.object({
       twitter_post_id: z.string().nullable(),
+      telegram_sent: z.boolean().optional(),
       status: z.enum(['posted', 'failed', 'skipped']),
     })
   );

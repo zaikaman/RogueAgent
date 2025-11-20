@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { coingeckoService } from '../services/coingecko.service';
 import { supabaseService } from '../services/supabase.service';
 import { twitterService } from '../services/twitter.service';
+import { telegramService } from '../services/telegram.service';
 
 export const getTrendingCoinsTool = createTool({
   name: 'get_trending_coins',
@@ -54,5 +55,18 @@ export const postTweetTool = createTool({
   fn: async ({ text }) => {
     const tweetId = await twitterService.postTweet(text);
     return { success: !!tweetId, tweetId };
+  },
+});
+
+export const sendTelegramTool = createTool({
+  name: 'send_telegram',
+  description: 'Send a message to the Telegram channel',
+  schema: z.object({
+    message: z.string().describe('The message content to send (Markdown supported)'),
+    channelId: z.string().optional().describe('Optional channel ID, defaults to configured channel'),
+  }) as any,
+  fn: async ({ message, channelId }) => {
+    const success = await telegramService.sendMessage(message, channelId);
+    return { success };
   },
 });
