@@ -160,28 +160,28 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 ### Implementation for User Story 3
 
-- [ ] T074 [P] [US3] Install wagmi viem @tanstack/react-query in frontend/package.json
-- [ ] T075 [P] [US3] Install Recharts for data visualization in frontend/package.json
-- [ ] T076 [P] [US3] Create WalletConnect component with Wagmi in frontend/src/components/WalletConnect.tsx
-- [ ] T077 [P] [US3] Create TierDisplay component showing badge and benefits in frontend/src/components/TierDisplay.tsx
-- [ ] T078 [P] [US3] Create Countdown component with 20-minute cycle timer in frontend/src/components/Countdown.tsx
-- [ ] T079 [P] [US3] Create SignalCard component for latest public signal in frontend/src/components/SignalCard.tsx
-- [ ] T080 [P] [US3] Create IntelThread component with Agent Cookie formatting in frontend/src/components/IntelThread.tsx
-- [ ] T081 [P] [US3] Create TerminalLog component for run history feed in frontend/src/components/TerminalLog.tsx
-- [ ] T082 [P] [US3] Create MindshareChart component with Recharts in frontend/src/components/MindshareChart.tsx
-- [ ] T083 [P] [US3] Create GatedContent wrapper component for tier-locked sections in frontend/src/components/GatedContent.tsx
-- [ ] T084 [US3] Create Terminal main page component in frontend/src/pages/Terminal.tsx
-- [ ] T085 [US3] Create useRunStatus hook polling /api/run-status in frontend/src/hooks/useRunStatus.ts
-- [ ] T086 [US3] Create useLogs hook fetching /api/logs in frontend/src/hooks/useLogs.ts
-- [ ] T087 [US3] Create wallet service for tier verification in frontend/src/services/wallet.service.ts
-- [ ] T088 [US3] Implement wallet connection flow calling POST /api/tiers/verify
-- [ ] T089 [US3] Add tier status update on wallet connect (3-second requirement)
-- [ ] T090 [US3] Implement countdown calculation from last run timestamp
-- [ ] T091 [US3] Add real-time signal display when countdown reaches zero
-- [ ] T092 [US3] Create historical performance view with win rate stats
-- [ ] T093 [US3] Add mindshare trend visualizations from run data
-- [ ] T094 [US3] Implement dark theme with Tailwind CSS in frontend/src/index.css
-- [ ] T095 [US3] Add loading skeletons for all async components
+- [x] T074 [P] [US3] Install wagmi viem @tanstack/react-query in frontend/package.json
+- [x] T075 [P] [US3] Install Recharts for data visualization in frontend/package.json
+- [x] T076 [P] [US3] Create WalletConnect component with Wagmi in frontend/src/components/WalletConnect.tsx
+- [x] T077 [P] [US3] Create TierDisplay component showing badge and benefits in frontend/src/components/TierDisplay.tsx
+- [x] T078 [P] [US3] Create Countdown component with 20-minute cycle timer in frontend/src/components/Countdown.tsx
+- [x] T079 [P] [US3] Create SignalCard component for latest public signal in frontend/src/components/SignalCard.tsx
+- [x] T080 [P] [US3] Create IntelThread component with Agent Cookie formatting in frontend/src/components/IntelThread.tsx
+- [x] T081 [P] [US3] Create TerminalLog component for run history feed in frontend/src/components/TerminalLog.tsx
+- [x] T082 [P] [US3] Create MindshareChart component with Recharts in frontend/src/components/MindshareChart.tsx
+- [x] T083 [P] [US3] Create GatedContent wrapper component for tier-locked sections in frontend/src/components/GatedContent.tsx
+- [x] T084 [US3] Create Terminal main page component in frontend/src/pages/Terminal.tsx
+- [x] T085 [US3] Create useRunStatus hook polling /api/run-status in frontend/src/hooks/useRunStatus.ts
+- [x] T086 [US3] Create useLogs hook fetching /api/logs in frontend/src/hooks/useLogs.ts
+- [x] T087 [US3] Create wallet service for tier verification in frontend/src/services/wallet.service.ts
+- [x] T088 [US3] Implement wallet connection flow calling POST /api/tiers/verify
+- [x] T089 [US3] Add tier status update on wallet connect (3-second requirement)
+- [x] T090 [US3] Implement countdown calculation from last run timestamp
+- [x] T091 [US3] Add real-time signal display when countdown reaches zero
+- [x] T092 [US3] Create historical performance view with win rate stats
+- [x] T093 [US3] Add mindshare trend visualizations from run data
+- [x] T094 [US3] Implement dark theme with Tailwind CSS in frontend/src/index.css
+- [x] T095 [US3] Add loading skeletons for all async components
 
 **Checkpoint**: Rogue Terminal fully functional - transparent proof of value, retention driver
 
