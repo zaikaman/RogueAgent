@@ -12,6 +12,9 @@ const envSchema = z.object({
   SOLANA_RPC_URL: z.string().url().optional(),
   COINGECKO_API_KEY: z.string().optional(),
   MORALIS_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_BASE_URL: z.string().default('https://gpt1.shupremium.com/v1'),
+  OPENAI_MODEL: z.string().default('gpt-4o'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 
@@ -26,6 +29,9 @@ const processEnv = {
   SOLANA_RPC_URL: process.env.SOLANA_RPC_URL,
   COINGECKO_API_KEY: process.env.COINGECKO_API_KEY,
   MORALIS_API_KEY: process.env.MORALIS_API_KEY,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
+  OPENAI_MODEL: process.env.OPENAI_MODEL,
   NODE_ENV: process.env.NODE_ENV,
 };
 

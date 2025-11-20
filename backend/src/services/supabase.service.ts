@@ -87,6 +87,17 @@ export class SupabaseService {
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   }
+
+  async getLogs(limit: number = 10, offset: number = 0) {
+    const { data, error, count } = await this.client
+      .from('runs')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+    return { data, count };
+  }
 }
 
 export const supabaseService = new SupabaseService();

@@ -77,19 +77,19 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 ### Implementation for User Story 4
 
-- [ ] T030 [P] [US4] Install ADK-TS dependencies (@microsoft/adk) in backend/package.json
-- [ ] T031 [P] [US4] Create Scanner Agent to collect CoinGecko/Twitter/Moralis data in backend/src/agents/scanner.agent.ts
-- [ ] T032 [P] [US4] Create Analyzer Agent for pattern detection and confidence scoring in backend/src/agents/analyzer.agent.ts
-- [ ] T033 [P] [US4] Create Generator Agent for signal/intel content generation in backend/src/agents/generator.agent.ts
-- [ ] T034 [US4] Create Agent Orchestrator to run 5-agent swarm sequentially in backend/src/agents/orchestrator.ts
-- [ ] T035 [US4] Implement POST /api/run controller to trigger swarm in backend/src/api/run.controller.ts
-- [ ] T036 [US4] Add run execution logic: save to Supabase runs table in backend/src/services/supabase.service.ts
-- [ ] T037 [P] [US4] Create CoinGecko API client service in backend/src/services/coingecko.service.ts
-- [ ] T038 [P] [US4] Add 5-minute price caching to CoinGecko service
-- [ ] T039 [US4] Implement duplicate signal prevention (7-day token cache) in Analyzer Agent
-- [ ] T040 [US4] Add confidence scoring logic (1-10 scale) in Analyzer Agent
-- [ ] T041 [US4] Implement Agent Cookie formatting style in Generator Agent
-- [ ] T042 [US4] Add skip logic when no high-confidence signals found in Orchestrator
+- [x] T030 [P] [US4] Install ADK-TS dependencies (@iqai/adk) in backend/package.json
+- [x] T031 [P] [US4] Create Scanner Agent to collect CoinGecko/Twitter/Moralis data in backend/src/agents/scanner.agent.ts
+- [x] T032 [P] [US4] Create Analyzer Agent for pattern detection and confidence scoring in backend/src/agents/analyzer.agent.ts
+- [x] T033 [P] [US4] Create Generator Agent for signal/intel content generation in backend/src/agents/generator.agent.ts
+- [x] T034 [US4] Create Agent Orchestrator to run 5-agent swarm sequentially in backend/src/agents/orchestrator.ts
+- [x] T035 [US4] Implement POST /api/run controller to trigger swarm in backend/src/api/run.controller.ts
+- [x] T036 [US4] Add run execution logic: save to Supabase runs table in backend/src/services/supabase.service.ts
+- [x] T037 [P] [US4] Create CoinGecko API client service in backend/src/services/coingecko.service.ts
+- [x] T038 [P] [US4] Add 5-minute price caching to CoinGecko service
+- [x] T039 [US4] Implement duplicate signal prevention (7-day token cache) in Analyzer Agent
+- [x] T040 [US4] Add confidence scoring logic (1-10 scale) in Analyzer Agent
+- [x] T041 [US4] Implement Agent Cookie formatting style in Generator Agent
+- [x] T042 [US4] Add skip logic when no high-confidence signals found in Orchestrator
 
 **Checkpoint**: At this point, User Story 4 should execute swarm and save results - fully functional core engine
 
@@ -103,16 +103,16 @@ description: "Implementation tasks for Rogue Crypto Alpha Oracle"
 
 ### Implementation for User Story 1
 
-- [ ] T043 [P] [US1] Install TwitterAPI.io client dependencies in backend/package.json
-- [ ] T044 [US1] Create Twitter service with TwitterAPI.io client in backend/src/services/twitter.service.ts
-- [ ] T045 [US1] Create Publisher Agent for X/Telegram posting in backend/src/agents/publisher.agent.ts
-- [ ] T046 [US1] Implement Twitter post logic with formatted signal in Publisher Agent
-- [ ] T047 [US1] Add Twitter post retry logic (3 attempts, exponential backoff) in Publisher Agent
-- [ ] T048 [US1] Update Orchestrator to call Publisher Agent after Generator in backend/src/agents/orchestrator.ts
-- [ ] T049 [US1] Save public_posted_at timestamp to runs table after successful post
-- [ ] T050 [US1] Implement GET /api/run-status to return latest run in backend/src/api/status.controller.ts
-- [ ] T051 [US1] Implement GET /api/logs with pagination in backend/src/api/logs.controller.ts
-- [ ] T052 [US1] Add error handling for Twitter rate limits (429 responses)
+- [x] T043 [P] [US1] Install TwitterAPI.io client dependencies in backend/package.json
+- [x] T044 [US1] Create Twitter service with TwitterAPI.io client in backend/src/services/twitter.service.ts
+- [x] T045 [US1] Create Publisher Agent for X/Telegram posting in backend/src/agents/publisher.agent.ts
+- [x] T046 [US1] Implement Twitter post logic with formatted signal in Publisher Agent
+- [x] T047 [US1] Add Twitter post retry logic (3 attempts, exponential backoff) in Publisher Agent
+- [x] T048 [US1] Update Orchestrator to call Publisher Agent after Generator in backend/src/agents/orchestrator.ts
+- [x] T049 [US1] Save public_posted_at timestamp to runs table after successful post
+- [x] T050 [US1] Implement GET /api/run-status to return latest run in backend/src/api/status.controller.ts
+- [x] T051 [US1] Implement GET /api/logs with pagination in backend/src/api/logs.controller.ts
+- [x] T052 [US1] Add error handling for Twitter rate limits (429 responses)
 
 **Checkpoint**: Public signals now post to Twitter automatically - viral growth engine live
 
