@@ -14,6 +14,22 @@ export const PublisherAgent = AgentBuilder.create('publisher_agent')
     2. If instructed to post to Telegram, use 'send_telegram'.
     3. If instructed to post to Twitter, use 'post_tweet'.
     4. Return the result.
+
+    IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
+    
+    Example JSON Output:
+    {
+      "twitter_post_id": "1234567890",
+      "telegram_sent": true,
+      "status": "posted"
+    }
+    
+    If an error occurs, return:
+    {
+      "twitter_post_id": null,
+      "telegram_sent": false,
+      "status": "failed"
+    }
   `)
   .withTools(postTweetTool, sendTelegramTool)
   .withOutputSchema(

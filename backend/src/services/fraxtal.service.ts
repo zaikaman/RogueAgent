@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
+import { CONTRACTS } from '../constants/tiers';
 
-const RGE_TOKEN_ADDRESS = '0xe5Ee677388a6393d135bEd00213E150b1F64b032';
 const ERC20_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
   'function decimals() view returns (uint8)',
@@ -15,8 +15,8 @@ export class FraxtalService {
 
   constructor() {
     this.provider = new ethers.JsonRpcProvider(config.FRAXTAL_RPC_URL);
-    this.tokenContract = new ethers.Contract(RGE_TOKEN_ADDRESS, ERC20_ABI, this.provider);
-    logger.info('FraxtalService initialized', { rpcUrl: config.FRAXTAL_RPC_URL, token: RGE_TOKEN_ADDRESS });
+    this.tokenContract = new ethers.Contract(CONTRACTS.RGE_TOKEN, ERC20_ABI, this.provider);
+    logger.info('FraxtalService initialized', { rpcUrl: config.FRAXTAL_RPC_URL, token: CONTRACTS.RGE_TOKEN });
   }
 
   private async getDecimals(): Promise<number> {
@@ -47,8 +47,11 @@ export class FraxtalService {
       const decimals = await this.getDecimals();
       
       const formattedBalance = ethers.formatUnits(rawBalance, decimals);
+      const balance = parseFloat(formattedBalance);
+
+      logger.info(`Fetched RGE balance for ${address}: ${balance} (Raw: ${rawBalance})`);
       
-      return parseFloat(formattedBalance);
+      return balance;
     } catch (error) {
       logger.error(`Failed to get RGE balance for ${address}`, error);
       // Return 0 on error to be safe, or throw? 

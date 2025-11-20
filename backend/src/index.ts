@@ -2,6 +2,7 @@ import { createServer } from './server';
 import { config } from './config/env.config';
 import { logger } from './utils/logger.util';
 import { telegramService } from './services/telegram.service';
+import { orchestrator } from './agents/orchestrator';
 
 const app = createServer();
 const port = config.PORT;
@@ -15,6 +16,21 @@ const server = app.listen(port, () => {
     telegramService.setupCommandHandlers();
     telegramService.startPolling();
   }
+
+  // Start Swarm Scheduler
+  const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;
+  logger.info(`Starting Swarm Scheduler (Interval: ${config.RUN_INTERVAL_MINUTES}m)`);
+  
+  // Run immediately on startup (with a slight delay)
+  setTimeout(() => {
+    logger.info('Triggering initial swarm run...');
+    orchestrator.runSwarm().catch(err => logger.error('Initial swarm run failed:', err));
+  }, 5000);
+
+  setInterval(() => {
+    logger.info('Triggering scheduled swarm run...');
+    orchestrator.runSwarm().catch(err => logger.error('Scheduled swarm run failed:', err));
+  }, intervalMs);
 });
 
 // Graceful shutdown

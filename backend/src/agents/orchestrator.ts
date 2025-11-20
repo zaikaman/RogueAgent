@@ -103,15 +103,33 @@ export class Orchestrator {
 
       logger.info('Generator result:', generatorResult);
 
-      // 4. Publisher
-      logger.info('Running Publisher Agent...');
-      const { runner: publisher } = await PublisherAgent.build();
-      const publisherResult = await publisher.ask(
-        `Post this content to Telegram: ${generatorResult.formatted_content}`
-      ) as unknown as PublisherResult;
+      // 4. Publisher (Twitter only via Agent, Telegram via Broadcast)
+      logger.info('Running Publisher Agent (Twitter check)...');
+      // We skip asking PublisherAgent to do Telegram because we will broadcast manually below.
+      // We can still ask it to "prepare" or just skip this step if we only use it for Twitter which is delayed anyway.
+      // Actually, let's just do the broadcast directly.
       
-      logger.info('Publisher result:', publisherResult);
-      const telegramDeliveredAt = publisherResult.telegram_sent ? new Date().toISOString() : null;
+      logger.info('Broadcasting signal to subscribed users...');
+      const subscribedUsers = await supabaseService.getSubscribedUsers();
+      let telegramSentCount = 0;
+
+      if (subscribedUsers.length > 0) {
+        logger.info(`Found ${subscribedUsers.length} users to notify.`);
+        for (const user of subscribedUsers) {
+          if (user.telegram_user_id) {
+            const sent = await telegramService.sendMessage(
+              generatorResult.formatted_content, 
+              user.telegram_user_id.toString()
+            );
+            if (sent) telegramSentCount++;
+          }
+        }
+        logger.info(`Broadcast complete. Sent to ${telegramSentCount}/${subscribedUsers.length} users.`);
+      } else {
+        logger.info('No subscribed users found for broadcast.');
+      }
+
+      const telegramDeliveredAt = telegramSentCount > 0 ? new Date().toISOString() : null;
 
       // 5. Save Result
       const signalContent = {
@@ -120,24 +138,21 @@ export class Orchestrator {
         formatted_tweet: generatorResult.formatted_content,
       };
 
-      // Schedule Twitter Post (30 mins delay)
-      const TWITTER_DELAY_MS = 30 * 60 * 1000; // 30 mins
-      
-      setTimeout(async () => {
-        try {
-          logger.info(`Executing delayed Twitter post for run ${runId}`);
-          const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
-          
-          if (tweetId) {
-            logger.info(`Delayed Twitter post successful: ${tweetId}`);
-            await supabaseService.updateRun(runId, { public_posted_at: new Date().toISOString() });
-          } else {
-            logger.error(`Delayed Twitter post failed for run ${runId}`);
-          }
-        } catch (error) {
-          logger.error(`Error in delayed Twitter post for run ${runId}`, error);
+      // Post to Twitter immediately
+      logger.info(`Posting to Twitter for run ${runId}...`);
+      let publicPostedAt = null;
+      try {
+        const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
+        
+        if (tweetId) {
+          logger.info(`Twitter post successful: ${tweetId}`);
+          publicPostedAt = new Date().toISOString();
+        } else {
+          logger.warn(`Twitter post failed for run ${runId}. Check API keys and cookies.`);
         }
-      }, TWITTER_DELAY_MS);
+      } catch (error) {
+        logger.error(`Error in Twitter post for run ${runId}`, error);
+      }
 
       await this.saveRun(
         runId, 
@@ -146,11 +161,11 @@ export class Orchestrator {
         startTime, 
         analyzerResult.signal_details.confidence,
         undefined,
-        null,
+        publicPostedAt,
         telegramDeliveredAt
       );
       
-      logger.info('Run completed successfully. Twitter post scheduled.');
+      logger.info('Run completed successfully.');
 
     } catch (error: any) {
       logger.error('Swarm run failed:', error);

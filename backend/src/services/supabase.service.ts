@@ -84,7 +84,22 @@ export class SupabaseService {
       .eq('wallet_address', walletAddress)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error) return null;
+    return data;
+  }
+
+  async getSubscribedUsers() {
+    // Fetch users who have a telegram_user_id (meaning they verified/started bot)
+    // and have a tier other than NONE (optional, but makes sense for "signals")
+    const { data, error } = await this.client
+      .from('users')
+      .select('telegram_user_id, telegram_username, tier')
+      .not('telegram_user_id', 'is', null);
+
+    if (error) {
+      console.error('Error fetching subscribed users:', error);
+      return [];
+    }
     return data;
   }
 
@@ -101,9 +116,9 @@ export class SupabaseService {
 
   async upsertUser(userData: {
     wallet_address: string;
-    tier: string;
-    rge_balance_usd: number;
-    last_verified_at: string;
+    tier?: string;
+    rge_balance_usd?: number;
+    last_verified_at?: string;
     telegram_user_id?: number;
     telegram_username?: string;
   }) {

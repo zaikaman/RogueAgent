@@ -18,6 +18,29 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     6. If confidence < 7, do not generate a signal.
     
     Output the selected signal details or indicate no signal.
+
+    IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
+    
+    Example JSON Output:
+    {
+      "selected_token": {
+        "symbol": "SOL",
+        "name": "Solana",
+        "coingecko_id": "solana"
+      },
+      "signal_details": {
+        "entry_price": 25.00,
+        "target_price": 32.00,
+        "stop_loss": 22.00,
+        "confidence": 8,
+        "analysis": "Strong support at $25, volume increasing.",
+        "trigger_event": {
+          "type": "volume_spike",
+          "description": "Volume up 200% in last 4h"
+        }
+      },
+      "action": "signal"
+    }
   `)
   .withTools(checkRecentSignalsTool)
   .withOutputSchema(
@@ -34,7 +57,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         confidence: z.number().min(1).max(10),
         analysis: z.string(),
         trigger_event: z.object({
-          type: z.enum(['kol_mention', 'whale_movement', 'volume_spike', 'sentiment_surge']),
+          type: z.string(),
           description: z.string(),
         }),
       }).nullable(),

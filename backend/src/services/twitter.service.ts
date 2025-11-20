@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
@@ -30,32 +29,42 @@ class TwitterService {
 
     return retry(async () => {
       try {
-        const response = await axios.post(
-          `${this.baseUrl}/create_tweet_v2`,
-          {
-            tweet_text: text,
-            login_cookies: config.TWITTER_LOGIN_COOKIES,
-            proxy: config.TWITTER_PROXY,
-          },
-          {
-            headers: {
-              'X-API-Key': apiKey,
-            },
-          }
-        );
+        const url = `${this.baseUrl}/create_tweet_v2`;
+        const body = {
+          login_cookies: config.TWITTER_LOGIN_COOKIES,
+          tweet_text: text,
+          proxy: config.TWITTER_PROXY
+        };
 
-        if (response.data?.status === 'success') {
-          logger.info('Tweet posted successfully', { id: response.data?.tweet_id });
-          return response.data?.tweet_id;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            logger.warn('Twitter rate limit hit');
+            throw new Error('Rate limit hit');
+          }
+          logger.error('Failed to post tweet', data);
+          throw new Error(data.msg || data.message || 'Unknown error from TwitterAPI.io');
+        }
+
+        if (data.status === 'success') {
+          logger.info('Tweet posted successfully', { id: data.tweet_id });
+          return data.tweet_id;
         } else {
-          throw new Error(response.data?.msg || 'Unknown error from TwitterAPI.io');
+          logger.warn(`API returned status: ${data.status} msg: ${data.msg || data.message}`);
+          throw new Error(data.msg || 'Unknown error from TwitterAPI.io');
         }
       } catch (error: any) {
-        if (error.response?.status === 429) {
-          logger.warn('Twitter rate limit hit');
-          throw error; // Retry logic handles this
-        }
-        logger.error('Failed to post tweet', error.response?.data || error.message);
+        logger.error('Failed to post tweet', error.message);
         throw error;
       }
     });

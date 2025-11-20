@@ -34,7 +34,7 @@ export function GatedContent({ children, userTier, requiredTier, onConnect }: Ga
           {requiredTier} Tier Required
         </h3>
         <p className="text-sm text-gray-400 mb-6 max-w-xs">
-          Hold ${requiredTier === TIERS.NONE ? 0 : TIER_THRESHOLDS[requiredTier as keyof typeof TIER_THRESHOLDS]} worth of $RGE to unlock this section.
+          Hold {requiredTier === TIERS.NONE ? 0 : TIER_THRESHOLDS[requiredTier as keyof typeof TIER_THRESHOLDS]} $RGE to unlock this section.
         </p>
         {onConnect && (
           <Button onClick={onConnect} variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-950">

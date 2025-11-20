@@ -31,11 +31,22 @@ export class TelegramService {
       return false;
     }
 
+    // If targetChatId is a placeholder or invalid, skip
+    if (targetChatId === '@YourTelegramChannel') {
+      logger.warn('Telegram channel ID is set to default placeholder. Skipping message.');
+      return false;
+    }
+
     try {
       await retry(() => this.bot!.sendMessage(targetChatId, message, { parse_mode: 'Markdown' }));
       logger.info(`Telegram message sent to ${targetChatId}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle 403 Forbidden specifically
+      if (error.response && error.response.statusCode === 403) {
+        logger.warn(`Telegram 403 Forbidden: Bot cannot message ${targetChatId}. User may not have started bot or bot is not in channel.`);
+        return false;
+      }
       logger.error('Failed to send Telegram message after retries', error);
       return false;
     }

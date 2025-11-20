@@ -20,6 +20,7 @@ const envSchema = z.object({
   OPENAI_BASE_URL: z.string().default('https://gpt1.shupremium.com/v1'),
   OPENAI_MODEL: z.string().default('gpt-4o'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  RUN_INTERVAL_MINUTES: z.string().transform(Number).default('60'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -41,6 +42,7 @@ const processEnv = {
   OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
   OPENAI_MODEL: process.env.OPENAI_MODEL,
   NODE_ENV: process.env.NODE_ENV,
+  RUN_INTERVAL_MINUTES: process.env.RUN_INTERVAL_MINUTES,
 };
 
 const parsed = envSchema.safeParse(processEnv);

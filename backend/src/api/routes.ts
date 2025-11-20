@@ -4,6 +4,7 @@ import * as statusController from './status.controller';
 import * as logsController from './logs.controller';
 import { tiersController } from './tiers.controller';
 import { customRequestsController } from './custom-requests.controller';
+import * as usersController from './users.controller';
 
 import * as healthController from './health.controller';
 
@@ -21,6 +22,9 @@ router.get('/logs', logsController.getLogs);
 
 // Tiers
 router.use('/tiers', tiersController);
+
+// Users
+router.post('/users/telegram', usersController.updateTelegramUser);
 
 // Custom Requests
 router.use('/custom-requests', customRequestsController);

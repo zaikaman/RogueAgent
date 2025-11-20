@@ -8,11 +8,12 @@ import { IntelThread } from '../components/IntelThread';
 import { TerminalLog } from '../components/TerminalLog';
 import { MindshareChart } from '../components/MindshareChart';
 import { GatedContent } from '../components/GatedContent';
+import { TelegramModal } from '../components/TelegramModal';
 import { useRunStatus } from '../hooks/useRunStatus';
 import { useLogs } from '../hooks/useLogs';
 import { walletService } from '../services/wallet.service';
 import { TIERS, Tier } from '../constants/tiers';
-import { Terminal as TerminalIcon, Activity, History } from 'lucide-react';
+import { Activity, History } from 'lucide-react';
 
 export function Terminal() {
   const { address, isConnected } = useAccount();
@@ -22,6 +23,7 @@ export function Terminal() {
   const [userTier, setUserTier] = useState<Tier>(TIERS.NONE);
   const [balance, setBalance] = useState(0);
   const [usdValue, setUsdValue] = useState(0);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -30,6 +32,11 @@ export function Terminal() {
           setUserTier(data.tier);
           setBalance(data.balance);
           setUsdValue(data.usdValue);
+
+          // Show Telegram modal if user is Silver+ and hasn't connected Telegram yet
+          if (data.tier !== TIERS.NONE && !data.telegram_connected) {
+             setShowTelegramModal(true);
+          }
         })
         .catch(console.error);
     } else {
@@ -39,17 +46,26 @@ export function Terminal() {
     }
   }, [isConnected, address]);
 
+  const handleCloseTelegramModal = () => {
+    setShowTelegramModal(false);
+  };
+
   const latestSignal = runStatus?.latestRun?.type === 'signal' ? runStatus.latestRun : null;
   const lastRunTime = runStatus?.latestRun?.created_at;
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500/30">
+      <TelegramModal 
+        isOpen={showTelegramModal} 
+        onClose={handleCloseTelegramModal} 
+        walletAddress={address || ''} 
+      />
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-950/50 backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
-              <TerminalIcon className="w-6 h-6 text-cyan-400" />
+            <div className="p-1 bg-cyan-500/10 rounded-lg border border-cyan-500/20 flex items-center justify-center">
+              <img src="/logo.webp" alt="Rogue Terminal" className="h-8 w-8 object-contain rounded" />
             </div>
             <div>
               <h1 className="font-bold text-white tracking-tight">ROGUE TERMINAL</h1>

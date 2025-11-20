@@ -34,7 +34,8 @@ router.post('/verify', async (req: Request, res: Response) => {
         tier,
         balance,
         usdValue,
-        user,
+        telegram_connected: !!user.telegram_user_id,
+        telegram_username: user.telegram_username,
       },
     });
   } catch (error) {

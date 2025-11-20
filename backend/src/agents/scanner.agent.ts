@@ -13,6 +13,20 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
     1. Use 'get_trending_coins' to find what's hot.
     2. Filter for tokens that look interesting (e.g. low rank, high activity).
     3. Return a list of potential candidates with brief reasons.
+
+    IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
+
+    Example JSON Output:
+    {
+      "candidates": [
+        {
+          "symbol": "BTC",
+          "name": "Bitcoin",
+          "coingecko_id": "bitcoin",
+          "reason": "High volume and dominance increase"
+        }
+      ]
+    }
   `)
   .withTools(getTrendingCoinsTool, getTokenPriceTool)
   .withOutputSchema(

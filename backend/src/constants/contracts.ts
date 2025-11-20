@@ -1,0 +1,4 @@
+export const CONTRACTS = {
+  RGE_TOKEN: '0xe5Ee677388a6393d135bEd00213E150b1F64b032',
+  FRAXTAL_PLATFORM_ID: 'fraxtal',
+};

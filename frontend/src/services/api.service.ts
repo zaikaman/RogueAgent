@@ -24,4 +24,9 @@ export const endpoints = {
   run: '/run',
   runStatus: '/run-status',
   logs: '/logs',
+  updateTelegram: '/users/telegram',
+};
+
+export const updateTelegramUsername = async (walletAddress: string, telegramUsername: string) => {
+  return api.post(endpoints.updateTelegram, { walletAddress, telegramUsername });
 };
