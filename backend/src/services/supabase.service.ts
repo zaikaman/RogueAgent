@@ -353,9 +353,15 @@ export class SupabaseService {
   }
 
   async saveYieldOpportunities(opportunities: any[]) {
+    // Add updated timestamp to ensure they float to the top
+    const opportunitiesWithTimestamp = opportunities.map(o => ({
+      ...o,
+      created_at: new Date().toISOString()
+    }));
+
     const { data, error } = await this.client
       .from('yield_opportunities')
-      .insert(opportunities)
+      .upsert(opportunitiesWithTimestamp, { onConflict: 'pool_id' })
       .select();
 
     if (error) throw error;
