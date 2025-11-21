@@ -137,10 +137,13 @@ export class SupabaseService {
   async getRecentSignalCount(hours: number = 24): Promise<number> {
     const timeAgo = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
     
+    // Only count signals that were actually published (have telegram_delivered_at)
+    // This excludes pending signals that haven't triggered yet
     const { count, error } = await this.client
       .from('runs')
       .select('*', { count: 'exact', head: true })
       .eq('type', 'signal')
+      .not('telegram_delivered_at', 'is', null)
       .gte('created_at', timeAgo);
 
     if (error) {

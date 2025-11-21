@@ -42,6 +42,7 @@ interface AnalyzerResult {
     address?: string | null;
   } | null;
   signal_details: {
+    order_type?: 'market' | 'limit';
     entry_price: number | null;
     target_price: number | null;
     stop_loss: number | null;
@@ -118,10 +119,10 @@ export class Orchestrator {
         defi_top_growing_protocols: defiProtocols
       };
 
-      // Check signal quota
+      // Check signal quota (only counts published signals, not pending)
       const recentSignals = await supabaseService.getRecentSignalCount(24);
       const shouldTrySignal = recentSignals < 3;
-      logger.info(`Recent signals (24h): ${recentSignals}. Should try signal: ${shouldTrySignal}`);
+      logger.info(`Recent published signals (24h): ${recentSignals}. Should try signal: ${shouldTrySignal}`);
 
       // Fetch recent posts history to avoid repetition
       const recentPosts = await supabaseService.getRecentPosts(10);
@@ -163,6 +164,43 @@ export class Orchestrator {
       }
 
       if (signalGenerated && analyzerResult && analyzerResult.signal_details) {
+        const isLimitOrder = analyzerResult.signal_details.order_type === 'limit';
+        
+        if (isLimitOrder) {
+            // Validate required fields for pending signals
+            if (!analyzerResult.selected_token?.coingecko_id) {
+                logger.error('Cannot create pending signal: missing coingecko_id for price monitoring');
+                return;
+            }
+            if (!analyzerResult.signal_details.entry_price) {
+                logger.error('Cannot create pending signal: missing entry_price');
+                return;
+            }
+            
+            logger.info(`Limit Order detected for ${analyzerResult.selected_token?.symbol}. Saving as PENDING signal.`);
+            
+            const signalContent = {
+                token: analyzerResult.selected_token,
+                ...analyzerResult.signal_details,
+                status: 'pending' as const,
+                created_at: new Date().toISOString()
+            };
+
+            await this.saveRun(
+                runId,
+                'signal',
+                signalContent,
+                startTime,
+                analyzerResult.signal_details.confidence,
+                undefined,
+                null,
+                null // Not delivered yet
+            );
+            
+            logger.info(`Pending signal saved. Monitoring for entry price: ${analyzerResult.signal_details.entry_price}`);
+            return; // Exit, do not publish yet
+        }
+
         // 3. Generator (Signal)
         logger.info('Running Generator Agent (Signal)...');
         const { runner: generator } = await GeneratorAgent.build();

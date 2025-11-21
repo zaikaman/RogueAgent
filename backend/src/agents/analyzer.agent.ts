@@ -22,8 +22,10 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        - **Market Context**: If the general market is bearish (e.g. BTC dropping), be EXTREMELY selective. Only signal if there is a massive, independent catalyst.
     4. Select the BEST single opportunity (or none).
     5. Generate entry, target, stop loss, and confidence score (1-100).
-       - Entry: Current price or slightly lower.
-       - Target: Set target to achieve a Risk/Reward ratio of approximately 1:3 (Target should be 3x the distance of Stop Loss from Entry).
+       - **Order Type**: Decide if this is a 'market' buy (immediate) or 'limit' buy (wait for price).
+       - **Limit Orders**: If the price is extended, set a 'limit' order at a support level (pullback). This is PREFERRED for better R:R.
+       - Entry: Current price (for market) or Support Level (for limit).
+       - Target: Set target to achieve a Risk/Reward ratio of approximately 1:3.
        - Stop Loss: Below support.
     6. **Strict Filtering**:
        - If confidence < 80, do not generate a signal.
@@ -36,7 +38,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
 
     IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
     
-    Example JSON Output:
+    Example JSON Output (Market Order):
     {
       "selected_token": {
         "symbol": "SOL",
@@ -46,6 +48,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         "address": "So11111111111111111111111111111111111111112"
       },
       "signal_details": {
+        "order_type": "market",
         "entry_price": 25.00,
         "target_price": 32.00,
         "stop_loss": 22.00,
@@ -57,6 +60,31 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         }
       },
       "analysis_summary": "Solana is showing strong bullish momentum driven by new partnership news and technical breakouts. RSI is healthy.",
+      "action": "signal"
+    }
+    
+    Example JSON Output (Limit Order):
+    {
+      "selected_token": {
+        "symbol": "ETH",
+        "name": "Ethereum",
+        "coingecko_id": "ethereum",
+        "chain": "ethereum",
+        "address": null
+      },
+      "signal_details": {
+        "order_type": "limit",
+        "entry_price": 1800.00,
+        "target_price": 2100.00,
+        "stop_loss": 1700.00,
+        "confidence": 85,
+        "analysis": "ETH is bullish but overextended. Setting limit at key support level for better R:R.",
+        "trigger_event": {
+          "type": "pullback_to_support",
+          "description": "Waiting for retest of $1800 support"
+        }
+      },
+      "analysis_summary": "Ethereum shows strength but needs a healthy pullback for optimal entry.",
       "action": "signal"
     }
   `)
@@ -71,6 +99,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         address: z.string().nullable().optional(),
       }).nullable(),
       signal_details: z.object({
+        order_type: z.enum(['market', 'limit']).default('market'),
         entry_price: z.number().nullable(),
         target_price: z.number().nullable(),
         stop_loss: z.number().nullable(),

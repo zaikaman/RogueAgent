@@ -20,8 +20,9 @@ export interface SignalContent {
   confidence: number; // 1-10
   trigger_event: TriggerEvent;
   analysis: string;
-  formatted_tweet: string;
-  status?: 'active' | 'tp_hit' | 'sl_hit' | 'closed';
+  formatted_tweet?: string; // Optional because pending signals don't have it yet
+  status?: 'pending' | 'active' | 'tp_hit' | 'sl_hit' | 'closed';
+  order_type?: 'market' | 'limit';
   current_price?: number;
   pnl_percent?: number;
   closed_at?: string;
