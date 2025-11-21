@@ -35,12 +35,18 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     
     Output the selected signal details or indicate no signal.
     
-    **CRITICAL**: You must ALWAYS provide an 'analysis_summary', even if the action is 'skip'. This summary should explain your reasoning.
+    **CRITICAL**: You must ALWAYS provide BOTH 'analysis_summary' AND 'action' fields. These are REQUIRED in every response.
+    
+    **CRITICAL**: The 'action' field MUST be one of: 'signal', 'skip', or 'no_signal'
+    - Use 'signal' when you've found a high-probability setup and are generating signal_details
+    - Use 'no_signal' when candidates exist but none meet the strict criteria
+    - Use 'skip' when skipping due to recent duplicate signals
 
     IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
     
     Example JSON Output (Market Order):
     {
+      "action": "signal",
       "selected_token": {
         "symbol": "SOL",
         "name": "Solana",
@@ -60,12 +66,12 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           "description": "RSI bullish divergence + MACD crossover"
         }
       },
-      "analysis_summary": "Solana is showing strong bullish momentum driven by new partnership news and technical breakouts. RSI is healthy.",
-      "action": "signal"
+      "analysis_summary": "Solana is showing strong bullish momentum driven by new partnership news and technical breakouts. RSI is healthy."
     }
     
     Example JSON Output (Limit Order):
     {
+      "action": "signal",
       "selected_token": {
         "symbol": "ETH",
         "name": "Ethereum",
@@ -85,20 +91,29 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           "description": "Waiting for retest of $1800 support"
         }
       },
-      "analysis_summary": "Ethereum shows strength but needs a healthy pullback for optimal entry.",
-      "action": "signal"
+      "analysis_summary": "Ethereum shows strength but needs a healthy pullback for optimal entry."
+    }
+    
+    Example JSON Output (No Signal):
+    {
+      "action": "no_signal",
+      "selected_token": null,
+      "signal_details": null,
+      "analysis_summary": "Market conditions are bearish with BTC down 3%. Analyzed candidates (LINK, UNI) show weak technicals and no strong catalysts. Better to wait for clearer setups."
     }
   `)
   .withTools(checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
+      action: z.enum(['signal', 'skip', 'no_signal']).describe('REQUIRED: Must be signal, skip, or no_signal'),
+      analysis_summary: z.string().describe('REQUIRED: Explanation of your reasoning'),
       selected_token: z.object({
         symbol: z.string(),
         name: z.string(),
         coingecko_id: z.string().optional(),
         chain: z.string().optional(),
         address: z.string().nullable().optional(),
-      }).nullable(),
+      }).nullable().describe('The selected token, or null if action is no_signal or skip'),
       signal_details: z.object({
         order_type: z.enum(['market', 'limit']).default('market'),
         entry_price: z.number().nullable(),
@@ -110,8 +125,6 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           type: z.string(),
           description: z.string(),
         }).nullable(),
-      }).nullable(),
-      analysis_summary: z.string(),
-      action: z.enum(['signal', 'skip', 'no_signal']),
+      }).nullable().describe('Signal details, or null if action is no_signal or skip'),
     }) as any
   );

@@ -36,6 +36,8 @@ interface ScannerResult {
 }
 
 interface AnalyzerResult {
+  action: 'signal' | 'skip' | 'no_signal';
+  analysis_summary: string;
   selected_token: {
     symbol: string;
     name: string;
@@ -55,8 +57,6 @@ interface AnalyzerResult {
       description: string;
     } | null;
   } | null;
-  analysis_summary: string;
-  action: 'signal' | 'skip' | 'no_signal';
 }
 
 interface GeneratorResult {
@@ -141,7 +141,11 @@ export class Orchestrator {
         RECENTLY POSTED CONTENT (Avoid repeating these):
         ${JSON.stringify(recentPosts)}`;
         
-        const scannerResult = await scanner.ask(scannerPrompt) as unknown as ScannerResult;
+        const scannerResult = await this.runAgentWithRetry<ScannerResult>(
+          scanner,
+          scannerPrompt,
+          'Scanner Agent'
+        );
         logger.info('Scanner result:', scannerResult);
 
         if (scannerResult.candidates && scannerResult.candidates.length > 0) {
@@ -152,7 +156,11 @@ export class Orchestrator {
           
           Global Market Context: ${JSON.stringify(marketData.global_market_context)}`;
           
-          analyzerResult = await analyzer.ask(analyzerPrompt) as unknown as AnalyzerResult;
+          analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
+            analyzer,
+            analyzerPrompt,
+            'Analyzer Agent'
+          );
           logger.info('Analyzer result:', analyzerResult);
 
           if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
@@ -190,7 +198,11 @@ export class Orchestrator {
           details: analyzerResult.signal_details
         })}`;
 
-        const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
+        const generatorResult = await this.runAgentWithRetry<GeneratorResult>(
+          generator,
+          generatorPrompt,
+          'Generator Agent (Signal)'
+        );
         logger.info('Generator result:', generatorResult);
 
         const content = generatorResult.formatted_content || generatorResult.tweet_text;
@@ -266,7 +278,11 @@ export class Orchestrator {
             intelPrompt += `\n\nIMPORTANT: It is Sunday. Generate a "Deep Dive" report focusing on the week's sharpest mindshare divergences and KOL narratives. This will be exclusive to high-tier users.`;
         }
         
-        const intelResult = await intelAgent.ask(intelPrompt) as unknown as IntelResult;
+        const intelResult = await this.runAgentWithRetry<IntelResult>(
+          intelAgent,
+          intelPrompt,
+          'Intel Agent'
+        );
         logger.info('Intel result:', intelResult);
 
         if (intelResult.topic === 'SKIP' || intelResult.importance_score < 7) {
@@ -293,7 +309,11 @@ export class Orchestrator {
         
         Report: ${JSON.stringify(intelResult)}`;
         
-        const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
+        const generatorResult = await this.runAgentWithRetry<GeneratorResult>(
+          generator,
+          generatorPrompt,
+          'Generator Agent (Intel)'
+        );
         logger.info('Generator result:', generatorResult);
 
         // 2.5 Image Generation
@@ -512,18 +532,66 @@ export class Orchestrator {
 
     while (attempts < maxAttempts) {
       try {
-        const currentPrompt = attempts === 0 
-          ? prompt 
-          : `${prompt}\n\nPREVIOUS ATTEMPT FAILED. Error: ${lastError?.message || JSON.stringify(lastError)}\n\nPlease fix the JSON output to match the schema exactly.`;
-          
-        return await agentRunner.ask(currentPrompt) as T;
-      } catch (error: any) {
-        logger.warn(`${agentName} attempt ${attempts + 1} failed:`, error.message);
-        lastError = error;
         attempts++;
-        if (attempts === maxAttempts) throw error;
+        let currentPrompt = prompt;
+        
+        if (attempts > 1) {
+          // Add error context to help the agent fix the issue
+          const errorMessage = lastError?.message || 'Unknown error';
+          const isSchemaError = errorMessage.includes('schema') || errorMessage.includes('validation') || errorMessage.includes('parse');
+          
+          if (isSchemaError) {
+            currentPrompt = `${prompt}
+
+⚠️ PREVIOUS ATTEMPT ${attempts - 1} FAILED DUE TO SCHEMA VALIDATION ERROR ⚠️
+
+Error: ${errorMessage}
+
+CRITICAL INSTRUCTIONS TO FIX:
+1. You MUST return valid JSON that exactly matches the output schema
+2. ALL required fields must be present (especially 'action' field)
+3. Field types must match exactly (strings as strings, numbers as numbers, etc.)
+4. Enum values must be exactly as specified (e.g., 'signal', 'skip', or 'no_signal')
+5. Do NOT include any conversational text - ONLY the JSON object
+6. Double-check your JSON syntax is valid
+
+Please retry with correctly formatted output.`;
+          } else {
+            currentPrompt = `${prompt}
+
+PREVIOUS ATTEMPT FAILED. Error: ${errorMessage}
+Please try again and ensure all requirements are met.`;
+          }
+          
+          logger.info(`${agentName} retry attempt ${attempts}/${maxAttempts} with enhanced prompt`);
+        }
+          
+        const result = await agentRunner.ask(currentPrompt) as T;
+        
+        if (attempts > 1) {
+          logger.info(`${agentName} succeeded on attempt ${attempts}/${maxAttempts}`);
+        }
+        
+        return result;
+      } catch (error: any) {
+        logger.warn(`${agentName} attempt ${attempts}/${maxAttempts} failed:`, {
+          message: error.message,
+          error: error.toString()
+        });
+        lastError = error;
+        
+        if (attempts >= maxAttempts) {
+          logger.error(`${agentName} failed after ${maxAttempts} attempts. Last error:`, error);
+          throw new Error(`${agentName} failed after ${maxAttempts} retries: ${error.message}`);
+        }
+        
+        // Wait a bit before retrying (exponential backoff)
+        const waitTime = Math.min(1000 * Math.pow(2, attempts - 1), 5000);
+        logger.info(`Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
+    
     throw new Error(`${agentName} failed to produce a result after retries.`);
   }
 }
