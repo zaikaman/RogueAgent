@@ -72,7 +72,8 @@ export const defillamaService = {
           symbol: p.symbol,
           tvlUsd: p.tvlUsd,
           apy: p.apy,
-          pool: p.pool // unique id
+          pool_id: p.pool,
+          defillamaUrl: `https://defillama.com/yields/pool/${p.pool}`
         }));
 
       return interestingPools;

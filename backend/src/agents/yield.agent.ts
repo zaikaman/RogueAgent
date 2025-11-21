@@ -28,10 +28,11 @@ export const YieldAgent = AgentBuilder.create('yield_agent')
     IMPORTANT: Return strict JSON matching the schema.
     
     **Schema Requirements:**
-    - 'pool_id': Must match the 'pool' ID from the tool data.
+    - 'pool_id': Must match the 'pool_id' from the tool data.
     - 'apy': Must be a number (e.g. 5.5, not "5.5%").
     - 'tvl': Must be a number (e.g. 1000000, not "$1M").
     - 'risk_level': Must be exactly one of: 'Low', 'Medium', 'High', 'Degen'.
+    - 'url': The URL to the opportunity. PREFER the direct link to the pool on the protocol's website (e.g. https://app.aave.com/...). If you cannot find the specific deep link, use the 'defillamaUrl' provided in the tool data.
 
     **Example Output:**
     {
@@ -45,7 +46,7 @@ export const YieldAgent = AgentBuilder.create('yield_agent')
           "tvl": 150000000,
           "risk_level": "Low",
           "analysis": "Blue chip lending protocol. Real yield from borrowers. High safety score.",
-          "url": "https://app.aave.com"
+          "url": "https://defillama.com/yields/pool/747c1d2a-c668-4682-b9f9-296708a3dd90"
         }
       ]
     }
