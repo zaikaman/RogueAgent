@@ -37,7 +37,7 @@ CREATE TABLE runs (
   content JSONB NOT NULL,
   public_posted_at TIMESTAMPTZ,
   telegram_delivered_at TIMESTAMPTZ,
-  confidence_score INTEGER CHECK (confidence_score BETWEEN 1 AND 10),
+  confidence_score INTEGER CHECK (confidence_score BETWEEN 1 AND 100),
   cycle_started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   cycle_completed_at TIMESTAMPTZ,
   execution_time_ms INTEGER,

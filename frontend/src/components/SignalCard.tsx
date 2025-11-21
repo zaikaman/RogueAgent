@@ -56,7 +56,7 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
             <CardTitle className="text-3xl font-bold text-white flex items-center gap-2">
               {token?.symbol || 'UNKNOWN'}
               <Badge variant="outline" className="text-cyan-400 border-cyan-500/30 bg-cyan-950/30">
-                {confidence}/10
+                {confidence}/100
               </Badge>
             </CardTitle>
             <div className="text-sm text-gray-400 mt-1">{token?.name}</div>

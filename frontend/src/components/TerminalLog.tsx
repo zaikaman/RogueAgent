@@ -51,8 +51,8 @@ export function TerminalLog({ logs, className }: TerminalLogProps) {
                     {log.type}
                   </Badge>
                   {log.confidence_score && (
-                    <span className="text-xs text-cyan-500">
-                      Score: {log.confidence_score}/10
+                    <span className="ml-2 text-xs text-cyan-400/80 font-mono">
+                      Score: {log.confidence_score}/100
                     </span>
                   )}
                 </div>
