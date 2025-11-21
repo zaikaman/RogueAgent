@@ -8,6 +8,10 @@ import { DashboardHome } from './pages/DashboardHome';
 import { SignalsPage } from './pages/SignalsPage';
 import { IntelPage } from './pages/IntelPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { AnalyticsOverview } from './pages/analytics/AnalyticsOverview';
+import { PerformanceAnalytics } from './pages/analytics/PerformanceAnalytics';
+import { MarketAnalytics } from './pages/analytics/MarketAnalytics';
+import { SignalAnalytics } from './pages/analytics/SignalAnalytics';
 import { Toaster } from 'sonner';
 import { CustomCursor } from './components/ui/CustomCursor';
 
@@ -46,7 +50,12 @@ function App() {
               <DashboardLayout>
                 <AnalyticsPage />
               </DashboardLayout>
-            } />
+            }>
+              <Route index element={<AnalyticsOverview />} />
+              <Route path="performance" element={<PerformanceAnalytics />} />
+              <Route path="market" element={<MarketAnalytics />} />
+              <Route path="signals" element={<SignalAnalytics />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </QueryClientProvider>
