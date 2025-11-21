@@ -203,7 +203,7 @@ export class TelegramService {
       if (userId) {
         try {
           // Split message if too long (simple split)
-          const chunks = content.match(/.{1,4000}/g) || [content];
+          const chunks = content.match(/[\s\S]{1,4000}/g) || [content];
           for (const chunk of chunks) {
              await this.bot.sendMessage(userId, chunk, { parse_mode: 'Markdown' });
           }
@@ -241,7 +241,7 @@ export class TelegramService {
       if (userId) {
         try {
           // Split message if too long (simple split)
-          const chunks = content.match(/.{1,4000}/g) || [content];
+          const chunks = content.match(/[\s\S]{1,4000}/g) || [content];
           for (const chunk of chunks) {
              await this.bot.sendMessage(userId, chunk, { parse_mode: 'Markdown' });
           }
