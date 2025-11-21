@@ -17,5 +17,5 @@ export const TIER_BENEFITS = {
   [TIERS.NONE]: ['Public X posts (delayed 30m)'],
   [TIERS.SILVER]: ['15-min early access', 'Private Telegram DMs'],
   [TIERS.GOLD]: ['30-min early access', 'Sunday Deep-Dive Thread', 'Advanced signals'],
-  [TIERS.DIAMOND]: ['Everything in Gold', 'Daily Custom Scan (DM)', 'Instant Alpha'],
+  [TIERS.DIAMOND]: ['Everything in Gold', 'Unlimited Custom Scans (DM)', 'Instant Alpha'],
 };

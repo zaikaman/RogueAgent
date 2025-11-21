@@ -30,14 +30,14 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
 
-    // 2. Check Quota (1 per 24h)
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const count = await supabaseService.getCustomRequestsCount(walletAddress, yesterday);
+    // 2. Check Quota (Unlimited for Diamond)
+    // const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // const count = await supabaseService.getCustomRequestsCount(walletAddress, yesterday);
 
-    if (count >= 1) {
-      res.status(429).json({ success: false, error: 'Daily quota exceeded (1 request per 24h)' });
-      return;
-    }
+    // if (count >= 1) {
+    //   res.status(429).json({ success: false, error: 'Daily quota exceeded (1 request per 24h)' });
+    //   return;
+    // }
 
     // 3. Create Request
     const request = await supabaseService.createCustomRequest({

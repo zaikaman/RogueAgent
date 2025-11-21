@@ -134,14 +134,14 @@ export class TelegramService {
            return;
         }
 
-        // Check Quota
-        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const count = await supabaseService.getCustomRequestsCount(user.wallet_address, yesterday);
+        // Check Quota (Unlimited for Diamond)
+        // const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // const count = await supabaseService.getCustomRequestsCount(user.wallet_address, yesterday);
 
-        if (count >= 1) {
-           await this.bot?.sendMessage(chatId, '⚠️ Daily quota exceeded. You can request another scan in 24 hours.');
-           return;
-        }
+        // if (count >= 1) {
+        //    await this.bot?.sendMessage(chatId, '⚠️ Daily quota exceeded. You can request another scan in 24 hours.');
+        //    return;
+        // }
 
         await this.bot?.sendMessage(chatId, `🕵️‍♂️ **Rogue Agent** is scanning **${token}** for you... This may take a minute.`, { parse_mode: 'Markdown' });
 
