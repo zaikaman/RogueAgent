@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Calendar01Icon, Share01Icon, Tick01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -80,7 +79,7 @@ export function IntelBlog({ title = "Market Intelligence Report", content, date,
   };
 
   return (
-    <div className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden flex flex-col h-[600px]">
+    <div className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden flex flex-col">
       {imageUrl && (
         <div className="w-full h-64 relative shrink-0">
             <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
@@ -115,11 +114,11 @@ export function IntelBlog({ title = "Market Intelligence Report", content, date,
         </button>
       </div>
       
-      <ScrollArea className="flex-1 p-8">
+      <div className="p-8">
         <div className="max-w-3xl mx-auto font-sans">
           {renderContent(content)}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

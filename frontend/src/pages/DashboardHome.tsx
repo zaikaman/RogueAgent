@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { SignalCard } from '../components/SignalCard';
 import { IntelCard } from '../components/IntelCard';
 import { TierDisplay } from '../components/TierDisplay';
@@ -42,6 +42,7 @@ export function DashboardHome() {
 
   const latestSignal = runStatus?.latest_signal;
   const latestIntel = runStatus?.latest_intel;
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-8">
@@ -74,7 +75,7 @@ export function DashboardHome() {
                    View Feed <HugeiconsIcon icon={ArrowRight01Icon} className="w-3 h-3" />
                  </Link>
               </div>
-              <IntelCard intel={latestIntel} />
+              <IntelCard intel={latestIntel} onClick={() => navigate(`/app/intel/${latestIntel.id}`)} />
             </div>
           )}
 
