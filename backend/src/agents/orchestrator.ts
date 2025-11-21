@@ -216,6 +216,18 @@ export class Orchestrator {
           status: isLimitOrder ? 'pending' : 'active',
         };
 
+        // Save run first to ensure ID exists for scheduled posts
+        await this.saveRun(
+          runId, 
+          'signal', 
+          signalContent, 
+          startTime, 
+          analyzerResult.signal_details.confidence,
+          undefined,
+          null, // publicPostedAt is now delayed
+          new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
+        );
+
         // Immediate: Gold/Diamond
         logger.info(`Distributing Signal to GOLD/DIAMOND for run ${runId}...`);
         telegramService.broadcastToTiers(content, [TIERS.GOLD, TIERS.DIAMOND])
@@ -230,17 +242,6 @@ export class Orchestrator {
         logger.info(`Scheduling Signal for PUBLIC (+30m) for run ${runId}...`);
         await scheduledPostService.schedulePost(runId, 'PUBLIC', content, 30)
           .catch(err => logger.error('Error scheduling PUBLIC post', err));
-
-        await this.saveRun(
-          runId, 
-          'signal', 
-          signalContent, 
-          startTime, 
-          analyzerResult.signal_details.confidence,
-          undefined,
-          null, // publicPostedAt is now delayed
-          new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
-        );
 
       } else {
         // Fallback to Intel
@@ -306,6 +307,26 @@ export class Orchestrator {
         const tweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
         const blogContent = generatorResult.blog_post || generatorResult.formatted_content;
         
+        // Save run first to ensure ID exists for scheduled posts
+        await this.saveRun(
+          runId, 
+          'intel', 
+          { 
+            ...intelResult, 
+            tweet_text: tweetContent,
+            blog_post: generatorResult.blog_post,
+            image_prompt: generatorResult.image_prompt,
+            image_url: imageUrl,
+            formatted_tweet: tweetContent, // Keep for backward compat
+            log_message: generatorResult.log_message,
+          }, 
+          startTime, 
+          null,
+          undefined,
+          null, // publicPostedAt is delayed
+          new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
+        );
+
         // Immediate: Gold/Diamond (Blog Post)
         if (blogContent) {
            logger.info(`Distributing Intel Blog to GOLD/DIAMOND for run ${runId}...`);
@@ -326,25 +347,6 @@ export class Orchestrator {
            await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent, 30)
              .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
         }
-
-        await this.saveRun(
-          runId, 
-          'intel', 
-          { 
-            ...intelResult, 
-            tweet_text: tweetContent,
-            blog_post: generatorResult.blog_post,
-            image_prompt: generatorResult.image_prompt,
-            image_url: imageUrl,
-            formatted_tweet: tweetContent, // Keep for backward compat
-            log_message: generatorResult.log_message,
-          }, 
-          startTime, 
-          null,
-          undefined,
-          null, // publicPostedAt is delayed
-          new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
-        );
       }
       
       logger.info('Run completed successfully.');
