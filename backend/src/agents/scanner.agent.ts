@@ -23,9 +23,19 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
     
     **Goal**: Find at least 1-3 good candidates. Do not be too restrictive. If no perfect setups exist, return the most promising trending tokens.
 
+    **Mode 2: Single Token Deep Dive**
+    If asked to scan a SPECIFIC token (e.g. "Scan $SOL"), return an 'analysis' object instead of 'candidates'.
+    Include:
+    - symbol, name, address
+    - current_price_usd, market_cap, volume_24h
+    - price_action (1h, 24h, 7d changes)
+    - top_narratives (array of strings)
+    - on_chain_anomalies (object with details)
+    - price_driver_summary (string)
+
     IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
 
-    Example JSON Output:
+    Example JSON Output (Mode 1):
     {
       "candidates": [
         {
@@ -37,6 +47,21 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           "reason": "Trending on Birdeye, 20% gain in 24h. X search confirms new exchange listing rumor."
         }
       ]
+    }
+
+    Example JSON Output (Mode 2):
+    {
+      "analysis": {
+        "symbol": "SOL",
+        "name": "Solana",
+        "current_price_usd": 25.50,
+        "market_cap": 10000000000,
+        "volume_24h": 500000000,
+        "price_action": { "1h_change": "+1%", "24h_change": "+5%", "7d_change": "+10%" },
+        "top_narratives": ["New partnership", "Network upgrade"],
+        "on_chain_anomalies": { "whale_movements": "None" },
+        "price_driver_summary": "Strong momentum due to..."
+      }
     }
   `)
   .withOutputSchema(
@@ -50,6 +75,25 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           address: z.string().optional(),
           reason: z.string(),
         })
-      ),
+      ).optional(),
+      analysis: z.object({
+        symbol: z.string(),
+        name: z.string(),
+        coingecko_id: z.string().optional(),
+        chain: z.string().optional(),
+        address: z.string().optional(),
+        pool_address: z.string().optional(),
+        current_price_usd: z.number().optional(),
+        market_cap: z.number().optional(),
+        volume_24h: z.number().optional(),
+        price_action: z.object({
+          '1h_change': z.string().optional(),
+          '24h_change': z.string().optional(),
+          '7d_change': z.string().optional(),
+        }).optional(),
+        top_narratives: z.array(z.string()).optional(),
+        on_chain_anomalies: z.record(z.any()).optional(),
+        price_driver_summary: z.string().optional(),
+      }).optional(),
     }) as any
   );

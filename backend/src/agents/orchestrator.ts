@@ -14,12 +14,23 @@ import { runwareService } from '../services/runware.service';
 import { TIERS } from '../constants/tiers';
 
 interface ScannerResult {
-  candidates: Array<{
+  candidates?: Array<{
     symbol: string;
     name: string;
     coingecko_id?: string;
     reason: string;
   }>;
+  analysis?: {
+    symbol: string;
+    name: string;
+    current_price_usd?: number;
+    market_cap?: number;
+    volume_24h?: number;
+    price_action?: any;
+    top_narratives?: string[];
+    on_chain_anomalies?: any;
+    price_driver_summary?: string;
+  };
 }
 
 interface AnalyzerResult {
