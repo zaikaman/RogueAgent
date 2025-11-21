@@ -50,7 +50,7 @@ class RunwareService {
           model: this.defaultModel,
           positivePrompt: prompt,
           width: 1920,
-          height: 1080,
+          height: 1088, // Adjusted to be divisible by 64 (1080 is not)
           steps: 30,
           outputType: 'URL',
           outputFormat: 'JPG',
