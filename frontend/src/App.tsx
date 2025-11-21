@@ -9,6 +9,7 @@ import { SignalsPage } from './pages/SignalsPage';
 import { IntelPage } from './pages/IntelPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { Toaster } from 'sonner';
+import { CustomCursor } from './components/ui/CustomCursor';
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ function App() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <CustomCursor />
           <Toaster position="top-right" theme="dark" closeButton />
           <Routes>
             <Route path="/" element={<Home />} />
