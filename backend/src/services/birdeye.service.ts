@@ -49,27 +49,6 @@ class BirdeyeService {
     }
   }
 
-  async getTokenOverview(address: string, chain: string = 'solana'): Promise<any | null> {
-    if (!this.apiKey) return null;
-
-    try {
-      return await retry(async () => {
-        const response = await axios.get(`${this.baseUrl}/defi/token_overview`, {
-          headers: { ...this.headers, 'x-chain': chain },
-          params: { address }
-        });
-
-        if (response.data && response.data.success) {
-          return response.data.data;
-        }
-        return null;
-      }, 3, 2000);
-    } catch (error: any) {
-      logger.error(`Birdeye Token Overview API error for ${address}:`, error.message);
-      return null;
-    }
-  }
-
   async getPriceHistory(address: string, chain: string = 'solana', days: number = 7): Promise<any[]> {
     if (!this.apiKey) return [];
     

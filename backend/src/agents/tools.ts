@@ -89,22 +89,16 @@ export const searchTavilyTool = createTool({
 
 export const getTokenPriceTool = createTool({
   name: 'get_token_price',
-  description: 'Get current price of a token in USD. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
+  description: 'Get current price of a token in USD using CoinGecko ID.',
   schema: z.object({
-    tokenId: z.string().optional().describe('The CoinGecko API ID of the token (e.g. "bitcoin", "solana")'),
-    chain: z.string().optional().describe('The chain for address-based lookup (e.g. "solana", "ethereum")'),
-    address: z.string().optional().describe('The token address for chain-based lookup'),
+    tokenId: z.string().describe('The CoinGecko API ID of the token (e.g. "bitcoin", "solana")'),
   }) as any,
-  fn: async ({ tokenId, chain, address }) => {
-    if (chain && address) {
-      const overview = await birdeyeService.getTokenOverview(address, chain);
-      return { chain, address, price: overview?.price, priceChange24h: overview?.priceChange24hPercent };
-    }
+  fn: async ({ tokenId }) => {
     if (tokenId) {
       const price = await coingeckoService.getPrice(tokenId);
       return { tokenId, price };
     }
-    return { error: "Must provide tokenId OR (chain and address)" };
+    return { error: "Must provide tokenId" };
   },
 });
 
@@ -259,31 +253,11 @@ export const getTechnicalAnalysisTool = createTool({
 
 export const getFundamentalAnalysisTool = createTool({
   name: 'get_fundamental_analysis',
-  description: 'Get fundamental metrics (Market Cap, FDV, Volume) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
+  description: 'Get fundamental metrics (Market Cap, FDV, Volume) for a token using CoinGecko ID.',
   schema: z.object({
-    tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
-    chain: z.string().optional().describe('The chain for address-based lookup'),
-    address: z.string().optional().describe('The token address for chain-based lookup'),
+    tokenId: z.string().describe('The CoinGecko API ID of the token'),
   }) as any,
-  fn: async ({ tokenId, chain, address }) => {
-    if (chain && address) {
-      const overview = await birdeyeService.getTokenOverview(address, chain);
-      if (!overview) return { error: 'Failed to fetch token overview' };
-      return {
-        market_cap: overview.mc,
-        fully_diluted_valuation: overview.fdv, // Birdeye uses fdv usually
-        total_volume: overview.v24hUSD,
-        circulating_supply: overview.circulatingSupply,
-        total_supply: overview.supply,
-        max_supply: overview.maxSupply, // Check if available
-        description: 'Data from Birdeye',
-        links: {
-          homepage: overview.website,
-          twitter_screen_name: overview.twitter,
-        }
-      };
-    }
-
+  fn: async ({ tokenId }) => {
     if (tokenId) {
       const details = await coingeckoService.getCoinDetails(tokenId);
       if (!details) return { error: 'Failed to fetch coin details' };
@@ -308,6 +282,6 @@ export const getFundamentalAnalysisTool = createTool({
         }
       };
     }
-    return { error: "Must provide tokenId OR (chain and address)" };
+    return { error: "Must provide tokenId" };
   },
 });

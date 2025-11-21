@@ -43,16 +43,8 @@ export class SignalMonitorService {
         let currentPrice: number | null = null;
         
         try {
-            // Try Birdeye first if address exists (preferred for Solana/DEX tokens)
-            if (content.token.contract_address) {
-                const overview = await birdeyeService.getTokenOverview(content.token.contract_address);
-                if (overview && overview.price) {
-                    currentPrice = overview.price;
-                }
-            }
-
-            // Fallback to CoinGecko if no price yet and we have an ID
-            if (!currentPrice && (content.token as any).coingecko_id) {
+            // Use CoinGecko for price if we have an ID
+            if ((content.token as any).coingecko_id) {
                 currentPrice = await coingeckoService.getPrice((content.token as any).coingecko_id);
             }
         } catch (err) {
