@@ -192,28 +192,43 @@ export class Orchestrator {
         const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
         logger.info('Generator result:', generatorResult);
 
+        const content = generatorResult.formatted_content || generatorResult.tweet_text;
+
+        if (!content) {
+            logger.error('Generator failed to produce content', generatorResult);
+            await this.saveRun(
+                runId,
+                'signal',
+                { error: 'Generator failed to produce content', generatorResult },
+                startTime,
+                analyzerResult.signal_details.confidence,
+                'Generator failed to produce content'
+            );
+            return;
+        }
+
         // 4. Publisher (Tiered)
         const signalContent = {
           token: analyzerResult.selected_token,
           ...analyzerResult.signal_details,
-          formatted_tweet: generatorResult.formatted_content,
+          formatted_tweet: content,
           log_message: generatorResult.log_message,
           status: isLimitOrder ? 'pending' : 'active',
         };
 
         // Immediate: Gold/Diamond
         logger.info(`Distributing Signal to GOLD/DIAMOND for run ${runId}...`);
-        telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.GOLD, TIERS.DIAMOND])
+        telegramService.broadcastToTiers(content, [TIERS.GOLD, TIERS.DIAMOND])
           .catch(err => logger.error('Error broadcasting to GOLD/DIAMOND', err));
 
         // Delayed 15m: Silver (DB-backed)
         logger.info(`Scheduling Signal for SILVER (+15m) for run ${runId}...`);
-        await scheduledPostService.schedulePost(runId, 'SILVER', generatorResult.formatted_content, 15)
+        await scheduledPostService.schedulePost(runId, 'SILVER', content, 15)
           .catch(err => logger.error('Error scheduling SILVER post', err));
 
         // Delayed 30m: Public (Twitter, DB-backed)
         logger.info(`Scheduling Signal for PUBLIC (+30m) for run ${runId}...`);
-        await scheduledPostService.schedulePost(runId, 'PUBLIC', generatorResult.formatted_content, 30)
+        await scheduledPostService.schedulePost(runId, 'PUBLIC', content, 30)
           .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
         await this.saveRun(

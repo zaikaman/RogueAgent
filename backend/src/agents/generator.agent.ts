@@ -27,6 +27,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        analysis...
        hashtags
      - strict limit: under 260 characters.
+     - output field: 'tweet_text'
      - generate a 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "SIGNAL LOCKED: $MET showing breakout patterns."
 
      mode 2: market intel
