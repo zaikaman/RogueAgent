@@ -344,14 +344,17 @@ export class Orchestrator {
         - Start with a bold header: '🕵️‍♂️ ROGUE CUSTOM SCAN: ${tokenSymbol}'.
         - Include sections: 'Market Snapshot', 'Narrative Check', 'Technical Outlook', and 'The Verdict'.
         - Tone: Professional, sharp, no-nonsense, 'alpha' focused.
-        - Keep it under 400 words.`
+        - Keep it under 400 words.
+        
+        IMPORTANT: Put the entire report in the 'formatted_content' field of the JSON output.`
       ) as unknown as GeneratorResult;
 
       // 4. Deliver via Telegram DM
       const user = await supabaseService.getUser(walletAddress);
       if (user && user.telegram_user_id) {
+        const content = generatorResult.formatted_content || generatorResult.blog_post || "Analysis generation failed.";
         await telegramService.sendMessage(
-          `**Custom Analysis for ${tokenSymbol}**\n\n${generatorResult.formatted_content}`,
+          `**Custom Analysis for ${tokenSymbol}**\n\n${content}`,
           user.telegram_user_id.toString()
         );
         

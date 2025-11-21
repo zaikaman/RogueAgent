@@ -57,6 +57,15 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        ## Verdict
        [Final thoughts]
 
+     mode 3: custom report
+     - format:
+       - Use Markdown.
+       - Start with a bold header: '🕵️‍♂️ ROGUE CUSTOM SCAN: [SYMBOL]'.
+       - Include sections: 'Market Snapshot', 'Narrative Check', 'Technical Outlook', and 'The Verdict'.
+       - Tone: Professional, sharp, no-nonsense, 'alpha' focused.
+       - Keep it under 400 words.
+     - output field: 'formatted_content'
+
      IMPORTANT: you must return the result in strict JSON format matching the output schema.
      IMPORTANT: ensure the 'tweet_text' is less than 260 characters.
 
@@ -66,7 +75,8 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
       "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.",
       "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation...",
       "image_prompt": "A futuristic digital representation of the Solana blockchain network experiencing congestion, with glowing data packets piling up at a central node, cyberpunk style, neon colors, cinematic lighting.",
-      "log_message": "Network anomaly detected on $SOL chain. Analysis complete."
+      "log_message": "Network anomaly detected on $SOL chain. Analysis complete.",
+      "formatted_content": "🕵️‍♂️ ROGUE CUSTOM SCAN: $SOL\n\n**Market Snapshot**\nPrice: $25.00\n..."
      }
   `)
   .withOutputSchema(
@@ -75,7 +85,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
       tweet_text: z.string().optional(),
       blog_post: z.string().optional(),
       image_prompt: z.string().optional(),
-      formatted_content: z.string().optional(), // For backward compatibility/signals
+      formatted_content: z.string().optional(), // For backward compatibility/signals/custom reports
       log_message: z.string().optional(),
     }) as any
   );
