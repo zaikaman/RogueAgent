@@ -27,6 +27,8 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     6. If confidence < 7, do not generate a signal.
     
     Output the selected signal details or indicate no signal.
+    
+    **CRITICAL**: You must ALWAYS provide an 'analysis_summary', even if the action is 'skip'. This summary should explain your reasoning.
 
     IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
     
@@ -50,6 +52,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           "description": "RSI bullish divergence + MACD crossover"
         }
       },
+      "analysis_summary": "Solana is showing strong bullish momentum driven by new partnership news and technical breakouts. RSI is healthy.",
       "action": "signal"
     }
   `)
@@ -74,6 +77,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           description: z.string(),
         }),
       }).nullable(),
-      action: z.enum(['signal', 'skip']),
+      analysis_summary: z.string(),
+      action: z.enum(['signal', 'skip', 'no_signal']),
     }) as any
   );

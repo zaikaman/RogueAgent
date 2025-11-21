@@ -39,7 +39,8 @@ interface AnalyzerResult {
       description: string;
     };
   } | null;
-  action: 'signal' | 'skip';
+  analysis_summary: string;
+  action: 'signal' | 'skip' | 'no_signal';
 }
 
 interface GeneratorResult {
