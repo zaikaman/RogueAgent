@@ -5,6 +5,7 @@ import { telegramService } from './services/telegram.service';
 import { orchestrator } from './agents/orchestrator';
 import { supabaseService } from './services/supabase.service';
 import { signalMonitorService } from './services/signal-monitor.service';
+import { scheduledPostService } from './services/scheduled-post.service';
 
 const app = createServer();
 const port = config.PORT;
@@ -27,6 +28,15 @@ const server = app.listen(port, () => {
   
   // Run once immediately on startup
   signalMonitorService.checkActiveSignals().catch(err => logger.error('Initial signal monitor failed:', err));
+
+  // Start Scheduled Post Processor (every 1 minute)
+  logger.info('Starting Scheduled Post Processor (Interval: 1m)');
+  setInterval(() => {
+    scheduledPostService.processPendingPosts().catch(err => logger.error('Scheduled post processor failed:', err));
+  }, 60 * 1000);
+  
+  // Run once immediately on startup
+  scheduledPostService.processPendingPosts().catch(err => logger.error('Initial scheduled post processing failed:', err));
 
   // Start Swarm Scheduler
   const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;

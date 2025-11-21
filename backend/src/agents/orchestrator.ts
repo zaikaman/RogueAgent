@@ -12,6 +12,7 @@ import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { runwareService } from '../services/runware.service';
 import { TIERS } from '../constants/tiers';
+import { scheduledPostService } from '../services/scheduled-post.service';
 
 interface ScannerResult {
   candidates?: Array<{
@@ -225,26 +226,15 @@ export class Orchestrator {
         telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.GOLD, TIERS.DIAMOND])
           .catch(err => logger.error('Error broadcasting to GOLD/DIAMOND', err));
 
-        // Delayed 15m: Silver
+        // Delayed 15m: Silver (DB-backed)
         logger.info(`Scheduling Signal for SILVER (+15m) for run ${runId}...`);
-        setTimeout(() => {
-          telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.SILVER])
-            .catch(err => logger.error('Error broadcasting to SILVER', err));
-        }, 15 * 60 * 1000);
+        await scheduledPostService.schedulePost(runId, 'SILVER', generatorResult.formatted_content, 15)
+          .catch(err => logger.error('Error scheduling SILVER post', err));
 
-        // Delayed 30m: Public (Twitter)
+        // Delayed 30m: Public (Twitter, DB-backed)
         logger.info(`Scheduling Signal for PUBLIC (+30m) for run ${runId}...`);
-        setTimeout(async () => {
-          try {
-            const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
-            if (tweetId) {
-              logger.info(`Twitter post successful: ${tweetId}`);
-              await supabaseService.updateRun(runId, { public_posted_at: new Date().toISOString() });
-            }
-          } catch (error) {
-            logger.error(`Error in Twitter post for run ${runId}`, error);
-          }
-        }, 30 * 60 * 1000);
+        await scheduledPostService.schedulePost(runId, 'PUBLIC', generatorResult.formatted_content, 30)
+          .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
         await this.saveRun(
           runId, 
@@ -331,26 +321,15 @@ export class Orchestrator {
         // Delayed 15m: Silver (Blog Post) - SKIP if Sunday Deep Dive
         if (blogContent && !isSunday) {
            logger.info(`Scheduling Intel Blog for SILVER (+15m) for run ${runId}...`);
-           setTimeout(() => {
-             telegramService.broadcastToTiers(blogContent, [TIERS.SILVER])
-               .catch(err => logger.error('Error distributing to SILVER', err));
-           }, 15 * 60 * 1000);
+           await scheduledPostService.schedulePost(runId, 'SILVER', blogContent, 15)
+             .catch(err => logger.error('Error scheduling SILVER intel post', err));
         }
 
         // Delayed 30m: Public (Twitter) - SKIP if Sunday Deep Dive
         if (tweetContent && !isSunday) {
            logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
-           setTimeout(async () => {
-             try {
-               const tweetId = await twitterService.postTweet(tweetContent);
-               if (tweetId) {
-                 logger.info(`Twitter post successful: ${tweetId}`);
-                 await supabaseService.updateRun(runId, { public_posted_at: new Date().toISOString() });
-               }
-             } catch (error) {
-               logger.error(`Error in Twitter post for run ${runId}`, error);
-             }
-           }, 30 * 60 * 1000);
+           await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent, 30)
+             .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
         }
 
         await this.saveRun(

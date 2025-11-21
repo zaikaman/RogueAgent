@@ -48,6 +48,22 @@ CREATE TABLE runs (
 CREATE INDEX idx_runs_created_at ON runs(created_at DESC);
 CREATE INDEX idx_runs_type ON runs(type);
 
+-- Create scheduled_posts table for delayed tier publishing
+CREATE TABLE scheduled_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+  tier TEXT NOT NULL CHECK (tier IN ('SILVER', 'GOLD', 'DIAMOND', 'PUBLIC')),
+  content TEXT NOT NULL,
+  scheduled_for TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'posted', 'failed')),
+  posted_at TIMESTAMPTZ,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_scheduled_posts_status ON scheduled_posts(status, scheduled_for);
+CREATE INDEX idx_scheduled_posts_run_id ON scheduled_posts(run_id);
+
 -- Create custom_requests table
 CREATE TABLE custom_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

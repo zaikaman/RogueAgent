@@ -7,6 +7,7 @@ import { GeneratorAgent } from '../agents/generator.agent';
 import { telegramService } from './telegram.service';
 import { twitterService } from './twitter.service';
 import { TIERS } from '../constants/tiers';
+import { scheduledPostService } from './scheduled-post.service';
 
 interface GeneratorResult {
   formatted_content: string;
@@ -101,23 +102,13 @@ export class SignalMonitorService {
                     logger.info(`Distributing Triggered Signal to GOLD/DIAMOND...`);
                     await telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.GOLD, TIERS.DIAMOND]);
 
-                    // Delayed 15m: Silver
-                    setTimeout(() => {
-                        telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.SILVER])
-                            .catch(err => logger.error('Error broadcasting to SILVER', err));
-                    }, 15 * 60 * 1000);
+                    // Delayed 15m: Silver (DB-backed)
+                    await scheduledPostService.schedulePost(run.id, 'SILVER', generatorResult.formatted_content, 15)
+                        .catch(err => logger.error('Error scheduling SILVER post', err));
 
-                    // Delayed 30m: Public (Twitter)
-                    setTimeout(async () => {
-                        try {
-                            const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
-                            if (tweetId) {
-                                await supabaseService.updateRun(run.id, { public_posted_at: new Date().toISOString() });
-                            }
-                        } catch (error) {
-                            logger.error(`Error in Twitter post for run ${run.id}`, error);
-                        }
-                    }, 30 * 60 * 1000);
+                    // Delayed 30m: Public (Twitter, DB-backed)
+                    await scheduledPostService.schedulePost(run.id, 'PUBLIC', generatorResult.formatted_content, 30)
+                        .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
                     // Update Run in DB
                     await supabaseService.updateRun(run.id, { 

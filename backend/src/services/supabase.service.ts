@@ -283,6 +283,53 @@ export class SupabaseService {
       return null;
     }).filter(Boolean);
   }
+
+  // Scheduled Posts Methods
+  async createScheduledPost(postData: {
+    run_id: string;
+    tier: 'SILVER' | 'GOLD' | 'DIAMOND' | 'PUBLIC';
+    content: string;
+    scheduled_for: string;
+  }) {
+    const { data, error } = await this.client
+      .from('scheduled_posts')
+      .insert(postData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getPendingScheduledPosts() {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await this.client
+      .from('scheduled_posts')
+      .select('*')
+      .eq('status', 'pending')
+      .lte('scheduled_for', now)
+      .order('scheduled_for', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async updateScheduledPost(id: string, updates: {
+    status?: 'pending' | 'posted' | 'failed';
+    posted_at?: string;
+    error_message?: string;
+  }) {
+    const { data, error } = await this.client
+      .from('scheduled_posts')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const supabaseService = new SupabaseService();
