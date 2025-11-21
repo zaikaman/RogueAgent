@@ -73,9 +73,9 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
         z.object({
           symbol: z.string(),
           name: z.string(),
-          coingecko_id: z.string().optional(),
-          chain: z.string().optional(),
-          address: z.string().optional(),
+          coingecko_id: z.string().nullable().optional(),
+          chain: z.string().nullable().optional(),
+          address: z.string().nullable().optional(),
           reason: z.string(),
         })
       ).optional(),
