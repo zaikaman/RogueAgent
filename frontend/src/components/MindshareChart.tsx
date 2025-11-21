@@ -17,7 +17,7 @@ export function MindshareChart({ data }: MindshareChartProps) {
   ];
 
   return (
-    <div className="h-[200px] w-full">
+    <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData}>
           <defs>

@@ -3,20 +3,31 @@ import { api, endpoints } from '../services/api.service';
 
 export interface Signal {
   id: string;
-  type: string;
-  symbol: string;
-  action: 'BUY' | 'SELL' | 'HOLD';
-  confidence: number;
-  reasoning: string;
-  timestamp: string;
-  price?: number;
-  status?: 'PENDING' | 'EXECUTED' | 'FAILED';
-  metadata?: any;
+  created_at: string;
+  public_posted_at: string | null;
+  content: {
+    token: {
+      symbol: string;
+      name: string;
+      contract_address: string;
+    };
+    action?: 'BUY' | 'SELL' | 'HOLD';
+    confidence: number;
+    analysis: string;
+    entry_price: number;
+    target_price: number;
+    stop_loss: number;
+    status?: 'active' | 'tp_hit' | 'sl_hit' | 'closed';
+    pnl_percent?: number;
+    current_price?: number;
+    trigger_event?: any;
+    formatted_tweet?: string;
+  };
 }
 
 interface SignalsResponse {
   data: Signal[];
-  pagination: {
+  pagination?: {
     page: number;
     limit: number;
     total: number;
