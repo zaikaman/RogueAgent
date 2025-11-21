@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
+import { dexScreenerService } from './dexscreener.service';
 
 interface CoinGeckoPrice {
   [key: string]: {
@@ -47,6 +48,14 @@ class CoinGeckoService {
         const resolvedId = await this.searchCoin(tokenId);
         if (resolvedId) {
           return this.getPrice(resolvedId, false);
+        }
+
+        // Fallback to DexScreener
+        const dexData = await dexScreenerService.getTokenProfile(tokenId);
+        if (dexData && dexData.market_data && dexData.market_data.current_price) {
+          const price = dexData.market_data.current_price.usd;
+          this.cache.set(tokenId, { price, timestamp: Date.now() });
+          return price;
         }
       }
 
@@ -172,6 +181,14 @@ class CoinGeckoService {
         if (resolvedId) {
           logger.info(`Resolved ${tokenId} to ${resolvedId}`);
           return this.getCoinDetails(resolvedId, false);
+        }
+        
+        // Fallback to DexScreener if CoinGecko search also fails or returns nothing
+        logger.warn(`CoinGecko search failed for ${tokenId}, trying DexScreener fallback...`);
+        const dexData = await dexScreenerService.getTokenProfile(tokenId);
+        if (dexData) {
+          logger.info(`Found ${tokenId} on DexScreener`);
+          return dexData;
         }
       }
       logger.error(`CoinGecko Coin Details API error for ${tokenId}:`, error);

@@ -178,28 +178,7 @@ export class Orchestrator {
                 return;
             }
             
-            logger.info(`Limit Order detected for ${analyzerResult.selected_token?.symbol}. Saving as PENDING signal.`);
-            
-            const signalContent = {
-                token: analyzerResult.selected_token,
-                ...analyzerResult.signal_details,
-                status: 'pending' as const,
-                created_at: new Date().toISOString()
-            };
-
-            await this.saveRun(
-                runId,
-                'signal',
-                signalContent,
-                startTime,
-                analyzerResult.signal_details.confidence,
-                undefined,
-                null,
-                null // Not delivered yet
-            );
-            
-            logger.info(`Pending signal saved. Monitoring for entry price: ${analyzerResult.signal_details.entry_price}`);
-            return; // Exit, do not publish yet
+            logger.info(`Limit Order detected for ${analyzerResult.selected_token?.symbol}. Processing as PENDING signal.`);
         }
 
         // 3. Generator (Signal)
@@ -219,6 +198,7 @@ export class Orchestrator {
           ...analyzerResult.signal_details,
           formatted_tweet: generatorResult.formatted_content,
           log_message: generatorResult.log_message,
+          status: isLimitOrder ? 'pending' : 'active',
         };
 
         // Immediate: Gold/Diamond

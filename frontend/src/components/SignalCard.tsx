@@ -36,7 +36,7 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
       case 'closed':
         return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/50">CLOSED</Badge>;
       default:
-        return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/50">PENDING</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50 animate-pulse">LIMIT ORDER</Badge>;
     }
   };
 

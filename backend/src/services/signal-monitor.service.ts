@@ -81,6 +81,15 @@ export class SignalMonitorService {
             if (isTriggered) {
                 logger.info(`PENDING Signal ${run.id} TRIGGERED! Price ${currentPrice} <= Entry ${entryPrice}`);
                 
+                // If content already exists (new behavior), just activate
+                if (content.formatted_tweet) {
+                     logger.info(`Pending signal ${run.id} already published. Activating...`);
+                     content.status = 'active';
+                     logger.info(`Limit order filled at ${currentPrice} (Target was ${entryPrice})`);
+                     await supabaseService.updateRun(run.id, { content });
+                     continue;
+                }
+
                 // 1. Generate Content
                 try {
                     logger.info('Generating content for triggered signal...');
