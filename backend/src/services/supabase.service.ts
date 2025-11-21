@@ -65,13 +65,18 @@ export class SupabaseService {
     return data;
   }
 
-  async getLatestRun() {
-    const { data, error } = await this.client
+  async getLatestRun(cutoffTime?: string) {
+    let query = this.client
       .from('runs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+
+    if (cutoffTime) {
+      query = query.lt('created_at', cutoffTime);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
     return data;
@@ -170,12 +175,18 @@ export class SupabaseService {
     return data.map((row: any) => row.content?.topic).filter(Boolean);
   }
 
-  async getLogs(limit: number = 10, offset: number = 0) {
-    const { data, error, count } = await this.client
+  async getLogs(limit: number = 10, offset: number = 0, cutoffTime?: string) {
+    let query = this.client
       .from('runs')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
+
+    if (cutoffTime) {
+      query = query.lt('created_at', cutoffTime);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
     return { data, count };
@@ -238,27 +249,37 @@ export class SupabaseService {
     return data;
   }
 
-  async getLatestSignal() {
-    const { data, error } = await this.client
+  async getLatestSignal(cutoffTime?: string) {
+    let query = this.client
       .from('runs')
       .select('*')
       .eq('type', 'signal')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+
+    if (cutoffTime) {
+      query = query.lt('created_at', cutoffTime);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   }
 
-  async getLatestIntel() {
-    const { data, error } = await this.client
+  async getLatestIntel(cutoffTime?: string) {
+    let query = this.client
       .from('runs')
       .select('*')
       .eq('type', 'intel')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+
+    if (cutoffTime) {
+      query = query.lt('created_at', cutoffTime);
+    }
+
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error;
     return data;

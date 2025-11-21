@@ -1,18 +1,47 @@
 import { Request, Response } from 'express';
 import { supabaseService } from '../services/supabase.service';
 import { logger } from '../utils/logger.util';
+import { TIERS } from '../constants/tiers';
 
 export const getIntelHistory = async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = parseInt(req.query.offset as string) || 0;
+    const walletAddress = req.query.address as string;
 
-    const { data: runs, error } = await supabaseService.getClient()
+    let query = supabaseService.getClient()
       .from('runs')
       .select('*')
       .eq('type', 'intel')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
+
+    let cutoffTime: string | undefined;
+
+    if (walletAddress) {
+      const user = await supabaseService.getUser(walletAddress);
+      if (user && user.tier) {
+        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+          cutoffTime = undefined;
+        } else if (user.tier === TIERS.SILVER) {
+          cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        } else {
+          cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        }
+      } else {
+        cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      }
+    } else {
+      cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    }
+
+    if (cutoffTime) {
+      query = query.lt('created_at', cutoffTime);
+    }
+
+    // Apply range last
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: runs, error } = await query;
 
     if (error) {
       throw error;

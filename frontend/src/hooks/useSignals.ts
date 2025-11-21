@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, endpoints } from '../services/api.service';
+import { useAccount } from 'wagmi';
 
 export interface Signal {
   id: string;
@@ -36,11 +37,12 @@ interface SignalsResponse {
 }
 
 export function useSignalsHistory(page = 1, limit = 10) {
+  const { address } = useAccount();
   return useQuery({
-    queryKey: ['signalsHistory', page, limit],
+    queryKey: ['signalsHistory', page, limit, address],
     queryFn: async () => {
       const response = await api.get<SignalsResponse>(endpoints.signalsHistory, {
-        params: { page, limit }
+        params: { page, limit, address }
       });
       return response.data;
     },

@@ -2,13 +2,34 @@ import { Request, Response } from 'express';
 import { supabaseService } from '../services/supabase.service';
 import { logger } from '../utils/logger.util';
 import { config } from '../config/env.config';
+import { TIERS } from '../constants/tiers';
 
 export const getLatestStatus = async (req: Request, res: Response) => {
   try {
+    const walletAddress = req.query.address as string;
+    let cutoffTime: string | undefined;
+
+    if (walletAddress) {
+      const user = await supabaseService.getUser(walletAddress);
+      if (user && user.tier) {
+        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+          cutoffTime = undefined;
+        } else if (user.tier === TIERS.SILVER) {
+          cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        } else {
+          cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        }
+      } else {
+        cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      }
+    } else {
+      cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    }
+
     const [latestRun, latestSignal, latestIntel] = await Promise.all([
-      supabaseService.getLatestRun(),
-      supabaseService.getLatestSignal(),
-      supabaseService.getLatestIntel()
+      supabaseService.getLatestRun(cutoffTime),
+      supabaseService.getLatestSignal(cutoffTime),
+      supabaseService.getLatestIntel(cutoffTime)
     ]);
     
     if (!latestRun) {
