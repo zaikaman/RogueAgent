@@ -88,6 +88,17 @@ export class SupabaseService {
     return data;
   }
 
+  async getUserByTelegramId(telegramId: number) {
+    const { data, error } = await this.client
+      .from('users')
+      .select('*')
+      .eq('telegram_user_id', telegramId)
+      .single();
+
+    if (error) return null;
+    return data;
+  }
+
   async getSubscribedUsers() {
     // Fetch users who have a telegram_user_id (meaning they verified/started bot)
     // and have a tier other than NONE (optional, but makes sense for "signals")

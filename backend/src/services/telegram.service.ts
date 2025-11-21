@@ -111,6 +111,69 @@ export class TelegramService {
     this.bot.onText(/\/start/, (msg) => {
         this.bot?.sendMessage(msg.chat.id, 'Welcome to Rogue Agent! Use /verify <wallet_address> to link your wallet and get early access.');
     });
+
+    const handleScanRequest = async (msg: TelegramBot.Message, token: string) => {
+      const chatId = msg.chat.id;
+      const userId = msg.from?.id;
+
+      if (!userId || !token) return;
+
+      try {
+        const user = await supabaseService.getUserByTelegramId(userId);
+        
+        if (!user) {
+           await this.bot?.sendMessage(chatId, '❌ You are not verified. Please use /verify <wallet_address> first.');
+           return;
+        }
+
+        // Dynamic import to avoid circular dependency
+        const { TIERS } = await import('../constants/tiers');
+        
+        if (user.tier !== TIERS.DIAMOND) {
+           await this.bot?.sendMessage(chatId, '🔒 This feature is exclusive to **DIAMOND** tier users (1,000+ $RGE).', { parse_mode: 'Markdown' });
+           return;
+        }
+
+        // Check Quota
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const count = await supabaseService.getCustomRequestsCount(user.wallet_address, yesterday);
+
+        if (count >= 1) {
+           await this.bot?.sendMessage(chatId, '⚠️ Daily quota exceeded. You can request another scan in 24 hours.');
+           return;
+        }
+
+        await this.bot?.sendMessage(chatId, `🕵️‍♂️ **Rogue Agent** is scanning **${token}** for you... This may take a minute.`, { parse_mode: 'Markdown' });
+
+        // Create Request
+        const request = await supabaseService.createCustomRequest({
+          user_wallet_address: user.wallet_address,
+          token_symbol: token,
+          status: 'pending',
+        });
+
+        // Trigger Orchestrator
+        const { orchestrator } = await import('../agents/orchestrator');
+        // Fire and forget
+        orchestrator.processCustomRequest(request.id, token, user.wallet_address);
+
+      } catch (error) {
+        logger.error('Error in Telegram scan handler', error);
+        await this.bot?.sendMessage(chatId, '❌ An error occurred while processing your request.');
+      }
+    };
+
+    this.bot.onText(/\/scan (.+)/, async (msg, match) => {
+      if (match && match[1]) {
+        await handleScanRequest(msg, match[1]);
+      }
+    });
+
+    this.bot.on('message', async (msg) => {
+      if (msg.text && !msg.text.startsWith('/')) {
+        await handleScanRequest(msg, msg.text);
+      }
+    });
   }
 
   async broadcastIntel(content: string) {
@@ -132,6 +195,44 @@ export class TelegramService {
     }
 
     logger.info(`Broadcasting intel to ${users.length} users...`);
+
+    // Deduplicate users by telegram_user_id
+    const uniqueUserIds = [...new Set(users.map(u => u.telegram_user_id))];
+
+    for (const userId of uniqueUserIds) {
+      if (userId) {
+        try {
+          // Split message if too long (simple split)
+          const chunks = content.match(/.{1,4000}/g) || [content];
+          for (const chunk of chunks) {
+             await this.bot.sendMessage(userId, chunk, { parse_mode: 'Markdown' });
+          }
+        } catch (err) {
+          logger.warn(`Failed to send to user ${userId}`, err);
+        }
+      }
+    }
+  }
+
+  async broadcastToTiers(content: string, tiers: string[]) {
+    if (!this.bot) return;
+
+    const { SupabaseService } = await import('./supabase.service');
+    const supabaseService = new SupabaseService();
+
+    // Fetch users in specific tiers
+    const { data: users, error } = await supabaseService.getClient()
+      .from('users')
+      .select('telegram_user_id')
+      .in('tier', tiers)
+      .not('telegram_user_id', 'is', null);
+
+    if (error || !users) {
+      logger.error(`Failed to fetch users for broadcast to tiers ${tiers.join(',')}`, error);
+      return;
+    }
+
+    logger.info(`Broadcasting to ${tiers.join(',')} (${users.length} users)...`);
 
     // Deduplicate users by telegram_user_id
     const uniqueUserIds = [...new Set(users.map(u => u.telegram_user_id))];

@@ -11,6 +11,7 @@ import { coingeckoService } from '../services/coingecko.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { runwareService } from '../services/runware.service';
+import { TIERS } from '../constants/tiers';
 
 interface ScannerResult {
   candidates: Array<{
@@ -146,25 +147,39 @@ export class Orchestrator {
         const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
         logger.info('Generator result:', generatorResult);
 
-        // 4. Publisher
-        logger.info(`Posting Signal to Twitter for run ${runId}...`);
-        let publicPostedAt = null;
-        try {
-          const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
-          if (tweetId) {
-            logger.info(`Twitter post successful: ${tweetId}`);
-            publicPostedAt = new Date().toISOString();
-          }
-        } catch (error) {
-          logger.error(`Error in Twitter post for run ${runId}`, error);
-        }
-
+        // 4. Publisher (Tiered)
         const signalContent = {
           token: analyzerResult.selected_token,
           ...analyzerResult.signal_details,
           formatted_tweet: generatorResult.formatted_content,
           log_message: generatorResult.log_message,
         };
+
+        // Immediate: Gold/Diamond
+        logger.info(`Distributing Signal to GOLD/DIAMOND for run ${runId}...`);
+        telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.GOLD, TIERS.DIAMOND])
+          .catch(err => logger.error('Error broadcasting to GOLD/DIAMOND', err));
+
+        // Delayed 15m: Silver
+        logger.info(`Scheduling Signal for SILVER (+15m) for run ${runId}...`);
+        setTimeout(() => {
+          telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.SILVER])
+            .catch(err => logger.error('Error broadcasting to SILVER', err));
+        }, 15 * 60 * 1000);
+
+        // Delayed 30m: Public (Twitter)
+        logger.info(`Scheduling Signal for PUBLIC (+30m) for run ${runId}...`);
+        setTimeout(async () => {
+          try {
+            const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
+            if (tweetId) {
+              logger.info(`Twitter post successful: ${tweetId}`);
+              await supabaseService.updateRun(runId, { public_posted_at: new Date().toISOString() });
+            }
+          } catch (error) {
+            logger.error(`Error in Twitter post for run ${runId}`, error);
+          }
+        }, 30 * 60 * 1000);
 
         await this.saveRun(
           runId, 
@@ -173,8 +188,8 @@ export class Orchestrator {
           startTime, 
           analyzerResult.signal_details.confidence,
           undefined,
-          publicPostedAt,
-          null
+          null, // publicPostedAt is now delayed
+          new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
         );
 
       } else {
@@ -187,9 +202,14 @@ export class Orchestrator {
         
         // 1. Intel Agent
         const { runner: intelAgent } = await IntelAgent.build();
-        const intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
+        const isSunday = new Date().getDay() === 0;
+        let intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
         
         AVOID these recently covered topics: ${recentTopics.join(', ')}`;
+
+        if (isSunday) {
+            intelPrompt += `\n\nIMPORTANT: It is Sunday. Generate a "Deep Dive" report focusing on the week's sharpest mindshare divergences and KOL narratives. This will be exclusive to high-tier users.`;
+        }
         
         const intelResult = await intelAgent.ask(intelPrompt) as unknown as IntelResult;
         logger.info('Intel result:', intelResult);
@@ -213,32 +233,41 @@ export class Orchestrator {
           imageUrl = await runwareService.generateImage(generatorResult.image_prompt);
         }
 
-        // 3. Publisher
-        logger.info(`Posting Intel to Twitter for run ${runId}...`);
-        let publicPostedAt = null;
+        // 3. Publisher (Tiered)
+        logger.info(`Publishing Intel for run ${runId}...`);
         const tweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
+        const blogContent = generatorResult.blog_post || generatorResult.formatted_content;
         
-        if (tweetContent) {
-          try {
-            const tweetId = await twitterService.postTweet(tweetContent);
-            if (tweetId) {
-              logger.info(`Twitter post successful: ${tweetId}`);
-              publicPostedAt = new Date().toISOString();
-            }
-          } catch (error) {
-            logger.error(`Error in Twitter post for run ${runId}`, error);
-          }
+        // Immediate: Gold/Diamond (Blog Post)
+        if (blogContent) {
+           logger.info(`Distributing Intel Blog to GOLD/DIAMOND for run ${runId}...`);
+           telegramService.broadcastToTiers(blogContent, [TIERS.GOLD, TIERS.DIAMOND])
+             .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
         }
 
-        // 4. Telegram Distribution (Gold/Diamond)
-        if (generatorResult.blog_post) {
-           logger.info(`Distributing Intel Blog to Telegram for run ${runId}...`);
-           try {
-             await telegramService.broadcastIntel(generatorResult.blog_post);
-             logger.info(`Telegram distribution completed for run ${runId}`);
-           } catch (error) {
-             logger.error(`Error distributing to Telegram for run ${runId}`, error);
-           }
+        // Delayed 15m: Silver (Blog Post) - SKIP if Sunday Deep Dive
+        if (blogContent && !isSunday) {
+           logger.info(`Scheduling Intel Blog for SILVER (+15m) for run ${runId}...`);
+           setTimeout(() => {
+             telegramService.broadcastToTiers(blogContent, [TIERS.SILVER])
+               .catch(err => logger.error('Error distributing to SILVER', err));
+           }, 15 * 60 * 1000);
+        }
+
+        // Delayed 30m: Public (Twitter) - SKIP if Sunday Deep Dive
+        if (tweetContent && !isSunday) {
+           logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
+           setTimeout(async () => {
+             try {
+               const tweetId = await twitterService.postTweet(tweetContent);
+               if (tweetId) {
+                 logger.info(`Twitter post successful: ${tweetId}`);
+                 await supabaseService.updateRun(runId, { public_posted_at: new Date().toISOString() });
+               }
+             } catch (error) {
+               logger.error(`Error in Twitter post for run ${runId}`, error);
+             }
+           }, 30 * 60 * 1000);
         }
 
         await this.saveRun(
@@ -256,8 +285,8 @@ export class Orchestrator {
           startTime, 
           null,
           undefined,
-          publicPostedAt,
-          null
+          null, // publicPostedAt is delayed
+          new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
         );
       }
       
