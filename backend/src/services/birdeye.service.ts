@@ -12,7 +12,7 @@ class BirdeyeService {
 
   private get headers() {
     return {
-      'X-API-KEY': this.apiKey || '',
+      'x-api-key': this.apiKey || '',
       'accept': 'application/json'
     };
   }
