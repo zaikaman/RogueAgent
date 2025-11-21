@@ -52,5 +52,33 @@ export const defillamaService = {
       logger.error('Error fetching DeFi Llama Protocols', error);
       return [];
     }
+  },
+
+  async getYieldPools() {
+    try {
+      const response = await axios.get('https://yields.llama.fi/pools');
+      const pools = response.data.data;
+      
+      // Filter and sort to get interesting pools
+      // Lower TVL threshold to $500k to find more gems
+      // Increase APY range to find more degen plays
+      const interestingPools = pools
+        .filter((p: any) => p.tvlUsd > 500000 && p.apy > 10 && p.apy < 5000)
+        .sort((a: any, b: any) => b.apy - a.apy)
+        .slice(0, 50) // Get top 50 candidates for the agent to analyze
+        .map((p: any) => ({
+          chain: p.chain,
+          project: p.project,
+          symbol: p.symbol,
+          tvlUsd: p.tvlUsd,
+          apy: p.apy,
+          pool: p.pool // unique id
+        }));
+
+      return interestingPools;
+    } catch (error) {
+      logger.error('Error fetching DeFi Llama Yield Pools', error);
+      return [];
+    }
   }
 };

@@ -351,6 +351,35 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
+
+  async saveYieldOpportunities(opportunities: any[]) {
+    const { data, error } = await this.client
+      .from('yield_opportunities')
+      .insert(opportunities)
+      .select();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getLatestYieldOpportunities() {
+    // Get opportunities from the last 24 hours, sorted by APY? 
+    // Or just the latest batch? 
+    // Since we run every hour, maybe just get the ones created in the last hour?
+    // Or better, get the latest 50 and filter in app?
+    // Let's get the ones created in the last run. 
+    // We can find the latest created_at and get all with that timestamp (approx).
+    
+    // Alternative: Get top 20 by created_at
+    const { data, error } = await this.client
+      .from('yield_opportunities')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const supabaseService = new SupabaseService();

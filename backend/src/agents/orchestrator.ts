@@ -2,6 +2,7 @@ import { ScannerAgent } from './scanner.agent';
 import { AnalyzerAgent } from './analyzer.agent';
 import { GeneratorAgent } from './generator.agent';
 import { IntelAgent } from './intel.agent';
+import { YieldAgent } from './yield.agent';
 import { logger } from '../utils/logger.util';
 import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
@@ -450,6 +451,25 @@ export class Orchestrator {
         error_message: error.message,
         completed_at: new Date().toISOString()
       });
+    }
+  }
+
+  async runYieldAnalysis() {
+    const runId = randomUUID();
+    logger.info(`Starting Yield Analysis run ${runId}`);
+
+    try {
+      const { runner } = await YieldAgent.build();
+      const result = await runner.ask("Find the best yield farming opportunities.") as any;
+
+      if (result.opportunities && result.opportunities.length > 0) {
+        logger.info(`Found ${result.opportunities.length} yield opportunities. Saving to DB...`);
+        await supabaseService.saveYieldOpportunities(result.opportunities);
+      } else {
+        logger.info('No yield opportunities found.');
+      }
+    } catch (error) {
+      logger.error('Error in Yield Analysis run', error);
     }
   }
 

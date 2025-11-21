@@ -6,6 +6,7 @@ import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
 import { tavilyService } from '../services/tavily.service';
 import { birdeyeService } from '../services/birdeye.service';
+import { defillamaService } from '../services/defillama.service';
 import { TechnicalAnalysis } from '../utils/ta.util';
 
 export const getTrendingCoinsTool = createTool({
@@ -283,5 +284,14 @@ export const getFundamentalAnalysisTool = createTool({
       };
     }
     return { error: "Must provide tokenId" };
+  },
+});
+
+export const getYieldPoolsTool = createTool({
+  name: 'get_yield_pools',
+  description: 'Get top yield farming pools from DeFi Llama',
+  fn: async () => {
+    const pools = await defillamaService.getYieldPools();
+    return { pools };
   },
 });

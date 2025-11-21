@@ -91,6 +91,15 @@ const server = app.listen(port, () => {
   scheduleSwarm();
 });
 
+// Start Yield Scheduler (every 1 hour)
+  logger.info('Starting Yield Scheduler (Interval: 1h)');
+  setInterval(() => {
+    orchestrator.runYieldAnalysis().catch(err => logger.error('Yield analysis failed:', err));
+  }, 60 * 60 * 1000);
+  
+  // Run once immediately on startup
+  orchestrator.runYieldAnalysis().catch(err => logger.error('Initial yield analysis failed:', err));
+
 // Graceful shutdown
 const shutdown = async (signal: string) => {
   logger.info(`${signal} received. Shutting down gracefully...`);

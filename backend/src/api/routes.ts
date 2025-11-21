@@ -7,6 +7,7 @@ import { customRequestsController } from './custom-requests.controller';
 import * as usersController from './users.controller';
 import * as signalsController from './signals.controller';
 import * as intelController from './intel.controller';
+import { yieldController } from './yield.controller';
 
 import * as healthController from './health.controller';
 
@@ -27,6 +28,9 @@ router.get('/signals/history', signalsController.getSignalHistory);
 
 // Intel
 router.get('/intel/history', intelController.getIntelHistory);
+
+// Yield
+router.get('/yield', yieldController.getOpportunities);
 
 // Tiers
 router.use('/tiers', tiersController);
