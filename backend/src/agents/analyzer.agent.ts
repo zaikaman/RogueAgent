@@ -75,7 +75,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         trigger_event: z.object({
           type: z.string(),
           description: z.string(),
-        }),
+        }).nullable(),
       }).nullable(),
       analysis_summary: z.string(),
       action: z.enum(['signal', 'skip', 'no_signal']),

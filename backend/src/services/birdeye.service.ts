@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
+import { retry } from '../utils/retry.util';
 
 class BirdeyeService {
   private baseUrl = 'https://public-api.birdeye.so';
@@ -26,20 +27,22 @@ class BirdeyeService {
     if (!this.apiKey) return [];
 
     try {
-      const response = await axios.get(`${this.baseUrl}/defi/token_trending`, {
-        headers: { ...this.headers, 'x-chain': chain },
-        params: {
-          sort_by: 'rank',
-          sort_type: 'asc',
-          offset: 0,
-          limit: limit
-        }
-      });
+      return await retry(async () => {
+        const response = await axios.get(`${this.baseUrl}/defi/token_trending`, {
+          headers: { ...this.headers, 'x-chain': chain },
+          params: {
+            sort_by: 'rank',
+            sort_type: 'asc',
+            offset: 0,
+            limit: limit
+          }
+        });
 
-      if (response.data && response.data.success) {
-        return response.data.data.tokens || [];
-      }
-      return [];
+        if (response.data && response.data.success) {
+          return response.data.data.tokens || [];
+        }
+        return [];
+      }, 3, 2000); // Retry 3 times, start with 2s delay
     } catch (error: any) {
       logger.error('Birdeye Trending API error:', error.message);
       return [];
@@ -50,15 +53,17 @@ class BirdeyeService {
     if (!this.apiKey) return null;
 
     try {
-      const response = await axios.get(`${this.baseUrl}/defi/token_overview`, {
-        headers: { ...this.headers, 'x-chain': chain },
-        params: { address }
-      });
+      return await retry(async () => {
+        const response = await axios.get(`${this.baseUrl}/defi/token_overview`, {
+          headers: { ...this.headers, 'x-chain': chain },
+          params: { address }
+        });
 
-      if (response.data && response.data.success) {
-        return response.data.data;
-      }
-      return null;
+        if (response.data && response.data.success) {
+          return response.data.data;
+        }
+        return null;
+      }, 3, 2000);
     } catch (error: any) {
       logger.error(`Birdeye Token Overview API error for ${address}:`, error.message);
       return null;
@@ -73,21 +78,23 @@ class BirdeyeService {
     const timeFrom = timeTo - (days * 24 * 60 * 60);
 
     try {
-      const response = await axios.get(`${this.baseUrl}/defi/history_price`, {
-        headers: { ...this.headers, 'x-chain': chain },
-        params: {
-          address: address,
-          address_type: 'token',
-          type: '1H', // 1 hour interval
-          time_from: timeFrom,
-          time_to: timeTo
-        }
-      });
+      return await retry(async () => {
+        const response = await axios.get(`${this.baseUrl}/defi/history_price`, {
+          headers: { ...this.headers, 'x-chain': chain },
+          params: {
+            address: address,
+            address_type: 'token',
+            type: '1H', // 1 hour interval
+            time_from: timeFrom,
+            time_to: timeTo
+          }
+        });
 
-      if (response.data && response.data.success) {
-        return response.data.data.items || [];
-      }
-      return [];
+        if (response.data && response.data.success) {
+          return response.data.data.items || [];
+        }
+        return [];
+      }, 3, 2000);
     } catch (error: any) {
       logger.error(`Birdeye History API error for ${address}:`, error.message);
       return [];

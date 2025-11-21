@@ -48,7 +48,7 @@ interface AnalyzerResult {
     trigger_event: {
       type: string;
       description: string;
-    };
+    } | null;
   } | null;
   analysis_summary: string;
   action: 'signal' | 'skip' | 'no_signal';
