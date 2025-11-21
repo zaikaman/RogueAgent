@@ -19,7 +19,7 @@ export function DashboardHome() {
   // Fetch more logs to fill the scrollable area
   const { data: logsData } = useLogs(1, 100);
   
-  const { tier: userTier, balance, usdValue, telegramConnected } = useUserTier();
+  const { tier: userTier, balance, telegramConnected } = useUserTier();
   const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   useEffect(() => {
@@ -85,7 +85,6 @@ export function DashboardHome() {
             <TierDisplay 
               tier={userTier} 
               balance={balance} 
-              usdValue={usdValue} 
             />
             
             {/* Quick Actions or Status */}

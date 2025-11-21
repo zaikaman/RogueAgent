@@ -18,13 +18,12 @@ router.post('/verify', async (req: Request, res: Response) => {
 
     logger.info(`Verifying tier for ${walletAddress}`);
 
-    const { tier, balance, usdValue } = await tierManager.verifyTier(walletAddress);
+    const { tier, balance } = await tierManager.verifyTier(walletAddress);
 
     // Save to Supabase
     const user = await supabaseService.upsertUser({
       wallet_address: walletAddress,
       tier,
-      rge_balance_usd: usdValue,
       last_verified_at: new Date().toISOString(),
     });
 
@@ -33,7 +32,6 @@ router.post('/verify', async (req: Request, res: Response) => {
       data: {
         tier,
         balance,
-        usdValue,
         telegram_connected: !!user.telegram_user_id,
         telegram_username: user.telegram_username,
       },

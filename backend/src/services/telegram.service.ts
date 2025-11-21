@@ -89,18 +89,17 @@ export class TelegramService {
       try {
         await this.bot?.sendMessage(chatId, 'Verifying wallet...');
         
-        const { tier, usdValue } = await tierManager.verifyTier(walletAddress);
+        const { tier, balance } = await tierManager.verifyTier(walletAddress);
 
         await supabaseService.upsertUser({
           wallet_address: walletAddress,
           tier,
-          rge_balance_usd: usdValue,
           last_verified_at: new Date().toISOString(),
           telegram_user_id: msg.from?.id,
           telegram_username: msg.from?.username,
         });
 
-        await this.bot?.sendMessage(chatId, `✅ Verified! You are **${tier}** tier ($${usdValue.toFixed(2)} RGE).`, { parse_mode: 'Markdown' });
+        await this.bot?.sendMessage(chatId, `✅ Verified! You are **${tier}** tier (${balance.toFixed(2)} RGE).`, { parse_mode: 'Markdown' });
         
       } catch (error) {
         logger.error('Error in Telegram verify handler', error);

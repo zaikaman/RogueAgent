@@ -4,10 +4,9 @@ import { TIERS, TIER_BENEFITS, Tier } from '../constants/tiers';
 interface TierDisplayProps {
   tier: Tier;
   balance: number;
-  usdValue: number;
 }
 
-export function TierDisplay({ tier, balance, usdValue }: TierDisplayProps) {
+export function TierDisplay({ tier, balance }: TierDisplayProps) {
   const getTierColor = (t: Tier) => {
     switch (t) {
       case TIERS.DIAMOND: return 'text-cyan-400 border-cyan-500/50 bg-cyan-950/30';
@@ -34,7 +33,7 @@ export function TierDisplay({ tier, balance, usdValue }: TierDisplayProps) {
           <span>{tier} TIER</span>
         </div>
         <div className="text-sm font-mono opacity-80">
-          {balance.toFixed(2)} RGE (${usdValue.toFixed(2)})
+          {balance.toFixed(2)} RGE
         </div>
       </div>
       

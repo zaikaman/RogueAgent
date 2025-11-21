@@ -7,7 +7,6 @@ export function useUserTier() {
   const { address, isConnected } = useAccount();
   const [tier, setTier] = useState<Tier>(TIERS.NONE);
   const [balance, setBalance] = useState(0);
-  const [usdValue, setUsdValue] = useState(0);
   const [telegramConnected, setTelegramConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,7 +17,6 @@ export function useUserTier() {
         .then(data => {
           setTier(data.tier);
           setBalance(data.balance);
-          setUsdValue(data.usdValue);
           setTelegramConnected(data.telegram_connected);
         })
         .catch(console.error)
@@ -26,7 +24,6 @@ export function useUserTier() {
     } else {
       setTier(TIERS.NONE);
       setBalance(0);
-      setUsdValue(0);
       setTelegramConnected(false);
       setIsLoading(false);
     }
@@ -35,7 +32,6 @@ export function useUserTier() {
   return {
     tier,
     balance,
-    usdValue,
     telegramConnected,
     isLoading,
     isConnected

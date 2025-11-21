@@ -22,7 +22,6 @@ export function Terminal() {
   
   const [userTier, setUserTier] = useState<Tier>(TIERS.NONE);
   const [balance, setBalance] = useState(0);
-  const [usdValue, setUsdValue] = useState(0);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export function Terminal() {
         .then(data => {
           setUserTier(data.tier);
           setBalance(data.balance);
-          setUsdValue(data.usdValue);
 
           // Show Telegram modal if user is Silver+ and hasn't connected Telegram yet
           if (data.tier !== TIERS.NONE && !data.telegram_connected) {
@@ -42,7 +40,6 @@ export function Terminal() {
     } else {
       setUserTier(TIERS.NONE);
       setBalance(0);
-      setUsdValue(0);
     }
   }, [isConnected, address]);
 
@@ -104,7 +101,7 @@ export function Terminal() {
           </div>
 
           <div className="space-y-6">
-            <TierDisplay tier={userTier} balance={balance} usdValue={usdValue} />
+            <TierDisplay tier={userTier} balance={balance} />
             <TerminalLog logs={logsData?.data || []} />
           </div>
         </div>
