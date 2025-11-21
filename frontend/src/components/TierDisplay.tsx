@@ -1,5 +1,7 @@
-import { Shield, Star, Zap, Lock } from 'lucide-react';
+import { Shield, Star, Zap, Lock, HelpCircle } from 'lucide-react';
 import { TIERS, TIER_BENEFITS, Tier } from '../constants/tiers';
+import { useState } from 'react';
+import { TiersInfoModal } from './TiersInfoModal';
 
 interface TierDisplayProps {
   tier: Tier;
@@ -7,6 +9,8 @@ interface TierDisplayProps {
 }
 
 export function TierDisplay({ tier, balance }: TierDisplayProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const getTierColor = (t: Tier) => {
     switch (t) {
       case TIERS.DIAMOND: return 'text-cyan-400 border-cyan-500/50 bg-cyan-950/30';
@@ -31,6 +35,13 @@ export function TierDisplay({ tier, balance }: TierDisplayProps) {
         <div className="flex items-center gap-2 font-bold text-lg">
           {getTierIcon(tier)}
           <span>{tier} TIER</span>
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="ml-1 text-gray-400 hover:text-white transition-colors focus:outline-none"
+            title="View Tier Benefits"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
         </div>
         <div className="text-sm font-mono opacity-80">
           {balance.toFixed(2)} RGE
@@ -48,6 +59,8 @@ export function TierDisplay({ tier, balance }: TierDisplayProps) {
           ))}
         </ul>
       </div>
+
+      <TiersInfoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
