@@ -10,7 +10,7 @@ import { TechnicalAnalysis } from '../utils/ta.util';
 
 export const getTrendingCoinsTool = createTool({
   name: 'get_trending_coins',
-  description: 'Get top trending coins from CoinGecko and Birdeye (Solana, Ethereum, Base, Arbitrum)',
+  description: 'Get top trending coins from CoinGecko and Birdeye across multiple chains (Solana, Ethereum, Base, Arbitrum, Avalanche, BSC, Optimism, Polygon, zkSync, Sui, Aptos)',
   fn: async () => {
     const cgCoins = await coingeckoService.getTrending();
     
@@ -107,8 +107,8 @@ export const getMarketChartTool = createTool({
   description: 'Get historical market data (prices) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
   schema: z.object({
     tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
-    chain: z.string().optional().describe('The chain for address-based lookup'),
-    address: z.string().optional().describe('The token address for chain-based lookup'),
+    chain: z.string().optional().describe('The blockchain network (solana, ethereum, arbitrum, avalanche, bsc, optimism, polygon, base, zksync, sui, aptos)'),
+    address: z.string().optional().describe('The token contract address for chain-based lookup'),
     days: z.number().optional().default(7).describe('Number of days of data to fetch (default: 7)'),
   }) as any,
   fn: async ({ tokenId, chain, address, days }) => {
@@ -198,8 +198,8 @@ export const getTechnicalAnalysisTool = createTool({
   description: 'Calculate technical indicators (RSI, MACD, SMA, EMA) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
   schema: z.object({
     tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
-    chain: z.string().optional().describe('The chain for address-based lookup'),
-    address: z.string().optional().describe('The token address for chain-based lookup'),
+    chain: z.string().optional().describe('The blockchain network (solana, ethereum, arbitrum, avalanche, bsc, optimism, polygon, base, zksync, sui, aptos)'),
+    address: z.string().optional().describe('The token contract address for chain-based lookup'),
     days: z.number().optional().default(30).describe('Days of history to analyze (default: 30)'),
   }) as any,
   fn: async ({ tokenId, chain, address, days }) => {

@@ -23,13 +23,17 @@ class BirdeyeService {
     }
   }
 
-  async getTrendingTokens(limit: number = 10, chain: string = 'solana'): Promise<any[]> {
+  async getTrendingTokens(limit: number = 10, chain?: string): Promise<any[]> {
     if (!this.apiKey) return [];
 
     try {
       return await retry(async () => {
+        const headers = chain 
+          ? { ...this.headers, 'x-chain': chain }
+          : this.headers;
+
         const response = await axios.get(`${this.baseUrl}/defi/token_trending`, {
-          headers: { ...this.headers, 'x-chain': chain },
+          headers,
           params: {
             sort_by: 'rank',
             sort_type: 'asc',
@@ -44,12 +48,12 @@ class BirdeyeService {
         return [];
       }, 3, 2000); // Retry 3 times, start with 2s delay
     } catch (error: any) {
-      logger.error('Birdeye Trending API error:', error.message);
+      logger.error(`Birdeye Trending API error${chain ? ` for chain ${chain}` : ''}:`, error.message);
       return [];
     }
   }
 
-  async getPriceHistory(address: string, chain: string = 'solana', days: number = 7): Promise<any[]> {
+  async getPriceHistory(address: string, chain?: string, days: number = 7): Promise<any[]> {
     if (!this.apiKey) return [];
     
     // Calculate time_from and time_to
@@ -58,8 +62,12 @@ class BirdeyeService {
 
     try {
       return await retry(async () => {
+        const headers = chain 
+          ? { ...this.headers, 'x-chain': chain }
+          : this.headers;
+
         const response = await axios.get(`${this.baseUrl}/defi/history_price`, {
-          headers: { ...this.headers, 'x-chain': chain },
+          headers,
           params: {
             address: address,
             address_type: 'token',
@@ -75,7 +83,7 @@ class BirdeyeService {
         return [];
       }, 3, 2000);
     } catch (error: any) {
-      logger.error(`Birdeye History API error for ${address}:`, error.message);
+      logger.error(`Birdeye History API error for ${address}${chain ? ` on chain ${chain}` : ''}:`, error.message);
       return [];
     }
   }
