@@ -1,12 +1,23 @@
+import { useConnect } from 'wagmi';
 import { useRunStatus } from '../hooks/useRunStatus';
 import { useSignalsHistory } from '../hooks/useSignals';
+import { useUserTier } from '../hooks/useUserTier';
 import { SignalCard } from '../components/SignalCard';
+import { GatedContent } from '../components/GatedContent';
+import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { GpsSignal01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 
 export function SignalsPage() {
   const { data: runStatus, isLoading: isStatusLoading } = useRunStatus();
   const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory();
+  const { tier, isConnected } = useUserTier();
+  const { connect, connectors } = useConnect();
+
+  const handleConnect = () => {
+    const connector = connectors[0];
+    connect({ connector });
+  };
   
   const latestSignal = runStatus?.latest_signal;
   const historySignals = historyData?.data || [];
@@ -23,35 +34,41 @@ export function SignalsPage() {
         </div>
       </div>
 
-      {/* Latest Signal */}
+      {/* Latest Signal - Always Visible */}
       <div className="space-y-4">
         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Latest Signal</h3>
         <SignalCard signal={latestSignal} isLoading={isStatusLoading} />
       </div>
 
-      {/* History */}
-      <div className="space-y-4 pt-8 border-t border-gray-800">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Signal History</h3>
-          {isHistoryLoading && (
-            <HugeiconsIcon icon={Loading03Icon} className="w-4 h-4 text-cyan-500 animate-spin" />
+      <GatedContent 
+        userTier={tier} 
+        requiredTier={TIERS.SILVER}
+        onConnect={!isConnected ? handleConnect : undefined}
+      >
+        {/* History */}
+        <div className="space-y-4 pt-8 border-t border-gray-800">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Signal History</h3>
+            {isHistoryLoading && (
+              <HugeiconsIcon icon={Loading03Icon} className="w-4 h-4 text-cyan-500 animate-spin" />
+            )}
+          </div>
+          
+          {historySignals.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {historySignals.map((signal: any) => (
+                <SignalCard key={signal.id} signal={signal} />
+              ))}
+            </div>
+          ) : (
+            !isHistoryLoading && (
+              <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-8 text-center">
+                <p className="text-gray-500">No signal history available.</p>
+              </div>
+            )
           )}
         </div>
-        
-        {historySignals.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {historySignals.map((signal: any) => (
-              <SignalCard key={signal.id} signal={signal} />
-            ))}
-          </div>
-        ) : (
-          !isHistoryLoading && (
-            <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-8 text-center">
-              <p className="text-gray-500">No signal history available.</p>
-            </div>
-          )
-        )}
-      </div>
+      </GatedContent>
     </div>
   );
 }

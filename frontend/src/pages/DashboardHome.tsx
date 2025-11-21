@@ -8,41 +8,25 @@ import { TelegramModal } from '../components/TelegramModal';
 import { TerminalLog } from '../components/TerminalLog';
 import { useRunStatus } from '../hooks/useRunStatus';
 import { useLogs } from '../hooks/useLogs';
-import { walletService } from '../services/wallet.service';
-import { TIERS, Tier } from '../constants/tiers';
+import { useUserTier } from '../hooks/useUserTier';
+import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, Home01Icon } from '@hugeicons/core-free-icons';
 
 export function DashboardHome() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const { data: runStatus, isLoading: isRunLoading } = useRunStatus();
   // Fetch more logs to fill the scrollable area
   const { data: logsData } = useLogs(1, 100);
   
-  const [userTier, setUserTier] = useState<Tier>(TIERS.NONE);
-  const [balance, setBalance] = useState(0);
-  const [usdValue, setUsdValue] = useState(0);
+  const { tier: userTier, balance, usdValue, telegramConnected } = useUserTier();
   const [showTelegramModal, setShowTelegramModal] = useState(false);
 
   useEffect(() => {
-    if (isConnected && address) {
-      walletService.verifyTier(address)
-        .then(data => {
-          setUserTier(data.tier);
-          setBalance(data.balance);
-          setUsdValue(data.usdValue);
-
-          if (data.tier !== TIERS.NONE && !data.telegram_connected) {
-             setShowTelegramModal(true);
-          }
-        })
-        .catch(console.error);
-    } else {
-      setUserTier(TIERS.NONE);
-      setBalance(0);
-      setUsdValue(0);
+    if (userTier !== TIERS.NONE && !telegramConnected) {
+       setShowTelegramModal(true);
     }
-  }, [isConnected, address]);
+  }, [userTier, telegramConnected]);
 
   const latestSignal = runStatus?.latest_signal;
   const latestIntel = runStatus?.latest_intel;
