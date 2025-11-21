@@ -467,6 +467,18 @@ export class Orchestrator {
     telegramDeliveredAt?: string | null
   ) {
     const endTime = Date.now();
+    
+    // Scale confidence from 1-100 to 1-10
+    let scaledConfidence = confidence;
+    if (typeof confidence === 'number') {
+        // If confidence is > 10, assume it's on 1-100 scale and normalize
+        if (confidence > 10) {
+            scaledConfidence = Math.round(confidence / 10);
+        }
+        // Ensure it stays within 1-10 bounds
+        scaledConfidence = Math.max(1, Math.min(10, scaledConfidence || 0));
+    }
+
     await supabaseService.createRun({
       id,
       type,
@@ -474,7 +486,7 @@ export class Orchestrator {
       cycle_started_at: new Date(startTime).toISOString(),
       cycle_completed_at: new Date(endTime).toISOString(),
       execution_time_ms: endTime - startTime,
-      confidence_score: confidence,
+      confidence_score: scaledConfidence,
       error_message: errorMessage,
       public_posted_at: publicPostedAt,
       telegram_delivered_at: telegramDeliveredAt,
