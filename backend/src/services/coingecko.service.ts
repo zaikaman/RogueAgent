@@ -22,6 +22,31 @@ class CoinGeckoService {
     }
   }
 
+  private mapChainToPlatformId(chain: string): string | null {
+    const map: { [key: string]: string } = {
+      'ethereum': 'ethereum',
+      'eth': 'ethereum',
+      'solana': 'solana',
+      'sol': 'solana',
+      'bsc': 'binance-smart-chain',
+      'bnb': 'binance-smart-chain',
+      'arbitrum': 'arbitrum-one',
+      'arb': 'arbitrum-one',
+      'optimism': 'optimistic-ethereum',
+      'op': 'optimistic-ethereum',
+      'polygon': 'polygon-pos',
+      'matic': 'polygon-pos',
+      'avalanche': 'avalanche',
+      'avax': 'avalanche',
+      'base': 'base',
+      'zksync': 'zksync',
+      'sui': 'sui',
+      'aptos': 'aptos',
+      'tron': 'tron',
+    };
+    return map[chain.toLowerCase()] || chain.toLowerCase();
+  }
+
   async getPrice(tokenId: string, retryWithSearch = true): Promise<number | null> {
     const cached = this.cache.get(tokenId);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
@@ -192,6 +217,36 @@ class CoinGeckoService {
         }
       }
       logger.error(`CoinGecko Coin Details API error for ${tokenId}:`, error);
+      return null;
+    }
+  }
+
+  async getPriceByAddress(chain: string, address: string): Promise<number | null> {
+    const platformId = this.mapChainToPlatformId(chain);
+    if (!platformId) return null;
+    return this.getTokenPriceByAddress(platformId, address);
+  }
+
+  async getCoinDetailsByAddress(chain: string, address: string): Promise<any | null> {
+    const platformId = this.mapChainToPlatformId(chain);
+    if (!platformId) return null;
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/coins/${platformId}/contract/${address}`, {
+        params: {
+          localization: false,
+          tickers: false,
+          market_data: true,
+          community_data: true,
+          developer_data: true,
+          sparkline: false,
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      // logger.error(`CoinGecko Coin Details by Address API error for ${chain}:${address}:`, error.message);
+      // Don't log error as it might just be not found
       return null;
     }
   }

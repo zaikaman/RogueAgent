@@ -90,16 +90,33 @@ export const searchTavilyTool = createTool({
 
 export const getTokenPriceTool = createTool({
   name: 'get_token_price',
-  description: 'Get current price of a token in USD using CoinGecko ID.',
+  description: 'Get current price of a token in USD using CoinGecko ID OR (Chain + Address).',
   schema: z.object({
-    tokenId: z.string().describe('The CoinGecko API ID of the token (e.g. "bitcoin", "solana")'),
+    tokenId: z.string().optional().describe('The CoinGecko API ID of the token (e.g. "bitcoin", "solana")'),
+    chain: z.string().optional().describe('The blockchain network'),
+    address: z.string().optional().describe('The token contract address'),
   }) as any,
-  fn: async ({ tokenId }) => {
+  fn: async ({ tokenId, chain, address }) => {
+    if (chain && address) {
+      const price = await coingeckoService.getPriceByAddress(chain, address);
+      if (price) return { chain, address, price };
+      
+      // Fallback to Birdeye if CoinGecko fails for address
+      try {
+        const history = await birdeyeService.getPriceHistory(address, chain, 1);
+        if (history && history.length > 0) {
+           return { chain, address, price: history[history.length - 1].value };
+        }
+      } catch (e) {
+        // Ignore birdeye error
+      }
+    }
+
     if (tokenId) {
       const price = await coingeckoService.getPrice(tokenId);
       return { tokenId, price };
     }
-    return { error: "Must provide tokenId" };
+    return { error: 'No tokenId or (chain + address) provided' };
   },
 });
 
@@ -254,16 +271,26 @@ export const getTechnicalAnalysisTool = createTool({
 
 export const getFundamentalAnalysisTool = createTool({
   name: 'get_fundamental_analysis',
-  description: 'Get fundamental metrics (Market Cap, FDV, Volume) for a token using CoinGecko ID.',
+  description: 'Get fundamental metrics (Market Cap, FDV, Volume) for a token using CoinGecko ID OR (Chain + Address).',
   schema: z.object({
-    tokenId: z.string().describe('The CoinGecko API ID of the token'),
+    tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
+    chain: z.string().optional().describe('The blockchain network'),
+    address: z.string().optional().describe('The token contract address'),
   }) as any,
-  fn: async ({ tokenId }) => {
-    if (tokenId) {
-      const details = await coingeckoService.getCoinDetails(tokenId);
-      if (!details) return { error: 'Failed to fetch coin details' };
+  fn: async ({ tokenId, chain, address }) => {
+    let details = null;
 
-      const marketData = details.market_data;
+    if (chain && address) {
+      details = await coingeckoService.getCoinDetailsByAddress(chain, address);
+    }
+
+    if (!details && tokenId) {
+      details = await coingeckoService.getCoinDetails(tokenId);
+    }
+
+    if (!details) return { error: 'Failed to fetch coin details' };
+
+    const marketData = details.market_data;
       
       return {
         market_cap: marketData.market_cap?.usd,
@@ -282,8 +309,6 @@ export const getFundamentalAnalysisTool = createTool({
           twitter_screen_name: details.links?.twitter_screen_name,
         }
       };
-    }
-    return { error: "Must provide tokenId" };
   },
 });
 

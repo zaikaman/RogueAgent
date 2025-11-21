@@ -14,8 +14,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     2. For each promising candidate:
        a. Check 'check_recent_signals' to avoid duplicates.
        b. If new, perform DEEP DIVE analysis:
-          - **Technical Analysis**: Use 'get_technical_analysis' to check RSI, MACD, Trend. Look for oversold conditions in uptrends, or breakouts.
-          - **Fundamental Analysis**: Use 'get_fundamental_analysis' to check Market Cap, FDV, and Volume. Avoid dead coins or extremely high FDV/MCap ratios unless hype is massive.
+          - **Price Check**: Use 'get_token_price' (provide chain and address if available) to get the accurate current price.
+          - **Technical Analysis**: Use 'get_technical_analysis' (provide chain and address) to check RSI, MACD, Trend. Look for oversold conditions in uptrends, or breakouts.
+          - **Fundamental Analysis**: Use 'get_fundamental_analysis' (provide chain and address if available) to check Market Cap, FDV, and Volume. Avoid dead coins or extremely high FDV/MCap ratios unless hype is massive.
           - **Sentiment Analysis**: Use 'search_tavily' (query: "$SYMBOL crypto news sentiment") to find recent news and community sentiment.
     3. Synthesize all data.
        - A good signal has: Bullish TA (e.g. RSI < 30 then crossing up, or MACD crossover), Solid FA (decent volume), and Positive Sentiment/News.
