@@ -386,6 +386,17 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
+
+  async getRunById(id: string) {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const supabaseService = new SupabaseService();

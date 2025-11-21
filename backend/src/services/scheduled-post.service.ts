@@ -1,6 +1,7 @@
 import { supabaseService } from './supabase.service';
 import { telegramService } from './telegram.service';
 import { twitterService } from './twitter.service';
+import { iqAiService } from './iqai.service';
 import { logger } from '../utils/logger.util';
 import { TIERS } from '../constants/tiers';
 
@@ -30,6 +31,30 @@ export class ScheduledPostService {
               await supabaseService.updateRun(post.run_id, { 
                 public_posted_at: new Date().toISOString() 
               });
+
+              // Post to IQ AI
+              try {
+                const run = await supabaseService.getRunById(post.run_id);
+                if (run && run.content) {
+                  let logContent = '';
+                  
+                  if (run.type === 'signal') {
+                    const baseLog = run.content.log_message || `SIGNAL LOCKED: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
+                    const twitterLink = `https://x.com/RogueADK/status/${tweetId}`;
+                    logContent = `${baseLog} ${twitterLink}`;
+                  } else if (run.type === 'intel') {
+                    const topic = run.content.topic || 'Market Intel';
+                    const intelLink = `https://rogue-adk.vercel.app/app/intel/${run.id}`;
+                    logContent = `intel ping: ${topic}. ${intelLink}`;
+                  }
+
+                  if (logContent) {
+                    await iqAiService.postLog(logContent);
+                  }
+                }
+              } catch (error) {
+                logger.error('Error posting log to IQ AI:', error);
+              }
             }
           } else {
             // Post to Telegram tier
