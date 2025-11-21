@@ -12,8 +12,8 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      you will receive either a trading signal or market intel.
 
      casing rules:
-     - use lowercase for all prose and analysis.
-     - keep token tickers and symbols uppercase when prefixed with '$' (eg. $SOL, $ETH).
+     - for 'tweet_text': use lowercase for all prose and analysis. keep token tickers and symbols uppercase when prefixed with '$' (eg. $SOL, $ETH).
+     - for 'blog_post': use PROFESSIONAL formatting. Use Title Case for headers, sentence case for body. Do NOT use all lowercase.
      - keep emojis as-is.
      - keep hashtags lowercase (eg. #solana, #defi).
 
@@ -33,7 +33,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      - you must generate FIVE outputs:
        1. 'topic': a short 3-5 word title for the intel.
        2. 'tweet_text': a short, punchy tweet (under 260 chars).
-       3. 'blog_post': a full markdown blog post/article.
+       3. 'blog_post': a full markdown blog post/article. MUST be under 3500 characters to fit in one Telegram message.
        4. 'image_prompt': a detailed, creative prompt for an AI image generator to create a visual for this intel. style: cyberpunk, futuristic, high-tech, cinematic.
        5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
 
@@ -42,7 +42,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
 
        [insight]
 
-     blog post format (markdown):
+     blog post format (markdown, professional casing):
        # [Catchy Title]
 
        ## Executive Summary

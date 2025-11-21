@@ -133,16 +133,19 @@ export class TelegramService {
 
     logger.info(`Broadcasting intel to ${users.length} users...`);
 
-    for (const user of users) {
-      if (user.telegram_user_id) {
+    // Deduplicate users by telegram_user_id
+    const uniqueUserIds = [...new Set(users.map(u => u.telegram_user_id))];
+
+    for (const userId of uniqueUserIds) {
+      if (userId) {
         try {
           // Split message if too long (simple split)
           const chunks = content.match(/.{1,4000}/g) || [content];
           for (const chunk of chunks) {
-             await this.bot.sendMessage(user.telegram_user_id, chunk, { parse_mode: 'Markdown' });
+             await this.bot.sendMessage(userId, chunk, { parse_mode: 'Markdown' });
           }
         } catch (err) {
-          logger.warn(`Failed to send to user ${user.telegram_user_id}`, err);
+          logger.warn(`Failed to send to user ${userId}`, err);
         }
       }
     }

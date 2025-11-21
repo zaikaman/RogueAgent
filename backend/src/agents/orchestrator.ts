@@ -1,7 +1,6 @@
 import { ScannerAgent } from './scanner.agent';
 import { AnalyzerAgent } from './analyzer.agent';
 import { GeneratorAgent } from './generator.agent';
-import { PublisherAgent } from './publisher.agent';
 import { IntelAgent } from './intel.agent';
 import { logger } from '../utils/logger.util';
 import { supabaseService } from '../services/supabase.service';
