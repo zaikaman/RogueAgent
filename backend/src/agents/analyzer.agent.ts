@@ -19,12 +19,16 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           - **Sentiment Analysis**: Use 'search_tavily' (query: "$SYMBOL crypto news sentiment") to find recent news and community sentiment.
     3. Synthesize all data.
        - A good signal has: Bullish TA (e.g. RSI < 30 then crossing up, or MACD crossover), Solid FA (decent volume), and Positive Sentiment/News.
+       - **Market Context**: If the general market is bearish (e.g. BTC dropping), be EXTREMELY selective. Only signal if there is a massive, independent catalyst.
     4. Select the BEST single opportunity (or none).
     5. Generate entry, target, stop loss, and confidence score (1-100).
        - Entry: Current price or slightly lower.
        - Target: Set target to achieve a Risk/Reward ratio of approximately 1:3 (Target should be 3x the distance of Stop Loss from Entry).
        - Stop Loss: Below support.
-    6. If confidence < 70, do not generate a signal.
+    6. **Strict Filtering**:
+       - If confidence < 80, do not generate a signal.
+       - If the setup looks "forced" or "weak", choose 'no_signal'.
+       - It is better to have NO signal than a losing signal.
     
     Output the selected signal details or indicate no signal.
     

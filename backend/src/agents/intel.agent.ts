@@ -29,20 +29,28 @@ export const IntelAgent = AgentBuilder.create('intel_agent')
     4. **Generate an Intel Report**:
        - **Topic**: The most interesting thing happening right now.
        - **Insight**: A deep, non-obvious observation. Connect on-chain data (TVL flows) with social sentiment (High-signal accounts).
+       - **Importance Score**: Rate the importance of this intel from 1-10.
+         - 1-5: Noise, standard market moves, generic news.
+         - 6-8: Notable trend, good to know, actionable.
+         - 9-10: CRITICAL ALPHA, market-moving, must-read immediately.
     
     **Style**: Professional, insightful, "alpha" focused. Not just reporting news, but analyzing what it means.
+    
+    **Constraint**: If the Importance Score is below 7, set the topic to "SKIP" and insight to "Not enough value".
     
     IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
     
     Example JSON Output:
     {
       "topic": "AI Sector Rotation",
-      "insight": "Capital is rotating from major L1s into AI infrastructure plays following the NVIDIA earnings report. We are seeing strength in render and compute tokens."
+      "insight": "Capital is rotating from major L1s into AI infrastructure plays following the NVIDIA earnings report. We are seeing strength in render and compute tokens.",
+      "importance_score": 9
     }
   `)
   .withOutputSchema(
     z.object({
       topic: z.string(),
       insight: z.string(),
+      importance_score: z.number().min(1).max(10),
     }) as any
   );

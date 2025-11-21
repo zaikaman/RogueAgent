@@ -21,7 +21,10 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
        - **Avoid**: Stablecoins (USDT, USDC, etc.) and wrapped tokens (WETH, WBTC).
     4. Return a list of potential candidates with brief reasons including the narrative found.
     
-    **Goal**: Find at least 1-3 good candidates. Do not be too restrictive. If no perfect setups exist, return the most promising trending tokens.
+    **Goal**: Find high-quality candidates. Be selective.
+    - If the market is bearish or uncertain, it is better to return FEWER or NO candidates than to force weak ones.
+    - Only return candidates that show GENUINE strength or have a clear catalyst.
+    - If no good setups exist, return an empty list or very few candidates.
 
     **Mode 2: Single Token Deep Dive**
     If asked to scan a SPECIFIC token (e.g. "Scan $SOL"), return an 'analysis' object instead of 'candidates'.

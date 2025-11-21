@@ -57,6 +57,30 @@ class CoinGeckoService {
     }
   }
 
+  async getPriceWithChange(tokenId: string): Promise<{ price: number; change_24h: number } | null> {
+    try {
+      const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/price`, {
+        params: {
+          ids: tokenId,
+          vs_currencies: 'usd',
+          include_24hr_change: true,
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+
+      if (response.data[tokenId]) {
+        return {
+          price: response.data[tokenId].usd,
+          change_24h: response.data[tokenId].usd_24h_change
+        };
+      }
+      return null;
+    } catch (error) {
+      logger.error(`CoinGecko Price+Change API error for ${tokenId}:`, error);
+      return null;
+    }
+  }
+
   async getTrending(): Promise<any[]> {
     try {
       const response = await axios.get(`${this.baseUrl}/search/trending`, {

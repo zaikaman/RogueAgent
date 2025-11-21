@@ -73,6 +73,7 @@ interface PublisherResult {
 interface IntelResult {
   topic: string;
   insight: string;
+  importance_score: number;
 }
 
 export class Orchestrator {
@@ -84,15 +85,19 @@ export class Orchestrator {
     try {
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
-      const [trendingCg, trendingBe, topGainers, defiChains, defiProtocols] = await Promise.all([
+      const [trendingCg, trendingBe, topGainers, defiChains, defiProtocols, bitcoinData] = await Promise.all([
         coingeckoService.getTrending().catch(e => { logger.error('CG Trending Error', e); return []; }),
         birdeyeService.getTrendingTokens(10).catch(e => { logger.error('Birdeye Trending Error', e); return []; }),
         coingeckoService.getTopGainersLosers().catch(e => { logger.error('CG Gainers Error', e); return []; }),
         defillamaService.getGlobalTVL().catch(e => { logger.error('DeFi Llama Chains Error', e); return []; }),
-        defillamaService.getProtocolStats().catch(e => { logger.error('DeFi Llama Protocols Error', e); return []; })
+        defillamaService.getProtocolStats().catch(e => { logger.error('DeFi Llama Protocols Error', e); return []; }),
+        coingeckoService.getPriceWithChange('bitcoin').catch(e => { logger.error('BTC Price Error', e); return null; })
       ]);
 
       const marketData = {
+        global_market_context: {
+          bitcoin: bitcoinData
+        },
         trending_coingecko: trendingCg.map((c: any) => ({
           name: c.item.name,
           symbol: c.item.symbol,
@@ -134,7 +139,9 @@ export class Orchestrator {
           // 2. Analyzer
           logger.info('Running Analyzer Agent...');
           const { runner: analyzer } = await AnalyzerAgent.build();
-          const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}`;
+          const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}
+          
+          Global Market Context: ${JSON.stringify(marketData.global_market_context)}`;
           
           analyzerResult = await analyzer.ask(analyzerPrompt) as unknown as AnalyzerResult;
           logger.info('Analyzer result:', analyzerResult);
@@ -227,6 +234,21 @@ export class Orchestrator {
         
         const intelResult = await intelAgent.ask(intelPrompt) as unknown as IntelResult;
         logger.info('Intel result:', intelResult);
+
+        if (intelResult.topic === 'SKIP' || intelResult.importance_score < 7) {
+            logger.info('Intel Agent decided to SKIP (Low importance or no new topics).');
+            await this.saveRun(
+                runId,
+                'intel',
+                { topic: 'SKIPPED', insight: 'Low importance' },
+                startTime,
+                0,
+                undefined,
+                null,
+                null
+            );
+            return;
+        }
 
         // 2. Generator (Intel)
         logger.info('Running Generator Agent (Intel)...');
