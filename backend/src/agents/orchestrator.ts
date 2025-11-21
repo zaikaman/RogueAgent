@@ -322,25 +322,23 @@ export class Orchestrator {
       // 1. Scanner (Targeted)
       logger.info('Running Scanner Agent for custom request...');
       const { runner: scanner } = await ScannerAgent.build();
-      const scannerResult = await scanner.ask(
+      const scannerResult = await this.runAgentWithRetry<ScannerResult>(
+        scanner,
         `Perform a deep-dive scan on ${tokenSymbol}. I need:
         1. Current Price, Market Cap, and 24h Volume.
         2. Recent price action (1h, 24h, 7d).
         3. Top 3 recent news headlines or social narratives driving the price.
         4. Any on-chain anomalies (whale movements, TVL changes) if available.
-        Focus on finding the 'why' behind the current price action.`
-      ) as unknown as ScannerResult;
+        Focus on finding the 'why' behind the current price action.`,
+        'Scanner Agent'
+      );
       
       // 2. Analyzer
       logger.info('Running Analyzer Agent for custom request...');
       const { runner: analyzer } = await AnalyzerAgent.build();
-      
-      let analyzerResult: AnalyzerResult | null = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-      let lastError: any;
-
-      const basePrompt = `Analyze this data for a high-stakes trader.
+      const analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
+        analyzer,
+        `Analyze this data for a high-stakes trader.
         Data: ${JSON.stringify(scannerResult)}
 
         I need a 'Custom Alpha Report' that answers:
@@ -353,30 +351,15 @@ export class Orchestrator {
         - Put the detailed answers to the above questions into the 'analysis' string field.
         - You MUST provide 'entry_price', 'target_price', 'stop_loss' (use best estimates from support/resistance or null if strictly not applicable).
         - You MUST provide 'confidence' (number 1-100).
-        - You MUST provide 'action' ('signal', 'skip', or 'no_signal').`;
-
-      while (attempts < maxAttempts) {
-        try {
-          const prompt = attempts === 0 
-            ? basePrompt 
-            : `${basePrompt}\n\nPREVIOUS ATTEMPT FAILED. Error: ${lastError?.message || JSON.stringify(lastError)}\n\nPlease fix the JSON output to match the schema exactly.`;
-            
-          analyzerResult = await analyzer.ask(prompt) as unknown as AnalyzerResult;
-          break;
-        } catch (error: any) {
-          logger.warn(`Analyzer Agent attempt ${attempts + 1} failed:`, error.message);
-          lastError = error;
-          attempts++;
-          if (attempts === maxAttempts) throw error;
-        }
-      }
-      
-      if (!analyzerResult) throw new Error("Analyzer Agent failed to produce a result after retries.");
+        - You MUST provide 'action' ('signal', 'skip', or 'no_signal').`,
+        'Analyzer Agent'
+      );
 
       // 3. Generator
       logger.info('Running Generator Agent for custom request...');
       const { runner: generator } = await GeneratorAgent.build();
-      const generatorResult = await generator.ask(
+      const generatorResult = await this.runAgentWithRetry<GeneratorResult>(
+        generator,
         `Generate a 'Rogue Agent Custom Report' for ${tokenSymbol} based on this analysis.
         Analysis: ${JSON.stringify(analyzerResult)}
 
@@ -387,8 +370,9 @@ export class Orchestrator {
         - Tone: Professional, sharp, no-nonsense, 'alpha' focused.
         - Keep it under 400 words.
         
-        IMPORTANT: Put the entire report in the 'formatted_content' field of the JSON output.`
-      ) as unknown as GeneratorResult;
+        IMPORTANT: Put the entire report in the 'formatted_content' field of the JSON output.`,
+        'Generator Agent'
+      );
 
       // 4. Deliver via Telegram DM
       const user = await supabaseService.getUser(walletAddress);
@@ -447,6 +431,28 @@ export class Orchestrator {
       public_posted_at: publicPostedAt,
       telegram_delivered_at: telegramDeliveredAt,
     });
+  }
+
+  private async runAgentWithRetry<T>(agentRunner: any, prompt: string, agentName: string): Promise<T> {
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError: any;
+
+    while (attempts < maxAttempts) {
+      try {
+        const currentPrompt = attempts === 0 
+          ? prompt 
+          : `${prompt}\n\nPREVIOUS ATTEMPT FAILED. Error: ${lastError?.message || JSON.stringify(lastError)}\n\nPlease fix the JSON output to match the schema exactly.`;
+          
+        return await agentRunner.ask(currentPrompt) as T;
+      } catch (error: any) {
+        logger.warn(`${agentName} attempt ${attempts + 1} failed:`, error.message);
+        lastError = error;
+        attempts++;
+        if (attempts === maxAttempts) throw error;
+      }
+    }
+    throw new Error(`${agentName} failed to produce a result after retries.`);
   }
 }
 
