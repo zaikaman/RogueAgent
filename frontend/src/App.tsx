@@ -8,7 +8,6 @@ import { DashboardHome } from './pages/DashboardHome';
 import { SignalsPage } from './pages/SignalsPage';
 import { IntelPage } from './pages/IntelPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
-import { LogsPage } from './pages/LogsPage';
 import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient();
@@ -44,11 +43,6 @@ function App() {
             <Route path="/app/analytics" element={
               <DashboardLayout>
                 <AnalyticsPage />
-              </DashboardLayout>
-            } />
-            <Route path="/app/logs" element={
-              <DashboardLayout>
-                <LogsPage />
               </DashboardLayout>
             } />
           </Routes>

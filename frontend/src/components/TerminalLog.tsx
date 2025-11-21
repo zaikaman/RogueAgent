@@ -1,6 +1,7 @@
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface LogEntry {
   id: string;
@@ -12,9 +13,10 @@ interface LogEntry {
 
 interface TerminalLogProps {
   logs: LogEntry[];
+  className?: string;
 }
 
-export function TerminalLog({ logs }: TerminalLogProps) {
+export function TerminalLog({ logs, className }: TerminalLogProps) {
   const getIcon = (type: string) => {
     switch (type) {
       case 'signal': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
@@ -25,13 +27,18 @@ export function TerminalLog({ logs }: TerminalLogProps) {
   };
 
   return (
-    <div className="bg-black border border-gray-800 rounded-lg font-mono text-sm">
-      <div className="p-2 border-b border-gray-800 bg-gray-900/50 text-xs text-gray-500 uppercase tracking-wider flex items-center gap-2">
-        <Terminal className="w-3 h-3" />
+    <div className={cn("bg-gray-900/30 border border-gray-800 rounded-xl font-mono text-sm flex flex-col", className)}>
+      <div className="p-4 border-b border-gray-800 bg-gray-900/50 rounded-t-xl text-xs text-gray-400 font-bold uppercase tracking-wider flex items-center gap-2 shrink-0">
+        <Terminal className="w-4 h-4" />
         System Logs
       </div>
-      <ScrollArea className="h-[300px]">
+      <ScrollArea className="flex-1 h-0">
         <div className="p-2 space-y-1">
+          {logs.length === 0 && (
+            <div className="text-gray-500 text-xs text-center py-8 italic">
+              No recent system activity...
+            </div>
+          )}
           {logs.map((log) => (
             <div key={log.id} className="flex items-start gap-3 p-2 hover:bg-gray-900/50 rounded transition-colors group">
               <div className="mt-0.5 opacity-70">{getIcon(log.type)}</div>

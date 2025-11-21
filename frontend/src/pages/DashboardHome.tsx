@@ -5,7 +5,9 @@ import { SignalCard } from '../components/SignalCard';
 import { IntelCard } from '../components/IntelCard';
 import { TierDisplay } from '../components/TierDisplay';
 import { TelegramModal } from '../components/TelegramModal';
+import { TerminalLog } from '../components/TerminalLog';
 import { useRunStatus } from '../hooks/useRunStatus';
+import { useLogs } from '../hooks/useLogs';
 import { walletService } from '../services/wallet.service';
 import { TIERS, Tier } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -14,6 +16,8 @@ import { ArrowRight01Icon, Home01Icon } from '@hugeicons/core-free-icons';
 export function DashboardHome() {
   const { address, isConnected } = useAccount();
   const { data: runStatus, isLoading: isRunLoading } = useRunStatus();
+  // Fetch more logs to fill the scrollable area
+  const { data: logsData } = useLogs(1, 100);
   
   const [userTier, setUserTier] = useState<Tier>(TIERS.NONE);
   const [balance, setBalance] = useState(0);
@@ -92,30 +96,38 @@ export function DashboardHome() {
         </div>
 
         {/* Sidebar Column */}
-        <div className="space-y-6">
-          <TierDisplay 
-            tier={userTier} 
-            balance={balance} 
-            usdValue={usdValue} 
-          />
-          
-          {/* Quick Actions or Status */}
-          <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">System Status</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Agent Status</span>
-                <span className="text-green-400 font-mono">ONLINE</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Network</span>
-                <span className="text-cyan-400 font-mono">FRAXTAL</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Uptime</span>
-                <span className="text-gray-300 font-mono">99.9%</span>
+        <div className="lg:relative">
+          <div className="flex flex-col gap-6 lg:absolute lg:inset-0">
+            <TierDisplay 
+              tier={userTier} 
+              balance={balance} 
+              usdValue={usdValue} 
+            />
+            
+            {/* Quick Actions or Status */}
+            <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4 shrink-0">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">System Status</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Agent Status</span>
+                  <span className="text-green-400 font-mono">ONLINE</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Network</span>
+                  <span className="text-cyan-400 font-mono">FRAXTAL</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Uptime</span>
+                  <span className="text-gray-300 font-mono">99.9%</span>
+                </div>
               </div>
             </div>
+
+            {/* Terminal Log Preview */}
+            <TerminalLog 
+              logs={logsData?.data || []} 
+              className="flex-1 min-h-[400px] lg:min-h-0" 
+            />
           </div>
         </div>
       </div>

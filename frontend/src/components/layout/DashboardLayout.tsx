@@ -6,8 +6,7 @@ import {
   ChartHistogramIcon, 
   News01Icon, 
   GpsSignal01Icon,
-  Menu01Icon,
-  CommandLineIcon
+  Menu01Icon
 } from '@hugeicons/core-free-icons';
 import { WalletConnect } from '../WalletConnect';
 import { Countdown } from '../Countdown';
@@ -27,7 +26,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: GpsSignal01Icon, label: 'Signals', path: '/app/signals' },
     { icon: News01Icon, label: 'Intel', path: '/app/intel' },
     { icon: ChartHistogramIcon, label: 'Analytics', path: '/app/analytics' },
-    { icon: CommandLineIcon, label: 'Logs', path: '/app/logs' },
     // { icon: Settings01Icon, label: 'Settings', path: '/app/settings' },
   ];
 
