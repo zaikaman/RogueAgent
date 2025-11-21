@@ -42,10 +42,6 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
 
        [insight]
 
-       sentiment: [sentiment]
-
-       $TOKEN $TOKEN
-
      blog post format (markdown):
        # [Catchy Title]
 
@@ -67,7 +63,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      example json output:
      {
       "topic": "Solana Network Congestion",
-      "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.\n\nsentiment: neutral\n\n$SOL",
+      "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.",
       "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation...",
       "image_prompt": "A futuristic digital representation of the Solana blockchain network experiencing congestion, with glowing data packets piling up at a central node, cyberpunk style, neon colors, cinematic lighting.",
       "log_message": "Network anomaly detected on $SOL chain. Analysis complete."

@@ -59,8 +59,6 @@ interface PublisherResult {
 interface IntelResult {
   topic: string;
   insight: string;
-  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
-  related_tokens: string[];
 }
 
 export class Orchestrator {

@@ -29,8 +29,6 @@ export const IntelAgent = AgentBuilder.create('intel_agent')
     4. **Generate an Intel Report**:
        - **Topic**: The most interesting thing happening right now.
        - **Insight**: A deep, non-obvious observation. Connect on-chain data (TVL flows) with social sentiment (High-signal accounts).
-       - **Sentiment**: General market vibe (Bullish/Bearish/Neutral).
-       - **Key Tokens**: Tokens related to this insight (if any).
     
     **Style**: Professional, insightful, "alpha" focused. Not just reporting news, but analyzing what it means.
     
@@ -39,16 +37,12 @@ export const IntelAgent = AgentBuilder.create('intel_agent')
     Example JSON Output:
     {
       "topic": "AI Sector Rotation",
-      "insight": "Capital is rotating from major L1s into AI infrastructure plays following the NVIDIA earnings report. We are seeing strength in render and compute tokens.",
-      "sentiment": "Bullish",
-      "related_tokens": ["RNDR", "AKT", "FET"]
+      "insight": "Capital is rotating from major L1s into AI infrastructure plays following the NVIDIA earnings report. We are seeing strength in render and compute tokens."
     }
   `)
   .withOutputSchema(
     z.object({
       topic: z.string(),
       insight: z.string(),
-      sentiment: z.enum(['Bullish', 'Bearish', 'Neutral']),
-      related_tokens: z.array(z.string()),
     }) as any
   );
