@@ -32,13 +32,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500/30 flex">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-gray-800 bg-gray-950/50 backdrop-blur hidden md:flex flex-col fixed h-full z-40">
-        <div className="h-16 flex items-center px-6 border-b border-gray-800 gap-3">
+        <aside className="w-64 border-r border-gray-800 bg-gray-950/50 backdrop-blur hidden md:flex flex-col fixed h-full z-40">
+        <Link to="/" className="h-16 flex items-center px-6 border-b border-gray-800 gap-3 no-underline">
           <div className="p-1 bg-cyan-500/10 rounded-lg border border-cyan-500/20 flex items-center justify-center">
             <img src="/logo.webp" alt="Rogue" className="h-6 w-6 object-contain rounded" />
           </div>
           <span className="font-bold text-white tracking-tight">ROGUE</span>
-        </div>
+        </Link>
 
         <nav className="flex-1 py-6 px-3 space-y-1">
           {navItems.map((item) => {
@@ -71,11 +71,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
         {/* Header */}
         <header className="h-16 border-b border-gray-800 bg-gray-950/50 backdrop-blur sticky top-0 z-30 px-6 flex items-center justify-between">
-          <div className="md:hidden flex items-center gap-3">
+           <div className="md:hidden flex items-center gap-3">
              {/* Mobile Menu Trigger - Placeholder */}
              <HugeiconsIcon icon={Menu01Icon} className="w-6 h-6 text-gray-400" />
-             <span className="font-bold text-white">ROGUE</span>
-          </div>
+             <Link to="/" className="font-bold text-white no-underline">ROGUE</Link>
+           </div>
           
           <div className="hidden md:block">
              {/* Breadcrumbs or Page Title could go here */}
