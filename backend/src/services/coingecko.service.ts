@@ -21,7 +21,7 @@ class CoinGeckoService {
     }
   }
 
-  async getPrice(tokenId: string): Promise<number | null> {
+  async getPrice(tokenId: string, retryWithSearch = true): Promise<number | null> {
     const cached = this.cache.get(tokenId);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
       return cached.price;
@@ -43,6 +43,13 @@ class CoinGeckoService {
         return price;
       }
       
+      if (retryWithSearch) {
+        const resolvedId = await this.searchCoin(tokenId);
+        if (resolvedId) {
+          return this.getPrice(resolvedId, false);
+        }
+      }
+
       return null;
     } catch (error) {
       logger.error(`CoinGecko API error for ${tokenId}:`, error);
@@ -120,7 +127,7 @@ class CoinGeckoService {
     }
   }
 
-  async getCoinDetails(tokenId: string): Promise<any | null> {
+  async getCoinDetails(tokenId: string, retryWithSearch = true): Promise<any | null> {
     try {
       const response = await axios.get(`${this.baseUrl}/coins/${tokenId}`, {
         params: {
@@ -134,13 +141,40 @@ class CoinGeckoService {
         },
       });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      if (retryWithSearch && error.response && error.response.status === 404) {
+        logger.warn(`CoinGecko coin not found for ${tokenId}, trying search...`);
+        const resolvedId = await this.searchCoin(tokenId);
+        if (resolvedId) {
+          logger.info(`Resolved ${tokenId} to ${resolvedId}`);
+          return this.getCoinDetails(resolvedId, false);
+        }
+      }
       logger.error(`CoinGecko Coin Details API error for ${tokenId}:`, error);
       return null;
     }
   }
 
-  async getMarketChart(tokenId: string, days: number = 7): Promise<{ prices: [number, number][] } | null> {
+  async searchCoin(query: string): Promise<string | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/search`, {
+        params: {
+          query: query,
+          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+        },
+      });
+      
+      if (response.data.coins && response.data.coins.length > 0) {
+        return response.data.coins[0].id;
+      }
+      return null;
+    } catch (error) {
+      logger.error(`CoinGecko Search API error for ${query}:`, error);
+      return null;
+    }
+  }
+
+  async getMarketChart(tokenId: string, days: number = 7, retryWithSearch = true): Promise<{ prices: [number, number][] } | null> {
     try {
       const response = await axios.get(`${this.baseUrl}/coins/${tokenId}/market_chart`, {
         params: {
@@ -151,6 +185,14 @@ class CoinGeckoService {
       });
       return response.data;
     } catch (error: any) {
+      if (retryWithSearch && error.response && error.response.status === 404) {
+        logger.warn(`CoinGecko Market Chart not found for ${tokenId}, trying search...`);
+        const resolvedId = await this.searchCoin(tokenId);
+        if (resolvedId) {
+          return this.getMarketChart(resolvedId, days, false);
+        }
+      }
+
       if (error.response && error.response.status === 404) {
         logger.warn(`CoinGecko Market Chart not found for ${tokenId} (404)`);
       } else {
