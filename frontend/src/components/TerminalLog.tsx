@@ -50,11 +50,11 @@ export function TerminalLog({ logs }: TerminalLogProps) {
                   )}
                 </div>
                 <div className="text-gray-300 truncate font-mono text-xs">
-                  {log.type === 'signal' 
+                  {log.content?.log_message || (log.type === 'signal' 
                     ? `SIGNAL DETECTED: ${log.content.token?.symbol} - ${log.content.token?.name}`
                     : log.type === 'skip'
                     ? 'Scan completed. No high-confidence signals found.'
-                    : 'Intel thread generated.'}
+                    : 'Intel thread generated.')}
                 </div>
               </div>
             </div>

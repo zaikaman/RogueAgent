@@ -27,12 +27,14 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        analysis...
        hashtags
      - strict limit: under 260 characters.
+     - generate a 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "SIGNAL LOCKED: $MET showing breakout patterns."
 
      mode 2: market intel
-     - you must generate THREE outputs:
+     - you must generate FOUR outputs:
        1. 'topic': a short 3-5 word title for the intel.
        2. 'tweet_text': a short, punchy tweet (under 260 chars).
        3. 'blog_post': a full markdown blog post/article.
+       4. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
 
      tweet format (all prose lowercased, tickers uppercase):
        🧠 rogue intel: [topic]
@@ -65,7 +67,8 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      {
       "topic": "Solana Network Congestion",
       "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.\n\nsentiment: neutral\n\n$SOL",
-      "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation..."
+      "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation...",
+      "log_message": "Network anomaly detected on $SOL chain. Analysis complete."
      }
   `)
   .withOutputSchema(
@@ -74,5 +77,6 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
       tweet_text: z.string().optional(),
       blog_post: z.string().optional(),
       formatted_content: z.string().optional(), // For backward compatibility/signals
+      log_message: z.string().optional(),
     }) as any
   );

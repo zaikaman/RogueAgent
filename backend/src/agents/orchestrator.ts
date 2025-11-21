@@ -45,6 +45,7 @@ interface GeneratorResult {
   formatted_content: string;
   tweet_text?: string;
   blog_post?: string;
+  log_message?: string;
 }
 
 interface PublisherResult {
@@ -163,6 +164,7 @@ export class Orchestrator {
           token: analyzerResult.selected_token,
           ...analyzerResult.signal_details,
           formatted_tweet: generatorResult.formatted_content,
+          log_message: generatorResult.log_message,
         };
 
         await this.saveRun(
@@ -237,7 +239,8 @@ export class Orchestrator {
             ...intelResult, 
             tweet_text: tweetContent,
             blog_post: generatorResult.blog_post,
-            formatted_tweet: tweetContent // Keep for backward compat
+            formatted_tweet: tweetContent, // Keep for backward compat
+            log_message: generatorResult.log_message,
           }, 
           startTime, 
           null,
