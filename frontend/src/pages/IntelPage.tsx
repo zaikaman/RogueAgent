@@ -41,6 +41,7 @@ export function IntelPage() {
           title={content.topic}
           content={blogPost} 
           date={new Date(selectedIntel.created_at).toLocaleDateString()} 
+          imageUrl={content.image_url}
         />
       </div>
     );

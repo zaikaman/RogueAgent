@@ -9,9 +9,10 @@ interface IntelBlogProps {
   title?: string;
   content: string;
   date?: string;
+  imageUrl?: string;
 }
 
-export function IntelBlog({ title = "Market Intelligence Report", content, date }: IntelBlogProps) {
+export function IntelBlog({ title = "Market Intelligence Report", content, date, imageUrl }: IntelBlogProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = () => {
@@ -80,6 +81,12 @@ export function IntelBlog({ title = "Market Intelligence Report", content, date 
 
   return (
     <div className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden flex flex-col h-[600px]">
+      {imageUrl && (
+        <div className="w-full h-64 relative shrink-0">
+            <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 to-transparent" />
+        </div>
+      )}
       <div className="p-6 border-b border-gray-800 bg-gray-900/30 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-3">

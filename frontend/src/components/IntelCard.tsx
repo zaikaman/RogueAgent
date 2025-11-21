@@ -30,6 +30,7 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
   ];
   const gradientIndex = (intel.id.charCodeAt(0) || 0) % gradients.length;
   const gradient = gradients[gradientIndex];
+  const imageUrl = content.image_url;
 
   return (
     <Card 
@@ -38,7 +39,14 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
     >
       {/* Hero Image / Gradient Area */}
       <div className={`h-48 w-full bg-gradient-to-br ${gradient} relative p-6 flex flex-col justify-end`}>
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+        {imageUrl && (
+          <img 
+            src={imageUrl} 
+            alt={title} 
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        )}
+        <div className={`absolute inset-0 ${imageUrl ? 'bg-black/60' : 'bg-black/20'} group-hover:bg-black/40 transition-colors`} />
         
         {/* Overlay Content */}
         <div className="relative z-10">

@@ -9,6 +9,7 @@ export interface IntelItem {
     blog_post?: string;
     formatted_thread?: string;
     topic?: string;
+    image_url?: string;
   };
   public_posted_at?: string;
 }

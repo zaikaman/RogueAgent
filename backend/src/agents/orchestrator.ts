@@ -236,9 +236,12 @@ export class Orchestrator {
         // 4. Telegram Distribution (Gold/Diamond)
         if (generatorResult.blog_post) {
            logger.info(`Distributing Intel Blog to Telegram for run ${runId}...`);
-           // We'll implement this in telegramService
-           // await telegramService.broadcastIntel(generatorResult.blog_post);
-           // For now, let's just log it as we need to implement the method first
+           try {
+             await telegramService.broadcastIntel(generatorResult.blog_post);
+             logger.info(`Telegram distribution completed for run ${runId}`);
+           } catch (error) {
+             logger.error(`Error distributing to Telegram for run ${runId}`, error);
+           }
         }
 
         await this.saveRun(
