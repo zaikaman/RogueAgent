@@ -20,11 +20,11 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     3. Synthesize all data.
        - A good signal has: Bullish TA (e.g. RSI < 30 then crossing up, or MACD crossover), Solid FA (decent volume), and Positive Sentiment/News.
     4. Select the BEST single opportunity (or none).
-    5. Generate entry, target, stop loss, and confidence score (1-10).
+    5. Generate entry, target, stop loss, and confidence score (1-100).
        - Entry: Current price or slightly lower.
        - Target: Set target to achieve a Risk/Reward ratio of approximately 1:3 (Target should be 3x the distance of Stop Loss from Entry).
        - Stop Loss: Below support.
-    6. If confidence < 7, do not generate a signal.
+    6. If confidence < 70, do not generate a signal.
     
     Output the selected signal details or indicate no signal.
     
@@ -45,7 +45,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         "entry_price": 25.00,
         "target_price": 32.00,
         "stop_loss": 22.00,
-        "confidence": 9,
+        "confidence": 90,
         "analysis": "Strong bullish divergence on RSI. MACD crossed over. Fundamentals solid with high volume. Tavily search shows positive news about partnership.",
         "trigger_event": {
           "type": "technical_breakout",
@@ -67,10 +67,10 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         address: z.string().optional(),
       }).nullable(),
       signal_details: z.object({
-        entry_price: z.number(),
-        target_price: z.number(),
-        stop_loss: z.number(),
-        confidence: z.number().min(1).max(10),
+        entry_price: z.number().nullable(),
+        target_price: z.number().nullable(),
+        stop_loss: z.number().nullable(),
+        confidence: z.number().min(1).max(100),
         analysis: z.string(),
         trigger_event: z.object({
           type: z.string(),

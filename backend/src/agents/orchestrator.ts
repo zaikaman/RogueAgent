@@ -29,9 +29,9 @@ interface AnalyzerResult {
     coingecko_id: string;
   } | null;
   signal_details: {
-    entry_price: number;
-    target_price: number;
-    stop_loss: number;
+    entry_price: number | null;
+    target_price: number | null;
+    stop_loss: number | null;
     confidence: number;
     analysis: string;
     trigger_event: {
