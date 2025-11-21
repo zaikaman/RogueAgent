@@ -37,7 +37,9 @@ interface AnalyzerResult {
   selected_token: {
     symbol: string;
     name: string;
-    coingecko_id: string;
+    coingecko_id?: string;
+    chain?: string;
+    address?: string | null;
   } | null;
   signal_details: {
     entry_price: number | null;
@@ -332,16 +334,44 @@ export class Orchestrator {
       // 2. Analyzer
       logger.info('Running Analyzer Agent for custom request...');
       const { runner: analyzer } = await AnalyzerAgent.build();
-      const analyzerResult = await analyzer.ask(
-        `Analyze this data for a high-stakes trader.
+      
+      let analyzerResult: AnalyzerResult | null = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      let lastError: any;
+
+      const basePrompt = `Analyze this data for a high-stakes trader.
         Data: ${JSON.stringify(scannerResult)}
 
         I need a 'Custom Alpha Report' that answers:
         1. Is this token currently overbought or oversold?
         2. What is the primary narrative driving it right now?
         3. What are the key support/resistance levels to watch?
-        4. VERDICT: Bullish, Bearish, or Neutral? Give a confidence score (0-100%).`
-      ) as unknown as AnalyzerResult;
+        4. VERDICT: Bullish, Bearish, or Neutral? Give a confidence score (0-100%).
+        
+        IMPORTANT: You must fit this analysis into the strict output schema.
+        - Put the detailed answers to the above questions into the 'analysis' string field.
+        - You MUST provide 'entry_price', 'target_price', 'stop_loss' (use best estimates from support/resistance or null if strictly not applicable).
+        - You MUST provide 'confidence' (number 1-100).
+        - You MUST provide 'action' ('signal', 'skip', or 'no_signal').`;
+
+      while (attempts < maxAttempts) {
+        try {
+          const prompt = attempts === 0 
+            ? basePrompt 
+            : `${basePrompt}\n\nPREVIOUS ATTEMPT FAILED. Error: ${lastError?.message || JSON.stringify(lastError)}\n\nPlease fix the JSON output to match the schema exactly.`;
+            
+          analyzerResult = await analyzer.ask(prompt) as unknown as AnalyzerResult;
+          break;
+        } catch (error: any) {
+          logger.warn(`Analyzer Agent attempt ${attempts + 1} failed:`, error.message);
+          lastError = error;
+          attempts++;
+          if (attempts === maxAttempts) throw error;
+        }
+      }
+      
+      if (!analyzerResult) throw new Error("Analyzer Agent failed to produce a result after retries.");
 
       // 3. Generator
       logger.info('Running Generator Agent for custom request...');

@@ -64,7 +64,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         name: z.string(),
         coingecko_id: z.string().optional(),
         chain: z.string().optional(),
-        address: z.string().optional(),
+        address: z.string().nullable().optional(),
       }).nullable(),
       signal_details: z.object({
         entry_price: z.number().nullable(),
