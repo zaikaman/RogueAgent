@@ -8,7 +8,7 @@ interface IntelThreadProps {
 export function IntelThread({ content }: IntelThreadProps) {
   // Simple parser to split thread into tweets/sections
   // Assuming content is formatted with "1/ ", "2/ " etc or just paragraphs
-  const sections = content.split(/\n\n/).filter(Boolean);
+  const sections = typeof content === 'string' ? content.split(/\n\n/).filter(Boolean) : [];
 
   return (
     <div className="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden">

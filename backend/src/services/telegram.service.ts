@@ -112,6 +112,41 @@ export class TelegramService {
         this.bot?.sendMessage(msg.chat.id, 'Welcome to Rogue Agent! Use /verify <wallet_address> to link your wallet and get early access.');
     });
   }
+
+  async broadcastIntel(content: string) {
+    if (!this.bot) return;
+
+    const { SupabaseService } = await import('./supabase.service');
+    const supabaseService = new SupabaseService();
+
+    // Fetch Gold and Diamond users
+    const { data: users, error } = await supabaseService.getClient()
+      .from('users')
+      .select('telegram_user_id')
+      .in('tier', ['GOLD', 'DIAMOND'])
+      .not('telegram_user_id', 'is', null);
+
+    if (error || !users) {
+      logger.error('Failed to fetch users for broadcast', error);
+      return;
+    }
+
+    logger.info(`Broadcasting intel to ${users.length} users...`);
+
+    for (const user of users) {
+      if (user.telegram_user_id) {
+        try {
+          // Split message if too long (simple split)
+          const chunks = content.match(/.{1,4000}/g) || [content];
+          for (const chunk of chunks) {
+             await this.bot.sendMessage(user.telegram_user_id, chunk, { parse_mode: 'Markdown' });
+          }
+        } catch (err) {
+          logger.warn(`Failed to send to user ${user.telegram_user_id}`, err);
+        }
+      }
+    }
+  }
 }
 
 export const telegramService = new TelegramService();

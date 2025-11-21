@@ -24,6 +24,8 @@ export const endpoints = {
   run: '/run',
   runStatus: '/run-status',
   logs: '/logs',
+  signalsHistory: '/signals/history',
+  intelHistory: '/intel/history',
   updateTelegram: '/users/telegram',
 };
 

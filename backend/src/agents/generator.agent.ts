@@ -29,7 +29,12 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      - strict limit: under 260 characters.
 
      mode 2: market intel
-     - format (all prose lowercased, tickers uppercase):
+     - you must generate THREE outputs:
+       1. 'topic': a short 3-5 word title for the intel.
+       2. 'tweet_text': a short, punchy tweet (under 260 chars).
+       3. 'blog_post': a full markdown blog post/article.
+
+     tweet format (all prose lowercased, tickers uppercase):
        🧠 rogue intel: [topic]
 
        [insight]
@@ -37,18 +42,37 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        sentiment: [sentiment]
 
        $TOKEN $TOKEN
-     - strict limit: under 260 characters.
 
-     IMPORTANT: you must return the result in strict JSON format matching the output schema. do not include any conversational text.
-     IMPORTANT: ensure the 'formatted_content' is less than 260 characters. shorten the analysis if necessary.
+     blog post format (markdown):
+       # [Catchy Title]
+
+       ## Executive Summary
+       [Brief overview]
+
+       ## The Alpha
+       [Detailed analysis, data points, and narrative]
+
+       ## Market Impact
+       [What this means for price/sentiment]
+
+       ## Verdict
+       [Final thoughts]
+
+     IMPORTANT: you must return the result in strict JSON format matching the output schema.
+     IMPORTANT: ensure the 'tweet_text' is less than 260 characters.
 
      example json output:
      {
-      "formatted_content": "🚀 $SOL signal\n\nentry: $25.00\ntarget: $32.00\nstop: $22.00\n\nconfidence: 8/10 🟢\n\nstrong support at $25, volume increasing.\n\n#solana #l1"
+      "topic": "Solana Network Congestion",
+      "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.\n\nsentiment: neutral\n\n$SOL",
+      "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation..."
      }
   `)
   .withOutputSchema(
     z.object({
-      formatted_content: z.string(),
+      topic: z.string().optional(),
+      tweet_text: z.string().optional(),
+      blog_post: z.string().optional(),
+      formatted_content: z.string().optional(), // For backward compatibility/signals
     }) as any
   );

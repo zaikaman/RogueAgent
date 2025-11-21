@@ -5,6 +5,8 @@ import * as logsController from './logs.controller';
 import { tiersController } from './tiers.controller';
 import { customRequestsController } from './custom-requests.controller';
 import * as usersController from './users.controller';
+import * as signalsController from './signals.controller';
+import * as intelController from './intel.controller';
 
 import * as healthController from './health.controller';
 
@@ -19,6 +21,12 @@ router.post('/run', runController.triggerRun);
 // Status and Logs
 router.get('/run-status', statusController.getLatestStatus);
 router.get('/logs', logsController.getLogs);
+
+// Signals
+router.get('/signals/history', signalsController.getSignalHistory);
+
+// Intel
+router.get('/intel/history', intelController.getIntelHistory);
 
 // Tiers
 router.use('/tiers', tiersController);

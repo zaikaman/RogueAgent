@@ -9,7 +9,9 @@ export interface IntelContent {
   narrative: string;
   insights: string[];
   data_points: IntelDataPoints;
-  formatted_thread: string;
+  formatted_thread?: string; // Deprecated, keeping for backward compatibility
+  tweet_text?: string;
+  blog_post?: string;
 }
 
 export interface IntelRun {

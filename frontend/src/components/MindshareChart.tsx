@@ -6,7 +6,7 @@ interface MindshareChartProps {
 
 export function MindshareChart({ data }: MindshareChartProps) {
   // Mock data if none provided
-  const chartData = data.length > 0 ? data : [
+  const chartData = (data && data.length > 0) ? data : [
     { time: '10:00', value: 45 },
     { time: '10:20', value: 52 },
     { time: '10:40', value: 48 },

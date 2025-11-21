@@ -43,6 +43,8 @@ interface AnalyzerResult {
 
 interface GeneratorResult {
   formatted_content: string;
+  tweet_text?: string;
+  blog_post?: string;
 }
 
 interface PublisherResult {
@@ -194,23 +196,9 @@ export class Orchestrator {
         // 2. Generator (Intel)
         logger.info('Running Generator Agent (Intel)...');
         const { runner: generator } = await GeneratorAgent.build();
-        const generatorPrompt = `Generate a tweet for this INTEL REPORT. 
+        const generatorPrompt = `Generate content for this INTEL REPORT.
         
-        FORMATTING RULES:
-        1. Output MUST be a SINGLE SHORT TWEET (not a thread).
-        2. ALL TEXT MUST BE IN LOWERCASE. NO CAPITAL LETTERS AT ALL.
-        3. Use a casual, "alpha" leaker vibe.
-        4. Use this - for bullet points if listing items: " - @user did something"
-        5. Ensure the insight is unique and not generic.
-        
-        Example Style:
-        $SAME saw mindshare jump 2300% while price fell 9%. the controversy? two versions fighting it out with kols caught in crossfire.
-
-         - @dxrnell called out hypocrisy 
-         - @Dior100x defending the new ca amid rug accusations
-         - @sadcrissy lost respect over the vamp drama
-
-        kol drama drove attention but killed price action
+        I need both a 'tweet_text' (short, lowercase, alpha vibe) and a 'blog_post' (full markdown analysis).
         
         Report: ${JSON.stringify(intelResult)}`;
         
@@ -220,20 +208,37 @@ export class Orchestrator {
         // 3. Publisher
         logger.info(`Posting Intel to Twitter for run ${runId}...`);
         let publicPostedAt = null;
-        try {
-          const tweetId = await twitterService.postTweet(generatorResult.formatted_content);
-          if (tweetId) {
-            logger.info(`Twitter post successful: ${tweetId}`);
-            publicPostedAt = new Date().toISOString();
+        const tweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
+        
+        if (tweetContent) {
+          try {
+            const tweetId = await twitterService.postTweet(tweetContent);
+            if (tweetId) {
+              logger.info(`Twitter post successful: ${tweetId}`);
+              publicPostedAt = new Date().toISOString();
+            }
+          } catch (error) {
+            logger.error(`Error in Twitter post for run ${runId}`, error);
           }
-        } catch (error) {
-          logger.error(`Error in Twitter post for run ${runId}`, error);
+        }
+
+        // 4. Telegram Distribution (Gold/Diamond)
+        if (generatorResult.blog_post) {
+           logger.info(`Distributing Intel Blog to Telegram for run ${runId}...`);
+           // We'll implement this in telegramService
+           // await telegramService.broadcastIntel(generatorResult.blog_post);
+           // For now, let's just log it as we need to implement the method first
         }
 
         await this.saveRun(
           runId, 
           'intel', 
-          { ...intelResult, formatted_tweet: generatorResult.formatted_content }, 
+          { 
+            ...intelResult, 
+            tweet_text: tweetContent,
+            blog_post: generatorResult.blog_post,
+            formatted_tweet: tweetContent // Keep for backward compat
+          }, 
           startTime, 
           null,
           undefined,
