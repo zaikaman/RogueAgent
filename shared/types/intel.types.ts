@@ -12,6 +12,8 @@ export interface IntelContent {
   formatted_thread?: string; // Deprecated, keeping for backward compatibility
   tweet_text?: string;
   blog_post?: string;
+  image_prompt?: string;
+  image_url?: string;
 }
 
 export interface IntelRun {

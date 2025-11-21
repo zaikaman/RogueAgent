@@ -11,6 +11,7 @@ import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
+import { runwareService } from '../services/runware.service';
 
 interface ScannerResult {
   candidates: Array<{
@@ -45,6 +46,7 @@ interface GeneratorResult {
   formatted_content: string;
   tweet_text?: string;
   blog_post?: string;
+  image_prompt?: string;
   log_message?: string;
 }
 
@@ -207,6 +209,13 @@ export class Orchestrator {
         const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
         logger.info('Generator result:', generatorResult);
 
+        // 2.5 Image Generation
+        let imageUrl: string | null = null;
+        if (generatorResult.image_prompt) {
+          logger.info('Generating image for intel...');
+          imageUrl = await runwareService.generateImage(generatorResult.image_prompt);
+        }
+
         // 3. Publisher
         logger.info(`Posting Intel to Twitter for run ${runId}...`);
         let publicPostedAt = null;
@@ -239,6 +248,8 @@ export class Orchestrator {
             ...intelResult, 
             tweet_text: tweetContent,
             blog_post: generatorResult.blog_post,
+            image_prompt: generatorResult.image_prompt,
+            image_url: imageUrl,
             formatted_tweet: tweetContent, // Keep for backward compat
             log_message: generatorResult.log_message,
           }, 

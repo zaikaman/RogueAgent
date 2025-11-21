@@ -30,11 +30,12 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      - generate a 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "SIGNAL LOCKED: $MET showing breakout patterns."
 
      mode 2: market intel
-     - you must generate FOUR outputs:
+     - you must generate FIVE outputs:
        1. 'topic': a short 3-5 word title for the intel.
        2. 'tweet_text': a short, punchy tweet (under 260 chars).
        3. 'blog_post': a full markdown blog post/article.
-       4. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
+       4. 'image_prompt': a detailed, creative prompt for an AI image generator to create a visual for this intel. style: cyberpunk, futuristic, high-tech, cinematic.
+       5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
 
      tweet format (all prose lowercased, tickers uppercase):
        🧠 rogue intel: [topic]
@@ -68,6 +69,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
       "topic": "Solana Network Congestion",
       "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.\n\nsentiment: neutral\n\n$SOL",
       "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation...",
+      "image_prompt": "A futuristic digital representation of the Solana blockchain network experiencing congestion, with glowing data packets piling up at a central node, cyberpunk style, neon colors, cinematic lighting.",
       "log_message": "Network anomaly detected on $SOL chain. Analysis complete."
      }
   `)
@@ -76,6 +78,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
       topic: z.string().optional(),
       tweet_text: z.string().optional(),
       blog_post: z.string().optional(),
+      image_prompt: z.string().optional(),
       formatted_content: z.string().optional(), // For backward compatibility/signals
       log_message: z.string().optional(),
     }) as any
