@@ -12,9 +12,21 @@ class BirdeyeService {
 
   private get headers() {
     return {
-      'x-api-key': this.apiKey || '',
+      'X-API-KEY': this.apiKey || '',
       'accept': 'application/json'
     };
+  }
+
+  private mapChain(chain: string): string {
+    const map: { [key: string]: string } = {
+      'bnb': 'bsc',
+      'binance': 'bsc',
+      'binance-smart-chain': 'bsc',
+      'arbitrum-one': 'arbitrum',
+      'polygon-pos': 'polygon',
+      'optimistic-ethereum': 'optimism',
+    };
+    return map[chain.toLowerCase()] || chain.toLowerCase();
   }
 
   constructor() {
@@ -28,8 +40,9 @@ class BirdeyeService {
 
     try {
       return await retry(async () => {
-        const headers = chain 
-          ? { ...this.headers, 'x-chain': chain }
+        const mappedChain = chain ? this.mapChain(chain) : undefined;
+        const headers = mappedChain 
+          ? { ...this.headers, 'x-chain': mappedChain }
           : this.headers;
 
         const response = await axios.get(`${this.baseUrl}/defi/token_trending`, {
@@ -62,8 +75,9 @@ class BirdeyeService {
 
     try {
       return await retry(async () => {
-        const headers = chain 
-          ? { ...this.headers, 'x-chain': chain }
+        const mappedChain = chain ? this.mapChain(chain) : undefined;
+        const headers = mappedChain 
+          ? { ...this.headers, 'x-chain': mappedChain }
           : this.headers;
 
         const response = await axios.get(`${this.baseUrl}/defi/history_price`, {

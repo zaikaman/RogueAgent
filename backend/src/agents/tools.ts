@@ -130,22 +130,41 @@ export const getMarketChartTool = createTool({
     days: z.number().optional().default(7).describe('Number of days of data to fetch (default: 7)'),
   }) as any,
   fn: async ({ tokenId, chain, address, days }) => {
+    // Try Birdeye first if chain/address provided
     if (chain && address) {
-      const history = await birdeyeService.getPriceHistory(address, chain, days || 7);
-      return {
-        prices: history.map((h: any) => [h.unixTime * 1000, h.value]),
-        summary: `Fetched ${history.length} data points for ${address} on ${chain} over last ${days} days`
-      };
+      try {
+        const history = await birdeyeService.getPriceHistory(address, chain, days || 7);
+        if (history && history.length > 0) {
+          return {
+            prices: history.map((h: any) => [h.unixTime * 1000, h.value]),
+            summary: `Fetched ${history.length} data points for ${address} on ${chain} over last ${days} days`
+          };
+        }
+      } catch (e) {
+        // Fallback to CoinGecko
+      }
     }
-    if (tokenId) {
-      const data = await coingeckoService.getMarketChart(tokenId, days || 7);
+
+    // Fallback to CoinGecko
+    let targetTokenId: string | undefined = tokenId;
+    
+    // If we don't have a tokenId but have chain/address, try to resolve it
+    if (!targetTokenId && chain && address) {
+      const details = await coingeckoService.getCoinDetailsByAddress(chain, address);
+      if (details && details.id) {
+        targetTokenId = details.id;
+      }
+    }
+
+    if (targetTokenId) {
+      const data = await coingeckoService.getMarketChart(targetTokenId, days || 7);
       if (!data) return { error: 'Failed to fetch market chart data' };
       
       // Simplify data to reduce token usage - just return prices
       // Format: [timestamp, price]
       return { 
         prices: data.prices,
-        summary: `Fetched ${data.prices.length} data points for ${tokenId} over last ${days} days`
+        summary: `Fetched ${data.prices.length} data points for ${targetTokenId} over last ${days} days`
       };
     }
     return { error: "Must provide tokenId OR (chain and address)" };
@@ -223,20 +242,39 @@ export const getTechnicalAnalysisTool = createTool({
   fn: async ({ tokenId, chain, address, days }) => {
     let prices: number[] = [];
 
+    // Try Birdeye first
     if (chain && address) {
-      const history = await birdeyeService.getPriceHistory(address, chain, days || 30);
-      prices = history.map((h: any) => h.value);
-    } else if (tokenId) {
-      const data = await coingeckoService.getMarketChart(tokenId, days || 30);
-      if (data && data.prices) {
-        prices = data.prices.map(p => p[1]);
+      try {
+        const history = await birdeyeService.getPriceHistory(address, chain, days || 30);
+        if (history && history.length > 0) {
+          prices = history.map((h: any) => h.value);
+        }
+      } catch (e) {
+        // Fallback to CoinGecko
       }
-    } else {
-      return { error: "Must provide tokenId OR (chain and address)" };
+    }
+
+    // Fallback to CoinGecko if prices are empty
+    if (prices.length === 0) {
+      let targetTokenId: string | undefined = tokenId;
+
+      if (!targetTokenId && chain && address) {
+        const details = await coingeckoService.getCoinDetailsByAddress(chain, address);
+        if (details && details.id) {
+          targetTokenId = details.id;
+        }
+      }
+
+      if (targetTokenId) {
+        const data = await coingeckoService.getMarketChart(targetTokenId, days || 30);
+        if (data && data.prices) {
+          prices = data.prices.map(p => p[1]);
+        }
+      }
     }
 
     if (prices.length === 0) {
-      return { error: 'No price data available' };
+      return { error: 'No price data available from Birdeye or CoinGecko' };
     }
 
     const currentPrice = prices[prices.length - 1];
