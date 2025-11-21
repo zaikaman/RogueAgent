@@ -260,6 +260,26 @@ export class SupabaseService {
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   }
+
+  async getRecentPosts(limit: number = 10): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('content')
+      .in('type', ['signal', 'intel'])
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent posts:', error);
+      return [];
+    }
+
+    return data.map((row: any) => {
+      if (row.content?.formatted_tweet) return row.content.formatted_tweet;
+      if (row.content?.insight) return row.content.insight;
+      return null;
+    }).filter(Boolean);
+  }
 }
 
 export const supabaseService = new SupabaseService();

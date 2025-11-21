@@ -123,6 +123,9 @@ export class Orchestrator {
       const shouldTrySignal = recentSignals < 3;
       logger.info(`Recent signals (24h): ${recentSignals}. Should try signal: ${shouldTrySignal}`);
 
+      // Fetch recent posts history to avoid repetition
+      const recentPosts = await supabaseService.getRecentPosts(10);
+
       let signalGenerated = false;
       let analyzerResult: AnalyzerResult | null = null;
 
@@ -130,7 +133,10 @@ export class Orchestrator {
         // 1. Scanner
         logger.info('Running Scanner Agent...');
         const { runner: scanner } = await ScannerAgent.build();
-        const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}`;
+        const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}
+        
+        RECENTLY POSTED CONTENT (Avoid repeating these):
+        ${JSON.stringify(recentPosts)}`;
         
         const scannerResult = await scanner.ask(scannerPrompt) as unknown as ScannerResult;
         logger.info('Scanner result:', scannerResult);
@@ -225,6 +231,9 @@ export class Orchestrator {
         const { runner: intelAgent } = await IntelAgent.build();
         const isSunday = new Date().getDay() === 0;
         let intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
+        
+        RECENTLY POSTED CONTENT (Avoid repeating these):
+        ${JSON.stringify(recentPosts)}
         
         AVOID these recently covered topics: ${recentTopics.join(', ')}`;
 
