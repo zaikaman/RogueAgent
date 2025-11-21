@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { Calendar01Icon, Share01Icon } from '@hugeicons/core-free-icons';
+import { Calendar01Icon, Share01Icon, Tick01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { toast } from 'sonner';
 
 interface IntelBlogProps {
   title?: string;
@@ -10,6 +12,18 @@ interface IntelBlogProps {
 }
 
 export function IntelBlog({ title = "Market Intelligence Report", content, date }: IntelBlogProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    toast.success("Link copied to clipboard", {
+      description: "You can now share this intelligence report with your network.",
+      duration: 3000,
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   // Simple markdown-ish parser for now since we don't have a library
   // We'll handle headers (#), bold (**), and paragraphs
   const renderContent = (text: string) => {
@@ -81,8 +95,16 @@ export function IntelBlog({ title = "Market Intelligence Report", content, date 
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">{title}</h1>
         </div>
-        <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white">
-          <HugeiconsIcon icon={Share01Icon} className="w-5 h-5" />
+        <button 
+          onClick={handleShare}
+          className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+          title="Copy link"
+        >
+          {copied ? (
+            <HugeiconsIcon icon={Tick01Icon} className="w-5 h-5 text-green-500" />
+          ) : (
+            <HugeiconsIcon icon={Share01Icon} className="w-5 h-5" />
+          )}
         </button>
       </div>
       

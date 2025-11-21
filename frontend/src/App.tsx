@@ -9,6 +9,7 @@ import { SignalsPage } from './pages/SignalsPage';
 import { IntelPage } from './pages/IntelPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { LogsPage } from './pages/LogsPage';
+import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ function App() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <Toaster position="top-right" theme="dark" closeButton />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/app" element={
@@ -30,6 +32,11 @@ function App() {
               </DashboardLayout>
             } />
             <Route path="/app/intel" element={
+              <DashboardLayout>
+                <IntelPage />
+              </DashboardLayout>
+            } />
+            <Route path="/app/intel/:id" element={
               <DashboardLayout>
                 <IntelPage />
               </DashboardLayout>

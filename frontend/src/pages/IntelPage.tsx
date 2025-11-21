@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useIntelHistory, IntelItem } from '../hooks/useIntel';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useIntelHistory } from '../hooks/useIntel';
 import { IntelBlog } from '../components/IntelBlog';
 import { IntelCard } from '../components/IntelCard';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -7,10 +7,20 @@ import { News01Icon, ArrowLeft01Icon, Loading03Icon } from '@hugeicons/core-free
 import { Button } from '../components/ui/button';
 
 export function IntelPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { data: historyData, isLoading } = useIntelHistory();
-  const [selectedIntel, setSelectedIntel] = useState<IntelItem | null>(null);
 
   const intelItems = historyData?.data || [];
+  const selectedIntel = id ? intelItems.find(item => item.id === id) : null;
+
+  if (id && isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <HugeiconsIcon icon={Loading03Icon} className="w-8 h-8 text-cyan-500 animate-spin" />
+      </div>
+    );
+  }
 
   if (selectedIntel) {
     const content = selectedIntel.content;
@@ -21,7 +31,7 @@ export function IntelPage() {
         <Button 
           variant="ghost" 
           className="gap-2 pl-0 hover:pl-2 transition-all text-gray-400 hover:text-white"
-          onClick={() => setSelectedIntel(null)}
+          onClick={() => navigate('/app/intel')}
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} className="w-4 h-4" />
           Back to Feed
@@ -57,7 +67,7 @@ export function IntelPage() {
             <IntelCard 
               key={intel.id} 
               intel={intel} 
-              onClick={() => setSelectedIntel(intel)} 
+              onClick={() => navigate(`/app/intel/${intel.id}`)} 
             />
           ))}
         </div>
