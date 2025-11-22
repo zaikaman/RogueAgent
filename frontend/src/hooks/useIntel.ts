@@ -11,6 +11,9 @@ export interface IntelItem {
     formatted_thread?: string;
     topic?: string;
     image_url?: string;
+    long_form_content?: string;
+    headline?: string;
+    tldr?: string;
   };
   public_posted_at?: string;
 }

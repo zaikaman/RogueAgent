@@ -1,6 +1,7 @@
 import { ScannerAgent } from './scanner.agent';
 import { AnalyzerAgent } from './analyzer.agent';
 import { GeneratorAgent } from './generator.agent';
+import { WriterAgent } from './writer.agent';
 import { IntelAgent } from './intel.agent';
 import { YieldAgent } from './yield.agent';
 import { logger } from '../utils/logger.util';
@@ -78,6 +79,12 @@ interface IntelResult {
   topic: string;
   insight: string;
   importance_score: number;
+}
+
+interface WriterResult {
+  headline: string;
+  content: string;
+  tldr: string;
 }
 
 export class Orchestrator {
@@ -326,6 +333,19 @@ export class Orchestrator {
         );
         logger.info('Generator result:', generatorResult);
 
+        // 2.1 Writer Agent (Long Form)
+        logger.info('Running Writer Agent (Intel)...');
+        const { runner: writer } = await WriterAgent.build();
+        const writerPrompt = `Write a deep-dive article for this INTEL REPORT.
+        Report: ${JSON.stringify(intelResult)}`;
+        
+        const writerResult = await this.runAgentWithRetry<WriterResult>(
+            writer,
+            writerPrompt,
+            'Writer Agent (Intel)'
+        );
+        logger.info('Writer result:', writerResult);
+
         // 2.5 Image Generation
         let imageUrl: string | null = null;
         if (generatorResult.image_prompt) {
@@ -346,6 +366,9 @@ export class Orchestrator {
             ...intelResult, 
             tweet_text: tweetContent,
             blog_post: generatorResult.blog_post,
+            long_form_content: writerResult.content,
+            headline: writerResult.headline,
+            tldr: writerResult.tldr,
             image_prompt: generatorResult.image_prompt,
             image_url: imageUrl,
             formatted_tweet: tweetContent, // Keep for backward compat

@@ -62,7 +62,8 @@ export function IntelPage() {
 
   if (selectedIntel) {
     const content = selectedIntel.content;
-    const blogPost = content.blog_post || content.formatted_thread || content.tweet_text || '';
+    const articleContent = content.long_form_content || content.blog_post || content.formatted_thread || content.tweet_text || '';
+    const headline = content.headline || content.topic;
     
     return (
       <div className="space-y-6">
@@ -76,10 +77,11 @@ export function IntelPage() {
         </Button>
         
         <IntelBlog 
-          title={content.topic}
-          content={blogPost} 
+          title={headline}
+          content={articleContent} 
           date={new Date(selectedIntel.created_at).toLocaleDateString()} 
           imageUrl={content.image_url}
+          tldr={content.tldr}
         />
       </div>
     );

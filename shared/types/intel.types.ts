@@ -6,12 +6,16 @@ export interface IntelDataPoints {
 }
 
 export interface IntelContent {
-  narrative: string;
-  insights: string[];
-  data_points: IntelDataPoints;
-  formatted_thread?: string; // Deprecated, keeping for backward compatibility
+  narrative?: string;
+  topic?: string;
+  insights?: string[];
+  data_points?: IntelDataPoints;
+  formatted_thread?: string; 
   tweet_text?: string;
   blog_post?: string;
+  long_form_content?: string;
+  headline?: string;
+  tldr?: string;
   image_prompt?: string;
   image_url?: string;
 }
