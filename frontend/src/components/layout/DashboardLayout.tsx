@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
@@ -10,9 +10,11 @@ import {
   Coins01Icon,
   Cancel01Icon
 } from '@hugeicons/core-free-icons';
-import { Send } from 'lucide-react';
+import { Send, Terminal } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
 import { Countdown } from '../Countdown';
+import { ChainOfThoughtModal } from '../ChainOfThoughtModal';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRunStatus } from '../../hooks/useRunStatus';
 
 interface DashboardLayoutProps {
@@ -22,8 +24,65 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [logs, setLogs] = useState<any[]>([]);
   const { data: runStatus } = useRunStatus();
   const lastRunTime = runStatus?.system_last_run_at || runStatus?.last_run?.created_at;
+
+  useEffect(() => {
+    // Auto-connect to stream to detect scanning
+    let eventSource: EventSource | null = null;
+    let wasScanning = false;
+
+    const connectStream = () => {
+      try {
+        eventSource = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/run/stream`);
+        
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log('Received stream data:', data);
+          
+          // Auto-open modal on first log if not already scanning
+          if (data.message && (data.message.includes('Starting') || data.message.includes('Initializing'))) {
+            console.log('New scan detected, opening modal');
+            setLogs([data]); // Reset logs on new run
+            setIsScanning(true);
+            setIsModalOpen(true);
+            wasScanning = true;
+          } else if (!wasScanning) {
+            // If we just joined a stream in progress, add to logs
+            setLogs(prev => [...prev, data]);
+            setIsScanning(true);
+            setIsModalOpen(true);
+            wasScanning = true;
+          } else {
+            // Normal log append
+            setLogs(prev => [...prev, data]);
+            setIsScanning(true);
+          }
+        };
+
+        eventSource.onerror = () => {
+          console.log('EventSource connection error or closed');
+        };
+
+        eventSource.onopen = () => {
+          console.log('EventSource connection opened');
+        };
+      } catch (error) {
+        console.error('Failed to connect to stream:', error);
+      }
+    };
+
+    connectStream();
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, []);
 
   const navItems = [
     { icon: Home01Icon, label: 'Dashboard', path: '/app' },
@@ -156,6 +215,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </main>
       </div>
+
+      {/* Chain of Thought Modal */}
+      <ChainOfThoughtModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        logs={logs} 
+      />
+
+      {/* Reopen Button */}
+      <AnimatePresence>
+        {isScanning && !isModalOpen && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            onClick={() => setIsModalOpen(true)}
+            className="fixed bottom-8 right-8 z-50 bg-black border border-cyan-500/50 text-cyan-500 px-4 py-2 rounded-full font-mono text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:bg-cyan-900/20 transition-colors"
+          >
+            <Terminal className="w-4 h-4 animate-pulse" />
+            SYSTEM_CORE_ACTIVE
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

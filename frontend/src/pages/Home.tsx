@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { WalletConnect } from '../components/WalletConnect'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { Send, Terminal } from 'lucide-react'
-import { ChainOfThoughtModal } from '../components/ChainOfThoughtModal'
+import { Send } from 'lucide-react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
     ArrowUpRight01Icon,
@@ -19,58 +18,6 @@ import {
 
 export default function Home() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isScanning, setIsScanning] = useState(false);
-    const [logs, setLogs] = useState<any[]>([]);
-
-    useEffect(() => {
-        // Auto-connect to stream to detect scanning
-        let eventSource: EventSource | null = null;
-
-        const connectStream = () => {
-            try {
-                eventSource = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/run/stream`);
-                
-                eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    setLogs(prev => [...prev, data]);
-                    
-                    // If we receive data, it means a scan is running
-                    setIsScanning(true);
-                    
-                    // Auto-open modal on first log if not already open (and if we haven't manually closed it? 
-                    // For now, let's just open it if it's the start of a sequence or if we want to be aggressive)
-                    // Let's check if the log indicates a "start"
-                    if (data.message && (data.message.includes('Starting') || data.message.includes('Initializing'))) {
-                        setIsModalOpen(true);
-                        setLogs([data]); // Reset logs on new run
-                    } else if (!isScanning) {
-                        // If we just joined a stream in progress
-                        setIsModalOpen(true);
-                    }
-                };
-
-                eventSource.onerror = () => {
-                    // console.error('EventSource failed:', err);
-                    // Don't close immediately, it might just be a timeout or keep-alive issue
-                    // But if connection is lost, maybe stop scanning state
-                    // eventSource?.close();
-                    // setIsScanning(false);
-                };
-            } catch (error) {
-                console.error('Failed to connect to stream:', error);
-            }
-        };
-
-        connectStream();
-
-        return () => {
-            if (eventSource) {
-                eventSource.close();
-            }
-        };
-    }, []);
-
     // Static stats for RogueAgent
     const [stats] = useState([
         { label: 'ACTIVE SIGNALS', value: '124', change: '+12' },
@@ -571,32 +518,10 @@ export default function Home() {
                     </div>
                 </div>
             </footer>
-
-            <ChainOfThoughtModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-                logs={logs} 
-            />
-
-            <AnimatePresence>
-                {isScanning && !isModalOpen && (
-                    <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        onClick={() => setIsModalOpen(true)}
-                        className="fixed bottom-8 right-8 z-50 bg-black border border-cyan-500/50 text-cyan-500 px-4 py-2 rounded-full font-mono text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:bg-cyan-900/20 transition-colors"
-                    >
-                        <Terminal className="w-4 h-4 animate-pulse" />
-                        SYSTEM_CORE_ACTIVE
-                    </motion.button>
-                )}
-            </AnimatePresence>
         </div>
     )
 }
 
-// Add type declaration for UnicornStudio
 // Add type declaration for UnicornStudio
 declare global {
     interface Window {
