@@ -108,6 +108,16 @@ const server = app.listen(port, () => {
     orchestrator.runAirdropAnalysis().catch(err => logger.error('Airdrop analysis failed:', err));
   }, 6 * 60 * 60 * 1000);
 
+  // Check if we need to run initial Airdrop scan
+  supabaseService.getAirdrops(1, 1).then(({ total }) => {
+    if (!total || total === 0) {
+      logger.info('No airdrops found in DB. Triggering initial Airdrop Analysis...');
+      orchestrator.runAirdropAnalysis().catch(err => logger.error('Initial Airdrop analysis failed:', err));
+    } else {
+      logger.info(`Found ${total} airdrops in DB. Skipping initial scan.`);
+    }
+  }).catch(err => logger.error('Failed to check airdrop count:', err));
+
 // Graceful shutdown
 const shutdown = async (signal: string) => {
   logger.info(`${signal} received. Shutting down gracefully...`);
