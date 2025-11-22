@@ -21,6 +21,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const { data: runStatus } = useRunStatus();
   const lastRunTime = runStatus?.last_run?.created_at;
+  const isDashboard = location.pathname === '/app';
 
   const navItems = [
     { icon: Home01Icon, label: 'Dashboard', path: '/app' },
@@ -70,7 +71,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
         {/* Header */}
         <header className="h-16 border-b border-gray-800 bg-gray-950/50 backdrop-blur sticky top-0 z-30 px-6 flex items-center justify-between">
            <div className="md:hidden flex items-center gap-3">
@@ -93,7 +94,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className={`flex-1 p-6 ${isDashboard ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <div className="max-w-7xl mx-auto space-y-8">
             {children}
           </div>

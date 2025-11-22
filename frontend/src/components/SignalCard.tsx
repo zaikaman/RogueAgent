@@ -46,20 +46,20 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
     <Card className="bg-gray-900/50 border-gray-800 overflow-hidden relative group">
       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-purple-600" />
       
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2 pt-5 px-5">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <div className="text-xs text-gray-500 uppercase tracking-wider">Latest Signal</div>
               {getStatusBadge()}
             </div>
-            <CardTitle className="text-3xl font-bold text-white flex items-center gap-2">
+            <CardTitle className="text-2xl font-bold text-white flex items-center gap-2">
               {token?.symbol || 'UNKNOWN'}
-              <Badge variant="outline" className="text-cyan-400 border-cyan-500/30 bg-cyan-950/30">
+              <Badge variant="outline" className="text-cyan-400 border-cyan-500/30 bg-cyan-950/30 text-xs h-5">
                 {confidence}/100
               </Badge>
             </CardTitle>
-            <div className="text-sm text-gray-400 mt-1">{token?.name}</div>
+            <div className="text-sm text-gray-400 mt-0.5">{token?.name}</div>
           </div>
           <div className="text-right">
              {current_price && (
@@ -76,23 +76,23 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-5 pb-5">
         <div className="space-y-4">
           <div className="p-3 bg-gray-950/50 rounded-lg border border-gray-800/50">
-            <p className="text-sm text-gray-300 leading-relaxed line-clamp-3">
+            <p className="text-sm text-gray-300 leading-relaxed line-clamp-2">
               {analysis}
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
              <div className="flex flex-col p-2 bg-gray-800/30 rounded border border-gray-800/50">
-                <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                <span className="text-[10px] text-gray-500 uppercase flex items-center gap-1">
                   <ArrowUpRight className="w-3 h-3" /> Entry
                 </span>
                 <span className="font-mono text-sm text-gray-300">${entry_price}</span>
               </div>
               <div className="flex flex-col p-2 bg-gray-800/30 rounded border border-gray-800/50">
-                <span className="text-xs text-gray-500 uppercase flex items-center gap-1">
+                <span className="text-[10px] text-gray-500 uppercase flex items-center gap-1">
                   <Target className="w-3 h-3 text-cyan-400" /> Target
                 </span>
                 <span className="font-mono text-sm text-cyan-300">${target_price}</span>

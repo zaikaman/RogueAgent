@@ -38,7 +38,7 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
       onClick={onClick}
     >
       {/* Hero Image / Gradient Area */}
-      <div className={`h-48 w-full bg-gradient-to-br ${gradient} relative p-6 flex flex-col justify-end`}>
+      <div className={`h-40 w-full bg-gradient-to-br ${gradient} relative p-5 flex flex-col justify-end`}>
         {imageUrl && (
           <img 
             src={imageUrl} 
@@ -50,26 +50,26 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
         
         {/* Overlay Content */}
         <div className="relative z-10">
-          <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 mb-3 hover:bg-black/60">
+          <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 mb-2 hover:bg-black/60 text-xs h-6 px-2.5">
             ALPHA REPORT
           </Badge>
-          <h3 className="text-2xl font-bold text-white leading-tight line-clamp-2 drop-shadow-md">
+          <h3 className="text-xl font-bold text-white leading-tight line-clamp-2 drop-shadow-md">
             {title}
           </h3>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="p-6 space-y-4">
-        <p className="text-gray-400 line-clamp-3 text-sm leading-relaxed">
+      <div className="p-5 space-y-3">
+        <p className="text-gray-400 line-clamp-2 text-sm leading-relaxed">
           {excerpt}
         </p>
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 border border-gray-700">
+        <div className="flex items-center justify-between pt-3 border-t border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <Avatar className="h-7 w-7 border border-gray-700">
               <AvatarImage src="/agent-avatar.png" />
-              <AvatarFallback className="bg-cyan-950 text-cyan-400 text-xs">RA</AvatarFallback>
+              <AvatarFallback className="bg-cyan-950 text-cyan-400 text-[10px]">RA</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-white">Rogue Agent</span>
@@ -81,7 +81,7 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
           </div>
 
           <div className="text-cyan-500 group-hover:translate-x-1 transition-transform">
-            <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
+            <HugeiconsIcon icon={ArrowRight01Icon} className="w-4 h-4" />
           </div>
         </div>
       </div>

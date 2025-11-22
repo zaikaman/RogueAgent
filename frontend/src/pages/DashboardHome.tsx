@@ -33,7 +33,7 @@ export function DashboardHome() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <TelegramModal 
         isOpen={showTelegramModal} 
         onClose={() => setShowTelegramModal(false)} 
@@ -52,7 +52,7 @@ export function DashboardHome() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
           
           {/* Latest Intel Preview */}
           {latestIntel && (
@@ -109,7 +109,7 @@ export function DashboardHome() {
             {/* Terminal Log Preview */}
             <TerminalLog 
               logs={logsData?.data || []} 
-              className="flex-1 min-h-[400px] lg:min-h-0" 
+              className="flex-1 min-h-[300px] lg:min-h-0" 
             />
           </div>
         </div>
