@@ -120,7 +120,7 @@ I am your AI-powered crypto intelligence assistant.
 
 **Commands:**
 /verify <address> - Link your wallet to unlock features
-/scan <token> - Request a deep-dive analysis (Diamond Tier)
+/scan <token or address> - Request a deep-dive analysis (Diamond Tier)
 /help - Show available commands
         `;
         this.bot?.sendMessage(msg.chat.id, welcomeMessage, { parse_mode: 'Markdown' });
@@ -134,10 +134,12 @@ I am your AI-powered crypto intelligence assistant.
 Link your wallet to access your tier benefits.
 Example: \`/verify 0x123...\`
 
-**/scan <token_symbol>**
+**/scan <token_symbol or contract_address>**
 Request a deep-dive analysis for a specific token.
 *Exclusive to DIAMOND tier users.*
-Example: \`/scan SOL\`
+Examples: 
+\`/scan SOL\`
+\`/scan EvDWFiEhRWxpJM1wJHFpe6sy8M14KLTV2bNAh7r6pump\`
 
 **Chat Features** 💬
 You can chat with me normally! Ask about:
@@ -155,9 +157,14 @@ You can chat with me normally! Ask about:
     this.bot.onText(/\/scan (.+)/, async (msg, match) => {
       const chatId = msg.chat.id;
       const userId = msg.from?.id;
-      const tokenSymbol = match?.[1]?.trim().toUpperCase();
+      const input = match?.[1]?.trim();
       
-      if (!userId || !tokenSymbol) return;
+      if (!userId || !input) return;
+
+      // Detect if input is an address (contains lowercase chars or is >20 chars) or a symbol
+      const isAddress = input.length > 20 || /[a-z]/.test(input);
+      const tokenSymbol = isAddress ? input : input.toUpperCase();
+      const tokenContract = isAddress ? input : undefined;
 
       try {
         const user = await supabaseService.getUserByTelegramId(userId);
@@ -175,10 +182,11 @@ You can chat with me normally! Ask about:
         }
 
         // Create custom request directly
-        console.log('📊 Creating custom request for:', { userId, tokenSymbol, wallet: user.wallet_address });
+        console.log('📊 Creating custom request for:', { userId, tokenSymbol, tokenContract, wallet: user.wallet_address });
         const request = await supabaseService.createCustomRequest({
           user_wallet_address: user.wallet_address,
           token_symbol: tokenSymbol,
+          token_contract: tokenContract,
           status: 'pending',
         });
         console.log('📊 Custom request created! ID:', request.id);

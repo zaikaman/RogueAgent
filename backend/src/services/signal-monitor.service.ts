@@ -52,12 +52,29 @@ export class SignalMonitorService {
         let currentPrice: number | null = null;
         
         try {
-            // Try CMC first using symbol
-            if (content.token.symbol) {
+            // Priority 1: Try address-based lookup first (most accurate for all tokens)
+            if ((content.token as any).chain && (content.token as any).address) {
+                const chain = (content.token as any).chain;
+                const address = (content.token as any).address;
+                
+                // Try CoinGecko by address
+                currentPrice = await coingeckoService.getPriceByAddress(chain, address);
+                
+                // Fallback to Birdeye for chain-native tokens
+                if (!currentPrice && ['solana', 'ethereum', 'base', 'arbitrum'].includes(chain)) {
+                    const history = await birdeyeService.getPriceHistory(address, chain, 1);
+                    if (history && history.length > 0) {
+                        currentPrice = history[history.length - 1].value;
+                    }
+                }
+            }
+
+            // Priority 2: Fallback to CMC by symbol (for popular tokens without addresses)
+            if (!currentPrice && content.token.symbol) {
                 currentPrice = await coinMarketCapService.getPrice(content.token.symbol);
             }
 
-            // Fallback to CoinGecko if we have an ID
+            // Priority 3: Fallback to CoinGecko by ID
             if (!currentPrice && (content.token as any).coingecko_id) {
                 currentPrice = await coingeckoService.getPrice((content.token as any).coingecko_id);
             }

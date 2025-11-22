@@ -47,7 +47,7 @@ class CoinGeckoService {
     return map[chain.toLowerCase()] || chain.toLowerCase();
   }
 
-  async getPrice(tokenId: string, retryWithSearch = true): Promise<number | null> {
+  async getPrice(tokenId: string): Promise<number | null> {
     const cached = this.cache.get(tokenId);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
       return cached.price;
@@ -69,19 +69,12 @@ class CoinGeckoService {
         return price;
       }
       
-      if (retryWithSearch) {
-        const resolvedId = await this.searchCoin(tokenId);
-        if (resolvedId) {
-          return this.getPrice(resolvedId, false);
-        }
-
-        // Fallback to DexScreener
-        const dexData = await dexScreenerService.getTokenProfile(tokenId);
-        if (dexData && dexData.market_data && dexData.market_data.current_price) {
-          const price = dexData.market_data.current_price.usd;
-          this.cache.set(tokenId, { price, timestamp: Date.now() });
-          return price;
-        }
+      // Fallback to DexScreener only (no search fallback)
+      const dexData = await dexScreenerService.getTokenProfile(tokenId);
+      if (dexData && dexData.market_data && dexData.market_data.current_price) {
+        const price = dexData.market_data.current_price.usd;
+        this.cache.set(tokenId, { price, timestamp: Date.now() });
+        return price;
       }
 
       return null;
@@ -185,7 +178,7 @@ class CoinGeckoService {
     }
   }
 
-  async getCoinDetails(tokenId: string, retryWithSearch = true): Promise<any | null> {
+  async getCoinDetails(tokenId: string): Promise<any | null> {
     try {
       const response = await axios.get(`${this.baseUrl}/coins/${tokenId}`, {
         params: {
@@ -200,16 +193,9 @@ class CoinGeckoService {
       });
       return response.data;
     } catch (error: any) {
-      if (retryWithSearch && error.response && error.response.status === 404) {
-        logger.warn(`CoinGecko coin not found for ${tokenId}, trying search...`);
-        const resolvedId = await this.searchCoin(tokenId);
-        if (resolvedId) {
-          logger.info(`Resolved ${tokenId} to ${resolvedId}`);
-          return this.getCoinDetails(resolvedId, false);
-        }
-        
-        // Fallback to DexScreener if CoinGecko search also fails or returns nothing
-        logger.warn(`CoinGecko search failed for ${tokenId}, trying DexScreener fallback...`);
+      if (error.response && error.response.status === 404) {
+        logger.warn(`CoinGecko coin not found for ${tokenId}, trying DexScreener fallback...`);
+        // Fallback to DexScreener only (no search fallback)
         const dexData = await dexScreenerService.getTokenProfile(tokenId);
         if (dexData) {
           logger.info(`Found ${tokenId} on DexScreener`);
@@ -270,7 +256,7 @@ class CoinGeckoService {
     }
   }
 
-  async getMarketChart(tokenId: string, days: number = 7, retryWithSearch = true): Promise<{ prices: [number, number][] } | null> {
+  async getMarketChart(tokenId: string, days: number = 7): Promise<{ prices: [number, number][] } | null> {
     try {
       const response = await axios.get(`${this.baseUrl}/coins/${tokenId}/market_chart`, {
         params: {
@@ -281,14 +267,6 @@ class CoinGeckoService {
       });
       return response.data;
     } catch (error: any) {
-      if (retryWithSearch && error.response && error.response.status === 404) {
-        logger.warn(`CoinGecko Market Chart not found for ${tokenId}, trying search...`);
-        const resolvedId = await this.searchCoin(tokenId);
-        if (resolvedId) {
-          return this.getMarketChart(resolvedId, days, false);
-        }
-      }
-
       if (error.response && error.response.status === 404) {
         logger.warn(`CoinGecko Market Chart not found for ${tokenId} (404)`);
       } else {

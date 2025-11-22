@@ -98,19 +98,23 @@ export const getTokenPriceTool = createTool({
     address: z.string().optional().describe('The token contract address'),
   }) as any,
   fn: async ({ tokenId, chain, address }) => {
-    // 1. Try CMC if tokenId is provided
-    if (tokenId) {
-      // Try as symbol first
-      let cmcData = await coinMarketCapService.getPriceWithChange(tokenId);
-      if (cmcData) return { tokenId, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap' };
-      
-      // Try as slug
-      cmcData = await coinMarketCapService.getPriceBySlug(tokenId);
-      if (cmcData) return { tokenId, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap' };
-    }
-
-    // 2. If chain/address provided, try to resolve symbol via DexScreener and use CMC
+    // 1. PRIORITY: If chain/address provided, use address-based lookup (most accurate)
     if (chain && address) {
+      // Try CoinGecko by address first
+      const price = await coingeckoService.getPriceByAddress(chain, address);
+      if (price) return { chain, address, price, source: 'coingecko_address' };
+      
+      // Fallback to Birdeye for chain-native tokens
+      try {
+        const history = await birdeyeService.getPriceHistory(address, chain, 1);
+        if (history && history.length > 0) {
+           return { chain, address, price: history[history.length - 1].value, source: 'birdeye' };
+        }
+      } catch (e) {
+        // Ignore birdeye error
+      }
+
+      // Try to resolve symbol via DexScreener and use CMC as last resort
       try {
         const { dexScreenerService } = require('../services/dexscreener.service');
         const profile = await dexScreenerService.getTokenProfile(address);
@@ -125,25 +129,23 @@ export const getTokenPriceTool = createTool({
       }
     }
 
-    if (chain && address) {
-      const price = await coingeckoService.getPriceByAddress(chain, address);
-      if (price) return { chain, address, price };
+    // 2. FALLBACK: Try CMC if tokenId is provided (for popular tokens without addresses)
+    if (tokenId) {
+      // Try as symbol first
+      let cmcData = await coinMarketCapService.getPriceWithChange(tokenId);
+      if (cmcData) return { tokenId, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap' };
       
-      // Fallback to Birdeye if CoinGecko fails for address
-      try {
-        const history = await birdeyeService.getPriceHistory(address, chain, 1);
-        if (history && history.length > 0) {
-           return { chain, address, price: history[history.length - 1].value };
-        }
-      } catch (e) {
-        // Ignore birdeye error
-      }
+      // Try as slug
+      cmcData = await coinMarketCapService.getPriceBySlug(tokenId);
+      if (cmcData) return { tokenId, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap' };
     }
 
+    // 3. LAST RESORT: CoinGecko by ID
     if (tokenId) {
       const price = await coingeckoService.getPrice(tokenId);
-      return { tokenId, price };
+      return { tokenId, price, source: 'coingecko_id' };
     }
+    
     return { error: 'No tokenId or (chain + address) provided' };
   },
 });

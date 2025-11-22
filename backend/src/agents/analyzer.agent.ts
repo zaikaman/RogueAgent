@@ -14,10 +14,11 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     2. For each promising candidate:
        a. Check 'check_recent_signals' to avoid duplicates.
        b. If new, perform DEEP DIVE analysis:
-          - **Price Check**: Use 'get_token_price' (provide chain and address if available) to get the accurate current price.
-          - **Technical Analysis**: Use 'get_technical_analysis' (provide chain and address) to check RSI, MACD, Trend. Look for oversold conditions in uptrends, or breakouts.
-          - **Fundamental Analysis**: Use 'get_fundamental_analysis' (provide chain and address if available) to check Market Cap, FDV, and Volume. Avoid dead coins or extremely high FDV/MCap ratios unless hype is massive.
+          - **Price Check**: Use 'get_token_price' (ALWAYS provide chain and address if available from candidate data) to get the accurate current price.
+          - **Technical Analysis**: Use 'get_technical_analysis' (ALWAYS provide chain and address from candidate) to check RSI, MACD, Trend. Look for oversold conditions in uptrends, or breakouts.
+          - **Fundamental Analysis**: Use 'get_fundamental_analysis' (ALWAYS provide chain and address from candidate) to check Market Cap, FDV, and Volume. Avoid dead coins or extremely high FDV/MCap ratios unless hype is massive.
           - **Sentiment Analysis**: Use 'search_tavily' (query: "$SYMBOL crypto news sentiment") to find recent news and community sentiment.
+       c. **CRITICAL**: When outputting selected_token, you MUST preserve the 'chain' and 'address' fields from the candidate data. These are required for accurate price monitoring.
     3. Synthesize all data.
        - A good signal has: Bullish TA (e.g. RSI < 30 then crossing up, or MACD crossover), Solid FA (decent volume), and Positive Sentiment/News.
        - **Market Context**: If the general market is bearish (e.g. BTC dropping), be EXTREMELY selective. Only signal if there is a massive, independent catalyst.
