@@ -384,7 +384,9 @@ export class Orchestrator {
         // Immediate: Gold/Diamond (Blog Post)
         if (blogContent) {
            logger.info(`Distributing Intel Blog to GOLD/DIAMOND for run ${runId}...`);
-           telegramService.broadcastToTiers(blogContent, [TIERS.GOLD, TIERS.DIAMOND])
+           const intelLink = `https://rogue-adk.vercel.app/app/intel/${runId}`;
+           const messageWithLink = `${blogContent}\n\n[View full intel here](${intelLink})`;
+           telegramService.broadcastToTiers(messageWithLink, [TIERS.GOLD, TIERS.DIAMOND])
              .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
         }
 

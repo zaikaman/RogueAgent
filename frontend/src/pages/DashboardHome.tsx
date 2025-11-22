@@ -108,7 +108,7 @@ export function DashboardHome() {
             {/* Terminal Log Preview */}
             <TerminalLog 
               logs={logsData?.data || []} 
-              className="flex-1 min-h-[300px] lg:min-h-0" 
+              className="min-h-[300px] lg:h-[363px]" 
             />
         </div>
       </div>
