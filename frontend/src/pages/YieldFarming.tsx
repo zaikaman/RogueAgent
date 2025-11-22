@@ -1,11 +1,22 @@
 import { motion } from 'framer-motion';
+import { useConnect } from 'wagmi';
 import { useYield, YieldOpportunity } from '../hooks/useYield';
+import { useUserTier } from '../hooks/useUserTier';
+import { GatedContent } from '../components/GatedContent';
+import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Coins01Icon } from '@hugeicons/core-free-icons';
 
 export function YieldFarming() {
   const { data: opportunities, isLoading, isError } = useYield();
+  const { tier, isConnected } = useUserTier();
+  const { connect, connectors } = useConnect();
+
+  const handleConnect = () => {
+    const connector = connectors[0];
+    connect({ connector });
+  };
 
   if (isLoading) {
     return (
@@ -35,11 +46,31 @@ export function YieldFarming() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {opportunities?.map((opp, index) => (
-          <YieldCard key={opp.pool_id || index} opportunity={opp} index={index} />
-        ))}
-      </div>
+      {/* First Opportunity - Always Visible */}
+      {opportunities && opportunities.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Featured Opportunity</h3>
+          <YieldCard opportunity={opportunities[0]} index={0} />
+        </div>
+      )}
+
+      {/* Remaining Opportunities - Gated for Silver+ */}
+      {opportunities && opportunities.length > 1 && (
+        <GatedContent 
+          userTier={tier} 
+          requiredTier={TIERS.SILVER}
+          onConnect={!isConnected ? handleConnect : undefined}
+        >
+          <div className="space-y-4 pt-8 border-t border-gray-800">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {opportunities.slice(1).map((opp, index) => (
+                <YieldCard key={opp.pool_id || index + 1} opportunity={opp} index={index + 1} />
+              ))}
+            </div>
+          </div>
+        </GatedContent>
+      )}
     </div>
   );
 }
