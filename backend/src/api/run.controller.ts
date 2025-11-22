@@ -10,3 +10,20 @@ export const triggerRun = async (req: Request, res: Response) => {
     status: 'processing' 
   });
 };
+
+export const streamRun = (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const onLog = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  orchestrator.on('log', onLog);
+
+  req.on('close', () => {
+    orchestrator.off('log', onLog);
+  });
+};

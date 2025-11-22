@@ -16,6 +16,7 @@ import { defillamaService } from '../services/defillama.service';
 import { runwareService } from '../services/runware.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
+import { EventEmitter } from 'events';
 
 interface ScannerResult {
   candidates?: Array<{
@@ -87,15 +88,22 @@ interface WriterResult {
   tldr: string;
 }
 
-export class Orchestrator {
+export class Orchestrator extends EventEmitter {
+  
+  private broadcast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
+    this.emit('log', { message, type, timestamp: Date.now() });
+  }
+
   async runSwarm() {
     const runId = randomUUID();
     const startTime = Date.now();
     logger.info(`Starting swarm run ${runId}`);
+    this.broadcast(`Initializing Rogue Swarm Protocol... Run ID: ${runId.slice(0, 8)}`, 'info');
 
     try {
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
+      this.broadcast('Establishing connection to global market data feeds...', 'info');
       const [trendingCg, trendingBe, topGainers, defiChains, defiProtocols, bitcoinData] = await Promise.all([
         coingeckoService.getTrending().catch(e => { logger.error('CG Trending Error', e); return []; }),
         birdeyeService.getTrendingTokens(10).catch(e => { logger.error('Birdeye Trending Error', e); return []; }),
@@ -113,6 +121,7 @@ export class Orchestrator {
             }
         })()
       ]);
+      this.broadcast('Market data aggregated successfully.', 'success');
 
       const marketData = {
         global_market_context: {
@@ -152,6 +161,7 @@ export class Orchestrator {
       if (shouldTrySignal) {
         // 1. Scanner
         logger.info('Running Scanner Agent...');
+        this.broadcast('Deploying Scanner Agent to identify anomalies...', 'info');
         const { runner: scanner } = await ScannerAgent.build();
         const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}
         
@@ -164,10 +174,12 @@ export class Orchestrator {
           'Scanner Agent'
         );
         logger.info('Scanner result:', scannerResult);
+        this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success');
 
         if (scannerResult.candidates && scannerResult.candidates.length > 0) {
           // 2. Analyzer
           logger.info('Running Analyzer Agent...');
+          this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
           const { runner: analyzer } = await AnalyzerAgent.build();
           const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}
           
@@ -181,11 +193,14 @@ export class Orchestrator {
           logger.info('Analyzer result:', analyzerResult);
 
           if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
+            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success');
             signalGenerated = true;
           } else {
+            this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
             logger.info('Analyzer decided to skip signal generation.');
           }
         } else {
+          this.broadcast('No significant anomalies found by Scanner Agent.', 'warning');
           logger.info('No candidates found by Scanner.');
         }
       }
