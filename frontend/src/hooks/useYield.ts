@@ -15,14 +15,21 @@ export interface YieldOpportunity {
 
 interface YieldResponse {
   opportunities: YieldOpportunity[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
-export function useYield() {
+export function useYield(page = 1, limit = 10) {
   return useQuery({
-    queryKey: ['yield'],
+    queryKey: ['yield', page, limit],
     queryFn: async () => {
-      const { data } = await api.get<YieldResponse>(endpoints.yield);
-      return data.opportunities;
+      const response = await api.get<YieldResponse>(endpoints.yield, { params: { page, limit } });
+      // Backend may return { opportunities: [], pagination: { page, limit, total, pages } }
+      return response.data;
     },
     refetchInterval: 1000 * 60 * 15, // 15 minutes
     staleTime: 1000 * 60 * 5, // 5 minutes

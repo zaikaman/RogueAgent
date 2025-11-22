@@ -12,7 +12,7 @@ import { GpsSignal01Icon, Loading03Icon, ArrowLeft01Icon, ArrowRight01Icon } fro
 export function SignalsPage() {
   const [page, setPage] = useState(1);
   const { data: runStatus, isLoading: isStatusLoading } = useRunStatus();
-  const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory(page, 10);
+  const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory(page, page === 1 ? 11 : 10);
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -25,6 +25,17 @@ export function SignalsPage() {
   const historySignals = historyData?.data || [];
   const pagination = historyData?.pagination;
   const totalPages = pagination?.pages || 1;
+
+  // Ensure we don't show the latest signal twice. For page 1 we request
+  // up to 11 items (so the latest can be included by the backend). When
+  // rendering, remove the latest from history and limit history to 10
+  // items so the combined display is at most 11 (latest + 10 previous).
+  const filteredHistory = (() => {
+    const latestId = latestSignal?.id;
+    let list = historySignals.filter((s: any) => s.id !== latestId);
+    if (page === 1) list = list.slice(0, 10);
+    return list;
+  })();
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -69,7 +80,7 @@ export function SignalsPage() {
           {historySignals.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {historySignals.map((signal: any) => (
+                {filteredHistory.map((signal: any) => (
                   <SignalCard key={signal.id} signal={signal} />
                 ))}
               </div>

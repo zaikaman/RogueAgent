@@ -15,7 +15,7 @@ export function IntelPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const { data: historyData, isLoading } = useIntelHistory(page, 9);
+  const { data: historyData, isLoading } = useIntelHistory(page, page === 1 ? 10 : 9);
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -28,6 +28,20 @@ export function IntelPage() {
   const pagination = historyData?.pagination;
   const totalPages = pagination?.pages || 1;
   
+  // latestIntel: on page 1 the backend is asked to include the latest report
+  // as the first item. Use that as the Latest Report and remove it from
+  // the archive rendering to avoid duplication.
+  const latestIntel = page === 1 ? intelItems[0] : null;
+
+  const filteredArchive = (() => {
+    if (page === 1) {
+      const latestId = latestIntel?.id;
+      const list = intelItems.filter((it) => it.id !== latestId);
+      return list.slice(0, 9); // ensure archive shows at most 9 so latest+archive = 10
+    }
+    return intelItems.slice(0, 9); // pages 2+ show 9 items
+  })();
+
   const selectedIntel = id ? intelItems.find(item => item.id === id) : null;
 
   const handlePrevPage = () => {
@@ -87,11 +101,11 @@ export function IntelPage() {
       </div>
 
       {/* Latest Intel - Always Visible on Page 1 */}
-      {page === 1 && intelItems.length > 0 && (
-         <div className="mb-8">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Latest Report</h3>
-            <IntelCard intel={intelItems[0]} onClick={() => navigate(`/app/intel/${intelItems[0].id}`)} />
-         </div>
+      {page === 1 && latestIntel && (
+        <div className="mb-8">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Latest Report</h3>
+          <IntelCard intel={latestIntel} onClick={() => navigate(`/app/intel/${latestIntel.id}`)} />
+        </div>
       )}
 
       <div className="space-y-4">
@@ -101,10 +115,10 @@ export function IntelPage() {
           requiredTier={TIERS.SILVER}
           onConnect={!isConnected ? handleConnect : undefined}
         >
-          {intelItems.length > (page === 1 ? 1 : 0) ? (
+          {filteredArchive.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(page === 1 ? intelItems.slice(1) : intelItems).map((intel) => (
+                {filteredArchive.map((intel) => (
                   <IntelCard 
                     key={intel.id} 
                     intel={intel} 

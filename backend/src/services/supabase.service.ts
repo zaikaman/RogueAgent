@@ -381,23 +381,38 @@ export class SupabaseService {
     return data;
   }
 
-  async getLatestYieldOpportunities() {
-    // Get opportunities from the last 24 hours, sorted by APY? 
-    // Or just the latest batch? 
-    // Since we run every hour, maybe just get the ones created in the last hour?
-    // Or better, get the latest 50 and filter in app?
-    // Let's get the ones created in the last run. 
-    // We can find the latest created_at and get all with that timestamp (approx).
-    
-    // Alternative: Get top 20 by created_at
+  async getLatestYieldOpportunities(page: number = 1, limit: number = 10) {
+    // Always calculate pagination based on 9 items per page (consistent page size)
+    // Page 1 may request 10 items (featured + 9 archive) but pagination counts stay consistent
+    const baseLimit = 9;
+    const offset = (page - 1) * baseLimit;
+
+    // Get total count
+    const { count } = await this.client
+      .from('yield_opportunities')
+      .select('*', { count: 'exact', head: true });
+
+    // Get paginated data - fetch the requested limit but offset by baseLimit
     const { data, error } = await this.client
       .from('yield_opportunities')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(20);
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return data;
+
+    const total = count || 0;
+    const pages = Math.ceil(total / baseLimit);
+
+    return {
+      opportunities: data,
+      pagination: {
+        page,
+        limit: baseLimit, // Always return baseLimit in metadata for consistent client-side calculation
+        total,
+        pages
+      }
+    };
   }
 
   async getRunById(id: string) {
