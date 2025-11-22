@@ -37,7 +37,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     const connectStream = () => {
       try {
-        eventSource = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/run/stream`);
+        eventSource = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/run/stream`);
         
         eventSource.onmessage = (event) => {
           const data = JSON.parse(event.data);
