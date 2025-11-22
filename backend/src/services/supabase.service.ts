@@ -22,11 +22,11 @@ export type DbIqAiLog = {
   id?: string;
   content: string;
   type: 'Agent' | 'Developer';
-  tx_hash?: string;
-  chain_id?: string;
+  tx_hash?: string | null;
+  chain_id?: string | null;
   status?: 'pending' | 'processing' | 'completed' | 'failed';
   retry_count?: number;
-  error_message?: string;
+  error_message?: string | null;
   created_at?: string;
   updated_at?: string;
 };
