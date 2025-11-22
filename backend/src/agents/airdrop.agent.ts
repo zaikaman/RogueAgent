@@ -42,7 +42,28 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
     -100 if older than 30 days with zero recent activity
 
     Output strict JSON. Wrap the array in an object with key "airdrops".
-    Example: { "airdrops": [ ... ] }
+    
+    IMPORTANT: You must use the EXACT keys below. Do not nest objects.
+    
+    Example Output:
+    {
+      "airdrops": [
+        {
+          "ticker": "MARU",
+          "contract": "0x123... (or N/A)",
+          "chain": "Solana",
+          "type": "points_farm",
+          "why_promising": "Exploding volume, backed by Paradigm.",
+          "tasks": "Bridge assets, stake in pool A.",
+          "deadline_or_phase": "Season 1 ends Dec 31",
+          "est_value_usd": "500+",
+          "link_dashboard": "https://maru.finance",
+          "link_tg": "https://t.me/maru",
+          "link_x": "https://x.com/maru",
+          "rogue_score": 95
+        }
+      ]
+    }
     
     If nothing scores ≥83, return empty array in the object: { "airdrops": [] }
   `)
@@ -58,7 +79,7 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
           tasks: z.string().optional().default('Check dashboard for details.'),
           deadline_or_phase: z.string().optional().default('Ongoing'),
           est_value_usd: z.string().optional().default('Unknown'),
-          link_dashboard: z.string(),
+          link_dashboard: z.string().describe('The main URL for the airdrop dashboard or website. REQUIRED.'),
           link_tg: z.string().optional().default(''),
           link_x: z.string().optional().default(''),
           rogue_score: z.number().optional().default(0)
