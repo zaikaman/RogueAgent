@@ -33,12 +33,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     // Poll for logs
     let pollInterval: NodeJS.Timeout;
-    let lastTimestamp = 0;
+    let lastId = 0;
     let wasScanning = false;
 
     const pollLogs = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/run/logs?after=${lastTimestamp}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/run/logs?after=${lastId}`);
         if (!response.ok) return;
         
         const newLogs = await response.json();
@@ -46,8 +46,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         if (newLogs && newLogs.length > 0) {
           console.log('Received logs:', newLogs);
           
-          // Update timestamp to last log
-          lastTimestamp = newLogs[newLogs.length - 1].timestamp;
+          // Update id to last log
+          lastId = newLogs[newLogs.length - 1].id;
           
           // Auto-open modal logic
           const startLog = newLogs.find((l: any) => l.message && (l.message.includes('Starting') || l.message.includes('Initializing')));
@@ -60,12 +60,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             wasScanning = true;
           } else if (!wasScanning && newLogs.length > 0) {
              // If we just joined and there are logs, assume scanning
-             setLogs(prev => [...prev, ...newLogs]);
+             setLogs(prev => {
+                // Deduplicate based on ID
+                const existingIds = new Set(prev.map(l => l.id));
+                const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
+                return [...prev, ...uniqueNewLogs];
+             });
              setIsScanning(true);
              setIsModalOpen(true);
              wasScanning = true;
           } else {
-             setLogs(prev => [...prev, ...newLogs]);
+             setLogs(prev => {
+                const existingIds = new Set(prev.map(l => l.id));
+                const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
+                return [...prev, ...uniqueNewLogs];
+             });
              setIsScanning(true);
           }
         }

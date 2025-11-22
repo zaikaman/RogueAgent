@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Terminal, Cpu, Activity, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 interface Log {
+  id?: number;
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   timestamp: number;
+  data?: any;
 }
 
 interface ChainOfThoughtModalProps {
@@ -78,11 +80,18 @@ export function ChainOfThoughtModal({ isOpen, onClose, logs }: ChainOfThoughtMod
                     <span className="opacity-50 shrink-0">
                       {new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}
                     </span>
-                    <div className="mt-0.5">
-                      {log.type === 'success' && <ShieldCheck className="w-3 h-3 inline mr-2" />}
-                      {log.type === 'warning' && <AlertTriangle className="w-3 h-3 inline mr-2" />}
-                      {log.type === 'info' && <Activity className="w-3 h-3 inline mr-2" />}
-                      {log.message}
+                    <div className="mt-0.5 w-full">
+                      <div>
+                        {log.type === 'success' && <ShieldCheck className="w-3 h-3 inline mr-2" />}
+                        {log.type === 'warning' && <AlertTriangle className="w-3 h-3 inline mr-2" />}
+                        {log.type === 'info' && <Activity className="w-3 h-3 inline mr-2" />}
+                        {log.message}
+                      </div>
+                      {log.data && (
+                        <pre className="mt-2 p-2 bg-black/50 rounded border border-cyan-500/10 text-[10px] overflow-x-auto text-cyan-300/70">
+                          {JSON.stringify(log.data, null, 2)}
+                        </pre>
+                      )}
                     </div>
                   </motion.div>
                 ))}

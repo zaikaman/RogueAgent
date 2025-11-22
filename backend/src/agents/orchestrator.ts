@@ -89,10 +89,11 @@ interface WriterResult {
 }
 
 export class Orchestrator extends EventEmitter {
-  private logs: Array<{ message: string; type: string; timestamp: number }> = [];
+  private logs: Array<{ id: number; message: string; type: string; timestamp: number; data?: any }> = [];
+  private logCounter = 0;
   
-  private broadcast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
-    const log = { message, type, timestamp: Date.now() };
+  private broadcast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info', data?: any) {
+    const log = { id: ++this.logCounter, message, type, timestamp: Date.now(), data };
     this.logs.push(log);
     // Keep last 100 logs
     if (this.logs.length > 100) {
@@ -101,9 +102,9 @@ export class Orchestrator extends EventEmitter {
     this.emit('log', log);
   }
 
-  public getLogs(afterTimestamp?: number) {
-    if (!afterTimestamp) return this.logs;
-    return this.logs.filter(log => log.timestamp > afterTimestamp);
+  public getLogs(afterId?: number) {
+    if (afterId === undefined) return this.logs;
+    return this.logs.filter(log => log.id > afterId);
   }
 
   async runSwarm() {
@@ -133,8 +134,6 @@ export class Orchestrator extends EventEmitter {
             }
         })()
       ]);
-      this.broadcast('Market data aggregated successfully.', 'success');
-
       const marketData = {
         global_market_context: {
           bitcoin: bitcoinData
@@ -158,6 +157,7 @@ export class Orchestrator extends EventEmitter {
         defi_tvl_top_chains: defiChains,
         defi_top_growing_protocols: defiProtocols
       };
+      this.broadcast('Market data aggregated successfully.', 'success', marketData);
 
       // Check signal quota (only counts published signals, not pending)
       const recentSignals = await supabaseService.getRecentSignalCount(24);
@@ -186,7 +186,7 @@ export class Orchestrator extends EventEmitter {
           'Scanner Agent'
         );
         logger.info('Scanner result:', scannerResult);
-        this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success');
+        this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success', scannerResult);
 
         if (scannerResult.candidates && scannerResult.candidates.length > 0) {
           // 2. Analyzer
@@ -205,7 +205,7 @@ export class Orchestrator extends EventEmitter {
           logger.info('Analyzer result:', analyzerResult);
 
           if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
-            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success');
+            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
             signalGenerated = true;
           } else {
             this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
@@ -248,6 +248,7 @@ export class Orchestrator extends EventEmitter {
           'Generator Agent (Signal)'
         );
         logger.info('Generator result:', generatorResult);
+        this.broadcast('Content generated successfully.', 'success', generatorResult);
 
         const content = generatorResult.formatted_content || generatorResult.tweet_text;
 
