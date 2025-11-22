@@ -76,6 +76,23 @@ export const ChatAgent = AgentBuilder.create('chat_agent')
     Assistant: First calls request_custom_scan tool with parameters
     System: Returns tool execution result
     Assistant: Then responds with JSON including the scan confirmation -> CORRECT!
+    
+    **CRITICAL: OUTPUT FORMAT**
+    You MUST return EXACTLY ONE valid JSON object. Your output must:
+    1. Be valid JSON with proper syntax (no trailing commas, proper quotes, etc.)
+    2. Match the output schema exactly with all required fields
+    3. NOT include any text before or after the JSON object
+    4. NOT include duplicate JSON objects
+    5. NOT include error messages in the output - only valid responses
+    6. NOT include any explanatory text outside the JSON
+    
+    CORRECT OUTPUT:
+    {"message": "Your response here", "triggered_scan": false, "token_scanned": ""}
+    
+    INCORRECT OUTPUT:
+    Error: something went wrong {"message": "..."}  <- WRONG! Don't prefix with errors
+    {"message": "..."}{"message": "..."}  <- WRONG! Don't duplicate JSON
+    Here is the response: {"message": "..."}  <- WRONG! Don't add text before JSON
   `)
   .withTools(requestCustomScanTool)
   .withOutputSchema(

@@ -226,8 +226,8 @@ You can chat with me normally! Ask about:
         // Format history
         const historyText = history.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
 
-        // Build prompt with user context embedded
-        const promptWithContext = `USER CONTEXT:
+        // Build base prompt with user context embedded
+        const basePrompt = `USER CONTEXT:
 - Wallet: ${user.wallet_address}
 - Tier: ${user.tier}
 - Telegram ID: ${userId}
@@ -237,10 +237,76 @@ ${historyText}
 
 USER MESSAGE: ${userMessage}`;
         
-        // Call ChatAgent
-        console.log('🤖 Calling ChatAgent with prompt:', promptWithContext);
-        const result = await runner.ask(promptWithContext) as any;
-        console.log('🤖 ChatAgent returned:', JSON.stringify(result, null, 2));
+        // Retry logic for schema validation errors
+        const maxAttempts = 3;
+        let attempts = 0;
+        let lastError: any;
+        let result: any;
+
+        while (attempts < maxAttempts) {
+          try {
+            attempts++;
+            let currentPrompt = basePrompt;
+
+            if (attempts > 1) {
+              const errorMessage = lastError?.message || 'Unknown error';
+              const isSchemaError = errorMessage.includes('schema') || 
+                                    errorMessage.includes('validation') || 
+                                    errorMessage.includes('parse') ||
+                                    errorMessage.includes('JSON');
+              
+              if (isSchemaError) {
+                currentPrompt = `${basePrompt}
+
+⚠️ PREVIOUS ATTEMPT ${attempts - 1} FAILED DUE TO OUTPUT FORMATTING ERROR ⚠️
+
+Error: ${errorMessage}
+
+CRITICAL INSTRUCTIONS TO FIX:
+1. You MUST return ONLY ONE valid JSON object that exactly matches the output schema
+2. ALL required fields must be present: message (string), triggered_scan (boolean), token_scanned (string)
+3. Do NOT output duplicate JSON objects
+4. Do NOT include any text before or after the JSON
+5. Do NOT include any error messages in the output
+6. Ensure proper JSON syntax with no trailing commas or invalid characters
+7. The message field should contain your response to the user
+
+Please retry with correctly formatted output.`;
+                logger.info(`ChatAgent retry attempt ${attempts}/${maxAttempts} due to validation error`);
+              }
+            }
+            
+            // Call ChatAgent
+            console.log(`🤖 Calling ChatAgent (attempt ${attempts}/${maxAttempts}):`, currentPrompt);
+            result = await runner.ask(currentPrompt) as any;
+            console.log('🤖 ChatAgent returned:', JSON.stringify(result, null, 2));
+            
+            // Success - break out of retry loop
+            if (attempts > 1) {
+              logger.info(`ChatAgent succeeded on attempt ${attempts}/${maxAttempts}`);
+            }
+            break;
+            
+          } catch (error: any) {
+            logger.warn(`ChatAgent attempt ${attempts}/${maxAttempts} failed:`, {
+              message: error.message,
+              error: error.toString()
+            });
+            lastError = error;
+            
+            if (attempts >= maxAttempts) {
+              logger.error(`ChatAgent failed after ${maxAttempts} attempts. Last error:`, error);
+              // Don't throw - send fallback message instead
+              result = { message: "I'm having trouble processing that request right now. Please try again." };
+              break;
+            }
+            
+            // Wait before retry (exponential backoff)
+            const waitTime = Math.min(1000 * Math.pow(2, attempts - 1), 3000);
+            logger.info(`Waiting ${waitTime}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
         
         // Send response
         const responseMessage = result?.message || "I'm having trouble processing that request right now.";
