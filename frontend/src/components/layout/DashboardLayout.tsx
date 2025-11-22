@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
@@ -30,97 +30,132 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [logs, setLogs] = useState<any[]>([]);
   const { data: runStatus } = useRunStatus();
   const lastRunTime = runStatus?.system_last_run_at || runStatus?.last_run?.created_at;
+  
+  // Refs for polling logic to access latest state without re-triggering effect
+  const runStatusRef = useRef(runStatus);
+  const isScanningRef = useRef(isScanning);
+
+  useEffect(() => {
+    runStatusRef.current = runStatus;
+  }, [runStatus]);
+
+  useEffect(() => {
+    isScanningRef.current = isScanning;
+  }, [isScanning]);
 
   useEffect(() => {
     // Poll for logs
-    let pollInterval: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
     let lastId = 0;
     let wasScanning = false;
 
     const pollLogs = async () => {
+      let nextPollDelay = 30000; // Default deep idle poll: 30s
+
+      // Check if we should be in "Anticipation Mode" (close to scheduled run)
+      if (runStatusRef.current?.system_last_run_at && runStatusRef.current?.interval_minutes) {
+          const lastRun = new Date(runStatusRef.current.system_last_run_at).getTime();
+          const nextRun = lastRun + (runStatusRef.current.interval_minutes * 60 * 1000);
+          const diff = nextRun - Date.now();
+          
+          // If within 5 minutes of next run, poll faster (5s)
+          if (diff < 5 * 60 * 1000 && diff > -5 * 60 * 1000) {
+              nextPollDelay = 5000;
+          }
+      }
+
+      // If we are actively scanning, poll very fast (2s)
+      if (wasScanning || isScanningRef.current) {
+          nextPollDelay = 2000;
+      }
+
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/run/logs?after=${lastId}`);
-        if (!response.ok) return;
-        
-        const newLogs = await response.json();
-        
-        if (newLogs && newLogs.length > 0) {
-          // Update id to last log
-          lastId = newLogs[newLogs.length - 1].id;
+        if (response.ok) {
+          const newLogs = await response.json();
+          
+          if (newLogs && newLogs.length > 0) {
+            // Update id to last log
+            lastId = newLogs[newLogs.length - 1].id;
 
-          // Update logs state
-          setLogs(prev => {
-            const existingIds = new Set(prev.map(l => l.id));
-            const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
-            return [...prev, ...uniqueNewLogs];
-          });
-          
-          // Determine Run State
-          const startLogs = newLogs.filter((l: any) => l.message && (l.message.includes('Starting') || l.message.includes('Initializing')));
-          const endLogs = newLogs.filter((l: any) => l.message && (l.message.includes('Run completed successfully') || l.message.includes('Swarm run failed')));
-          
-          const lastStart = startLogs.length > 0 ? startLogs[startLogs.length - 1] : null;
-          const lastEnd = endLogs.length > 0 ? endLogs[endLogs.length - 1] : null;
-          
-          const lastStartId = lastStart ? lastStart.id : -1;
-          const lastEndId = lastEnd ? lastEnd.id : -1;
-          
-          // Check if run is active (Start is more recent than End)
-          const isRunActive = lastStartId > lastEndId;
-          
-          // Check recency (if logs are older than 1 minute, assume inactive)
-          const lastLog = newLogs[newLogs.length - 1];
-          const isRecent = (Date.now() - lastLog.timestamp) < 60000;
+            // Update logs state
+            setLogs(prev => {
+              const existingIds = new Set(prev.map(l => l.id));
+              const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
+              return [...prev, ...uniqueNewLogs];
+            });
+            
+            // Determine Run State
+            const startLogs = newLogs.filter((l: any) => l.message && (l.message.includes('Starting') || l.message.includes('Initializing')));
+            const endLogs = newLogs.filter((l: any) => l.message && (l.message.includes('Run completed successfully') || l.message.includes('Swarm run failed')));
+            
+            const lastStart = startLogs.length > 0 ? startLogs[startLogs.length - 1] : null;
+            const lastEnd = endLogs.length > 0 ? endLogs[endLogs.length - 1] : null;
+            
+            const lastStartId = lastStart ? lastStart.id : -1;
+            const lastEndId = lastEnd ? lastEnd.id : -1;
+            
+            // Check if run is active (Start is more recent than End)
+            const isRunActive = lastStartId > lastEndId;
+            
+            // Check recency (if logs are older than 1 minute, assume inactive)
+            const lastLog = newLogs[newLogs.length - 1];
+            const isRecent = (Date.now() - lastLog.timestamp) < 60000;
 
-          if (isRunActive) {
-             // Run is definitely active
-             setIsScanning(true);
-             
-             // Auto-open if we just detected the start OR if we just loaded the page and it's active
-             if (lastStart || (!wasScanning && isRecent)) {
-                 setIsModalOpen(true);
-             }
-             wasScanning = true;
+            if (isRunActive) {
+               // Run is definitely active
+               setIsScanning(true);
+               wasScanning = true;
+               nextPollDelay = 2000; // Active poll: 2s
+               
+               // Auto-open if we just detected the start OR if we just loaded the page and it's active
+               if (lastStart || (!wasScanning && isRecent)) {
+                   setIsModalOpen(true);
+               }
+            } else {
+               // Run is finished OR ambiguous
+               if (lastEndId > lastStartId) {
+                   // Definitely finished
+                   setIsScanning(false);
+                   wasScanning = false;
+                   // Delay will be reset to idle/anticipation on next loop
+               } else {
+                   // Ambiguous case
+                   if (wasScanning) {
+                       setIsScanning(true);
+                       nextPollDelay = 2000; // Keep polling fast if we think we are scanning
+                   } else {
+                       if (isRecent) {
+                           setIsScanning(true);
+                           setIsModalOpen(true);
+                           wasScanning = true;
+                           nextPollDelay = 2000;
+                       } else {
+                           setIsScanning(false);
+                       }
+                   }
+               }
+            }
           } else {
-             // Run is finished OR ambiguous (no start/end markers in this batch)
-             
-             if (lastEndId > lastStartId) {
-                 // Definitely finished
-                 setIsScanning(false);
-                 wasScanning = false;
-             } else {
-                 // Ambiguous case (middle of run, or start/end pushed out of buffer)
-                 if (wasScanning) {
-                     // We were already scanning, so assume it continues
-                     setIsScanning(true);
-                 } else {
-                     // Fresh load. Check recency.
-                     if (isRecent) {
-                         setIsScanning(true);
-                         // Only open modal if we are VERY sure (maybe don't auto-open on ambiguous middle-state to be safe?)
-                         // Let's auto-open if it's recent.
-                         setIsModalOpen(true);
-                         wasScanning = true;
-                     } else {
-                         setIsScanning(false);
-                     }
-                 }
+             // No new logs
+             if (wasScanning) {
+                 nextPollDelay = 2000; // Keep checking fast if we think we are running
              }
           }
         }
       } catch (error) {
         console.error('Failed to poll logs:', error);
       }
+      
+      // Schedule next poll
+      timeoutId = setTimeout(pollLogs, nextPollDelay);
     };
 
-    // Poll every 2 seconds
-    pollInterval = setInterval(pollLogs, 2000);
-    
     // Initial poll
     pollLogs();
 
     return () => {
-      clearInterval(pollInterval);
+      clearTimeout(timeoutId);
     };
   }, []);
 
