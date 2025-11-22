@@ -23,7 +23,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: runStatus } = useRunStatus();
-  const lastRunTime = runStatus?.last_run?.created_at;
+  const lastRunTime = runStatus?.system_last_run_at || runStatus?.last_run?.created_at;
 
   const navItems = [
     { icon: Home01Icon, label: 'Dashboard', path: '/app' },

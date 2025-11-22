@@ -50,7 +50,7 @@ export function Terminal() {
   const lastRun = runStatus?.last_run;
   const latestSignal = runStatus?.latest_signal;
   const latestIntel = runStatus?.latest_intel;
-  const lastRunTime = lastRun?.created_at;
+  const lastRunTime = runStatus?.system_last_run_at || lastRun?.created_at;
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500/30">

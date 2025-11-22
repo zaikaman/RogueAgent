@@ -26,13 +26,14 @@ export const getLatestStatus = async (req: Request, res: Response) => {
       cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     }
 
-    const [latestRun, latestSignal, latestIntel] = await Promise.all([
+    const [latestRun, latestSignal, latestIntel, realLatestRun] = await Promise.all([
       supabaseService.getLatestRun(cutoffTime),
       supabaseService.getLatestSignal(cutoffTime),
-      supabaseService.getLatestIntel(cutoffTime)
+      supabaseService.getLatestIntel(cutoffTime),
+      supabaseService.getLatestRun()
     ]);
     
-    if (!latestRun) {
+    if (!latestRun && !realLatestRun) {
       return res.json({
         status: 'idle',
         last_run: null,
@@ -43,9 +44,9 @@ export const getLatestStatus = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate time until next run
+    // Calculate time until next run based on REAL latest run
     const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;
-    const lastRunTime = new Date(latestRun.created_at).getTime();
+    const lastRunTime = realLatestRun ? new Date(realLatestRun.created_at).getTime() : 0;
     const nextRunTime = lastRunTime + intervalMs;
     const now = Date.now();
     const timeUntilNextRun = Math.max(0, nextRunTime - now);
@@ -53,6 +54,7 @@ export const getLatestStatus = async (req: Request, res: Response) => {
     res.json({
       status: timeUntilNextRun > 0 ? 'idle' : 'due',
       last_run: latestRun,
+      system_last_run_at: realLatestRun?.created_at,
       latest_signal: latestSignal,
       latest_intel: latestIntel,
       next_run_in: timeUntilNextRun,
