@@ -164,6 +164,50 @@ class CoinMarketCapService {
       return null;
     }
   }
+
+  async getMarketChart(slug: string, days: number): Promise<{ prices: [number, number][] } | null> {
+    if (!this.apiKey) return null;
+
+    try {
+      const timeEnd = new Date();
+      const timeStart = new Date(timeEnd.getTime() - (days * 24 * 60 * 60 * 1000));
+
+      const response = await axios.get(`${this.baseUrl}/cryptocurrency/quotes/historical`, {
+        headers: this.headers,
+        params: {
+          slug: slug.toLowerCase(),
+          time_start: timeStart.toISOString(),
+          time_end: timeEnd.toISOString(),
+          interval: days > 1 ? '1d' : '1h',
+          convert: 'USD'
+        }
+      });
+
+      if (response.data.status.error_code === 0) {
+         const data = response.data.data;
+         // data might be keyed by ID.
+         const coin = Object.values(data)[0] as any;
+         
+         if (coin && coin.quotes) {
+             const prices: [number, number][] = coin.quotes.map((q: any) => {
+                 const timestamp = new Date(q.timestamp).getTime();
+                 const price = q.quote.USD.price;
+                 return [timestamp, price];
+             });
+             return { prices };
+         }
+      }
+      return null;
+
+    } catch (error: any) {
+      if (error.response?.status === 402 || error.response?.status === 403) {
+          // logger.warn(`CoinMarketCap: History API not available on current plan for ${slug}`);
+          return null;
+      }
+      // logger.error(`CoinMarketCap History API error for ${slug}:`, error.response?.data || error.message);
+      return null;
+    }
+  }
 }
 
 export const coinMarketCapService = new CoinMarketCapService();

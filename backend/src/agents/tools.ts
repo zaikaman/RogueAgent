@@ -158,6 +158,17 @@ export const getMarketChartTool = createTool({
     days: z.number().optional().default(7).describe('Number of days of data to fetch (default: 7)'),
   }) as any,
   fn: async ({ tokenId, chain, address, days }) => {
+    // 1. Try CMC if tokenId (slug) provided
+    if (tokenId) {
+        const cmcHistory = await coinMarketCapService.getMarketChart(tokenId, days || 7);
+        if (cmcHistory) {
+            return {
+                prices: cmcHistory.prices,
+                summary: `Fetched ${cmcHistory.prices.length} data points for ${tokenId} from CoinMarketCap`
+            };
+        }
+    }
+
     // Try Birdeye first if chain/address provided
     if (chain && address) {
       try {

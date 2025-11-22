@@ -59,7 +59,16 @@ class BirdeyeService {
           return response.data.data.tokens || [];
         }
         return [];
-      }, 3, 2000); // Retry 3 times, start with 2s delay
+      }, 3, 2000, 2, (error: any) => {
+        // Don't retry on client errors (4xx), except 429 (Too Many Requests)
+        if (error.response && error.response.status) {
+          const status = error.response.status;
+          if (status >= 400 && status < 500 && status !== 429) {
+            return false;
+          }
+        }
+        return true;
+      }); // Retry 3 times, start with 2s delay
     } catch (error: any) {
       logger.error(`Birdeye Trending API error${chain ? ` for chain ${chain}` : ''}:`, error.message);
       return [];
@@ -95,7 +104,16 @@ class BirdeyeService {
           return response.data.data.items || [];
         }
         return [];
-      }, 3, 2000);
+      }, 3, 2000, 2, (error: any) => {
+        // Don't retry on client errors (4xx), except 429 (Too Many Requests)
+        if (error.response && error.response.status) {
+          const status = error.response.status;
+          if (status >= 400 && status < 500 && status !== 429) {
+            return false;
+          }
+        }
+        return true;
+      });
     } catch (error: any) {
       logger.error(`Birdeye History API error for ${address}${chain ? ` on chain ${chain}` : ''}:`, error.message);
       return [];
