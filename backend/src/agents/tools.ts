@@ -358,3 +358,54 @@ export const getYieldPoolsTool = createTool({
     return { pools };
   },
 });
+
+export const requestCustomScanTool = createTool({
+  name: 'request_custom_scan',
+  description: 'Request a deep-dive token analysis. ONLY for DIAMOND tier users. Triggers a comprehensive scan including price action, narratives, on-chain data, and technical analysis.',
+  schema: z.object({
+    tokenSymbol: z.string().describe('The token symbol to scan (e.g. "SOL", "BTC", "BONK")'),
+    walletAddress: z.string().describe('The user\'s wallet address for tier validation'),
+    telegramUserId: z.number().describe('The user\'s Telegram user ID'),
+  }) as any,
+  fn: async ({ tokenSymbol, walletAddress, telegramUserId }) => {
+    const { TIERS } = await import('../constants/tiers');
+    
+    // Validate user exists and is DIAMOND tier
+    const user = await supabaseService.getUser(walletAddress);
+    
+    if (!user) {
+      return { 
+        success: false, 
+        error: 'User not found. Please verify your wallet first with /verify',
+        tier_required: 'DIAMOND'
+      };
+    }
+    
+    if (user.tier !== TIERS.DIAMOND) {
+      return { 
+        success: false, 
+        error: `This feature is exclusive to DIAMOND tier users (1,000+ $RGE). Your current tier: ${user.tier}`,
+        tier_required: 'DIAMOND',
+        current_tier: user.tier
+      };
+    }
+    
+    // Create custom request
+    const request = await supabaseService.createCustomRequest({
+      user_wallet_address: walletAddress,
+      token_symbol: tokenSymbol,
+      status: 'pending',
+    });
+    
+    // Trigger orchestrator (async)
+    const { orchestrator } = await import('./orchestrator');
+    orchestrator.processCustomRequest(request.id, tokenSymbol, walletAddress)
+      .catch((err: any) => console.error('Error processing custom request:', err));
+    
+    return {
+      success: true,
+      message: `Scan initiated for ${tokenSymbol}. You will receive the analysis via Telegram shortly.`,
+      request_id: request.id,
+    };
+  },
+});

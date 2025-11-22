@@ -108,69 +108,129 @@ export class TelegramService {
     });
     
     this.bot.onText(/\/start/, (msg) => {
-        this.bot?.sendMessage(msg.chat.id, 'Welcome to Rogue Agent! Use /verify <wallet_address> to link your wallet and get early access.');
+        const welcomeMessage = `
+Welcome to **Rogue Agent**! 🕵️‍♂️
+
+I am your AI-powered crypto intelligence assistant.
+
+**Getting Started:**
+1. Verify your wallet: \`/verify <wallet_address>\`
+2. Once verified, you can chat with me about the market!
+
+**Commands:**
+/verify <address> - Link your wallet to unlock features
+/scan <token> - Request a deep-dive analysis (Diamond Tier)
+/help - Show available commands
+        `;
+        this.bot?.sendMessage(msg.chat.id, welcomeMessage, { parse_mode: 'Markdown' });
     });
 
-    const handleScanRequest = async (msg: TelegramBot.Message, token: string) => {
+    this.bot.onText(/\/help/, (msg) => {
+        const helpMessage = `
+**Rogue Agent Commands** 🛠️
+
+**/verify <wallet_address>**
+Link your wallet to access your tier benefits.
+Example: \`/verify 0x123...\`
+
+**/scan <token_symbol>**
+Request a deep-dive analysis for a specific token.
+*Exclusive to DIAMOND tier users.*
+Example: \`/scan SOL\`
+
+**Chat Features** 💬
+You can chat with me normally! Ask about:
+- Market trends
+- Token prices
+- Crypto news
+- General questions
+
+*Note: Custom scans are currently limited to Diamond tier users.*
+        `;
+        this.bot?.sendMessage(msg.chat.id, helpMessage, { parse_mode: 'Markdown' });
+    });
+    
+    // /scan command for explicit token scans
+    this.bot.onText(/\/scan (.+)/, async (msg, match) => {
       const chatId = msg.chat.id;
       const userId = msg.from?.id;
-
-      if (!userId || !token) return;
+      const tokenSymbol = match?.[1];
+      
+      if (!userId || !tokenSymbol) return;
 
       try {
         const user = await supabaseService.getUserByTelegramId(userId);
         
         if (!user) {
-           await this.bot?.sendMessage(chatId, '❌ You are not verified. Please use /verify <wallet_address> first.');
-           return;
+          await this.bot?.sendMessage(chatId, '👋 Please verify your wallet first using /verify <wallet_address>');
+          return;
         }
 
-        // Dynamic import to avoid circular dependency
-        const { TIERS } = await import('../constants/tiers');
+        // Import ChatAgent dynamically
+        const { ChatAgent } = await import('../agents/chat.agent');
+        const { runner } = await ChatAgent.build();
         
-        if (user.tier !== TIERS.DIAMOND) {
-           await this.bot?.sendMessage(chatId, '🔒 This feature is exclusive to **DIAMOND** tier users (1,000+ $RGE).', { parse_mode: 'Markdown' });
-           return;
-        }
+        // Build prompt for explicit scan request
+        const promptWithContext = `USER CONTEXT:
+- Wallet: ${user.wallet_address}
+- Tier: ${user.tier}
+- Telegram ID: ${userId}
 
-        // Check Quota (Unlimited for Diamond)
-        // const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        // const count = await supabaseService.getCustomRequestsCount(user.wallet_address, yesterday);
-
-        // if (count >= 1) {
-        //    await this.bot?.sendMessage(chatId, '⚠️ Daily quota exceeded. You can request another scan in 24 hours.');
-        //    return;
-        // }
-
-        await this.bot?.sendMessage(chatId, `🕵️‍♂️ **Rogue Agent** is scanning **${token}** for you... This may take a minute.`, { parse_mode: 'Markdown' });
-
-        // Create Request
-        const request = await supabaseService.createCustomRequest({
-          user_wallet_address: user.wallet_address,
-          token_symbol: token,
-          status: 'pending',
-        });
-
-        // Trigger Orchestrator
-        const { orchestrator } = await import('../agents/orchestrator');
-        // Fire and forget
-        orchestrator.processCustomRequest(request.id, token, user.wallet_address);
-
+USER MESSAGE: scan ${tokenSymbol}`;
+        
+        const result = await runner.ask(promptWithContext) as any;
+        
+        const responseMessage = result?.message || "I'm having trouble processing that scan request.";
+        await this.bot?.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
+        
       } catch (error) {
-        logger.error('Error in Telegram scan handler', error);
-        await this.bot?.sendMessage(chatId, '❌ An error occurred while processing your request.');
-      }
-    };
-
-    this.bot.onText(/\/scan (.+)/, async (msg, match) => {
-      if (match && match[1]) {
-        await handleScanRequest(msg, match[1]);
+        logger.error('Error in /scan command', error);
+        await this.bot?.sendMessage(chatId, '❌ An error occurred while processing your scan request.');
       }
     });
 
+    // Main message handler - route through ChatAgent
     this.bot.on('message', async (msg) => {
-      if (msg.text && !msg.text.startsWith('/')) {
-        await handleScanRequest(msg, msg.text);
+      // Ignore commands (they have their own handlers)
+      if (msg.text && msg.text.startsWith('/')) return;
+      
+      const chatId = msg.chat.id;
+      const userId = msg.from?.id;
+      const userMessage = msg.text;
+      
+      if (!userId || !userMessage) return;
+
+      try {
+        // Get user from DB to pass context to ChatAgent
+        const user = await supabaseService.getUserByTelegramId(userId);
+        
+        if (!user) {
+          await this.bot?.sendMessage(chatId, '👋 Hi! Please verify your wallet first using /verify <wallet_address> to unlock all features.');
+          return;
+        }
+
+        // Import ChatAgent dynamically
+        const { ChatAgent } = await import('../agents/chat.agent');
+        const { runner } = await ChatAgent.build();
+        
+        // Build prompt with user context embedded
+        const promptWithContext = `USER CONTEXT:
+- Wallet: ${user.wallet_address}
+- Tier: ${user.tier}
+- Telegram ID: ${userId}
+
+USER MESSAGE: ${userMessage}`;
+        
+        // Call ChatAgent
+        const result = await runner.ask(promptWithContext) as any;
+        
+        // Send response
+        const responseMessage = result?.message || "I'm having trouble processing that request right now.";
+        await this.bot?.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
+        
+      } catch (error) {
+        logger.error('Error in Telegram message handler', error);
+        await this.bot?.sendMessage(chatId, '❌ An error occurred while processing your message.');
       }
     });
   }
