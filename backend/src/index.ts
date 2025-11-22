@@ -102,6 +102,12 @@ const server = app.listen(port, () => {
     orchestrator.runYieldAnalysis().catch(err => logger.error('Yield analysis failed:', err));
   }, 6 * 60 * 60 * 1000);
 
+// Start Airdrop Scheduler (every 6 hours)
+  logger.info('Starting Airdrop Scheduler (Interval: 6h)');
+  setInterval(() => {
+    orchestrator.runAirdropAnalysis().catch(err => logger.error('Airdrop analysis failed:', err));
+  }, 6 * 60 * 60 * 1000);
+
 // Graceful shutdown
 const shutdown = async (signal: string) => {
   logger.info(`${signal} received. Shutting down gracefully...`);

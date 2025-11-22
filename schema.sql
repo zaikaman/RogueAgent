@@ -1,6 +1,24 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.airdrops (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  ticker text,
+  contract text,
+  chain text NOT NULL,
+  type text NOT NULL,
+  why_promising text,
+  tasks text,
+  deadline_or_phase text,
+  est_value_usd text,
+  link_dashboard text UNIQUE,
+  link_tg text,
+  link_x text,
+  rogue_score integer NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT airdrops_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.custom_requests (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_wallet_address text NOT NULL,

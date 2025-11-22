@@ -8,6 +8,7 @@ import * as usersController from './users.controller';
 import * as signalsController from './signals.controller';
 import * as intelController from './intel.controller';
 import { yieldController } from './yield.controller';
+import * as airdropsController from './airdrops.controller';
 
 import * as healthController from './health.controller';
 
@@ -32,6 +33,9 @@ router.get('/intel/history', intelController.getIntelHistory);
 
 // Yield
 router.get('/yield', yieldController.getOpportunities);
+
+// Airdrops
+router.get('/airdrops', airdropsController.getAirdrops);
 
 // Tiers
 router.use('/tiers', tiersController);

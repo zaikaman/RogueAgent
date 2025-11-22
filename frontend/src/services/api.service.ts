@@ -27,6 +27,7 @@ export const endpoints = {
   signalsHistory: '/signals/history',
   intelHistory: '/intel/history',
   yield: '/yield',
+  airdrops: '/airdrops',
   updateTelegram: '/users/telegram',
 };
 

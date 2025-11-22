@@ -70,7 +70,7 @@ class TwitterService {
     });
   }
 
-  async searchTweets(query: string, cursor: string = ''): Promise<{ tweets: any[], next_cursor: string, has_next_page: boolean }> {
+  async searchTweets(query: string, cursor: string = '', queryType: 'Latest' | 'Top' = 'Latest'): Promise<{ tweets: any[], next_cursor: string, has_next_page: boolean }> {
     const apiKey = this.apiKey;
     if (!apiKey) {
       logger.warn('Skipping search: No API key');
@@ -81,7 +81,7 @@ class TwitterService {
       try {
         const url = new URL(`${this.baseUrl}/tweet/advanced_search`);
         url.searchParams.append('query', query);
-        url.searchParams.append('queryType', 'Latest');
+        url.searchParams.append('queryType', queryType);
         if (cursor) {
           url.searchParams.append('cursor', cursor);
         }

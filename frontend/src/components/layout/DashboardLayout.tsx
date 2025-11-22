@@ -8,7 +8,8 @@ import {
   GpsSignal01Icon,
   Menu01Icon,
   Coins01Icon,
-  Cancel01Icon
+  Cancel01Icon,
+  Rocket01Icon
 } from '@hugeicons/core-free-icons';
 import { Send, Terminal } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
@@ -107,6 +108,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: GpsSignal01Icon, label: 'Signals', path: '/app/signals' },
     { icon: News01Icon, label: 'Intel', path: '/app/intel' },
     { icon: Coins01Icon, label: 'Yield', path: '/app/yield' },
+    { icon: Rocket01Icon, label: 'Airdrops', path: '/app/airdrops' },
     { icon: ChartHistogramIcon, label: 'Analytics', path: '/app/analytics' },
     // { icon: Settings01Icon, label: 'Settings', path: '/app/settings' },
   ];

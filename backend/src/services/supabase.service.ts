@@ -366,53 +366,37 @@ export class SupabaseService {
   }
 
   async saveYieldOpportunities(opportunities: any[]) {
-    // Add updated timestamp to ensure they float to the top
-    const opportunitiesWithTimestamp = opportunities.map(o => ({
-      ...o,
-      created_at: new Date().toISOString()
-    }));
-
     const { data, error } = await this.client
       .from('yield_opportunities')
-      .upsert(opportunitiesWithTimestamp, { onConflict: 'pool_id' })
+      .upsert(opportunities, { onConflict: 'pool_id' })
       .select();
 
     if (error) throw error;
     return data;
   }
 
-  async getLatestYieldOpportunities(page: number = 1, limit: number = 10) {
-    // Always calculate pagination based on 9 items per page (consistent page size)
-    // Page 1 may request 10 items (featured + 9 archive) but pagination counts stay consistent
-    const baseLimit = 9;
-    const offset = (page - 1) * baseLimit;
-
-    // Get total count
-    const { count } = await this.client
-      .from('yield_opportunities')
-      .select('*', { count: 'exact', head: true });
-
-    // Get paginated data - fetch the requested limit but offset by baseLimit
+  async saveAirdrops(airdrops: any[]) {
     const { data, error } = await this.client
-      .from('yield_opportunities')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .from('airdrops')
+      .upsert(airdrops, { onConflict: 'link_dashboard' })
+      .select();
 
     if (error) throw error;
+    return data;
+  }
 
-    const total = count || 0;
-    const pages = Math.ceil(total / baseLimit);
+  async getAirdrops(page = 1, limit = 10) {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
-    return {
-      opportunities: data,
-      pagination: {
-        page,
-        limit: baseLimit, // Always return baseLimit in metadata for consistent client-side calculation
-        total,
-        pages
-      }
-    };
+    const { data, error, count } = await this.client
+      .from('airdrops')
+      .select('*', { count: 'exact' })
+      .order('rogue_score', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    return { airdrops: data, total: count };
   }
 
   async getRunById(id: string) {

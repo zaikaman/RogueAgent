@@ -8,6 +8,7 @@ import { DashboardHome } from './pages/DashboardHome';
 import { SignalsPage } from './pages/SignalsPage';
 import { IntelPage } from './pages/IntelPage';
 import { YieldFarming } from './pages/YieldFarming';
+import { AirdropsPage } from './pages/AirdropsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AnalyticsOverview } from './pages/analytics/AnalyticsOverview';
 import { PerformanceAnalytics } from './pages/analytics/PerformanceAnalytics';
@@ -50,6 +51,11 @@ function App() {
             <Route path="/app/yield" element={
               <DashboardLayout>
                 <YieldFarming />
+              </DashboardLayout>
+            } />
+            <Route path="/app/airdrops" element={
+              <DashboardLayout>
+                <AirdropsPage />
               </DashboardLayout>
             } />
             <Route path="/app/analytics" element={

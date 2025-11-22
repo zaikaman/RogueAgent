@@ -4,6 +4,7 @@ import { GeneratorAgent } from './generator.agent';
 import { WriterAgent } from './writer.agent';
 import { IntelAgent } from './intel.agent';
 import { YieldAgent } from './yield.agent';
+import { AirdropAgent } from './airdrop.agent';
 import { logger } from '../utils/logger.util';
 import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
@@ -565,6 +566,28 @@ export class Orchestrator extends EventEmitter {
       }
     } catch (error) {
       logger.error('Error in Yield Analysis run', error);
+    }
+  }
+
+  async runAirdropAnalysis() {
+    const runId = randomUUID();
+    logger.info(`Starting Airdrop Analysis run ${runId}`);
+
+    try {
+      const { runner } = await AirdropAgent.build();
+      // The prompt is already embedded in the agent instruction, but we need to trigger it.
+      // The instruction says "Search strategy — run these exact queries...".
+      // We can just ask it to "Execute scan."
+      const result = await runner.ask("Execute airdrop scan.") as any;
+
+      if (result.airdrops && result.airdrops.length > 0) {
+        logger.info(`Found ${result.airdrops.length} airdrop opportunities. Saving to DB...`);
+        await supabaseService.saveAirdrops(result.airdrops);
+      } else {
+        logger.info('No airdrop opportunities found.');
+      }
+    } catch (error) {
+      logger.error('Error in Airdrop Analysis run', error);
     }
   }
 
