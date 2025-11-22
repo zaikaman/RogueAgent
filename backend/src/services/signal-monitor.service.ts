@@ -1,6 +1,7 @@
 import { supabaseService } from './supabase.service';
 import { birdeyeService } from './birdeye.service';
 import { coingeckoService } from './coingecko.service';
+import { coinMarketCapService } from './coinmarketcap.service';
 import { logger } from '../utils/logger.util';
 import { SignalContent } from '../../shared/types/signal.types';
 import { GeneratorAgent } from '../agents/generator.agent';
@@ -51,8 +52,13 @@ export class SignalMonitorService {
         let currentPrice: number | null = null;
         
         try {
-            // Use CoinGecko for price if we have an ID
-            if ((content.token as any).coingecko_id) {
+            // Try CMC first using symbol
+            if (content.token.symbol) {
+                currentPrice = await coinMarketCapService.getPrice(content.token.symbol);
+            }
+
+            // Fallback to CoinGecko if we have an ID
+            if (!currentPrice && (content.token as any).coingecko_id) {
                 currentPrice = await coingeckoService.getPrice((content.token as any).coingecko_id);
             }
         } catch (err) {

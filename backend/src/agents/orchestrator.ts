@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
+import { coinMarketCapService } from '../services/coinmarketcap.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { runwareService } from '../services/runware.service';
@@ -94,7 +95,16 @@ export class Orchestrator {
         coingeckoService.getTopGainersLosers().catch(e => { logger.error('CG Gainers Error', e); return []; }),
         defillamaService.getGlobalTVL().catch(e => { logger.error('DeFi Llama Chains Error', e); return []; }),
         defillamaService.getProtocolStats().catch(e => { logger.error('DeFi Llama Protocols Error', e); return []; }),
-        coingeckoService.getPriceWithChange('bitcoin').catch(e => { logger.error('BTC Price Error', e); return null; })
+        (async () => {
+            try {
+                const price = await coinMarketCapService.getPriceWithChange('BTC');
+                if (price) return price;
+                throw new Error('CMC returned null');
+            } catch (e) {
+                logger.warn('CMC BTC Price Error, falling back to CG');
+                return coingeckoService.getPriceWithChange('bitcoin').catch(e2 => { logger.error('CG BTC Price Error', e2); return null; });
+            }
+        })()
       ]);
 
       const marketData = {

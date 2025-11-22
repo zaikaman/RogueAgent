@@ -1,6 +1,7 @@
 import { createTool } from '@iqai/adk';
 const z = require('@iqai/adk/node_modules/zod');
 import { coingeckoService } from '../services/coingecko.service';
+import { coinMarketCapService } from '../services/coinmarketcap.service';
 import { supabaseService } from '../services/supabase.service';
 import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
@@ -97,6 +98,33 @@ export const getTokenPriceTool = createTool({
     address: z.string().optional().describe('The token contract address'),
   }) as any,
   fn: async ({ tokenId, chain, address }) => {
+    // 1. Try CMC if tokenId is provided
+    if (tokenId) {
+      // Try as symbol first
+      let cmcData = await coinMarketCapService.getPriceWithChange(tokenId);
+      if (cmcData) return { tokenId, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap' };
+      
+      // Try as slug
+      cmcData = await coinMarketCapService.getPriceBySlug(tokenId);
+      if (cmcData) return { tokenId, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap' };
+    }
+
+    // 2. If chain/address provided, try to resolve symbol via DexScreener and use CMC
+    if (chain && address) {
+      try {
+        const { dexScreenerService } = require('../services/dexscreener.service');
+        const profile = await dexScreenerService.getTokenProfile(address);
+        if (profile && profile.symbol) {
+           const cmcData = await coinMarketCapService.getPriceWithChange(profile.symbol);
+           if (cmcData) {
+             return { chain, address, price: cmcData.price, change_24h: cmcData.change_24h, source: 'coinmarketcap', symbol: profile.symbol };
+           }
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+
     if (chain && address) {
       const price = await coingeckoService.getPriceByAddress(chain, address);
       if (price) return { chain, address, price };
