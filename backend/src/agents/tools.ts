@@ -404,7 +404,7 @@ export const requestCustomScanTool = createTool({
   schema: z.object({
     tokenSymbol: z.string().describe('The token symbol to scan (e.g. "SOL", "BTC", "BONK")'),
     walletAddress: z.string().describe('The user\'s wallet address for tier validation'),
-    telegramUserId: z.number().describe('The user\'s Telegram user ID'),
+    telegramUserId: z.union([z.string(), z.number()]).transform((val: string | number) => Number(val)).describe('The user\'s Telegram user ID'),
   }) as any,
   fn: async ({ tokenSymbol, walletAddress, telegramUserId }) => {
     const { TIERS } = await import('../constants/tiers');

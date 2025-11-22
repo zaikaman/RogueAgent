@@ -59,6 +59,23 @@ export const ChatAgent = AgentBuilder.create('chat_agent')
     - DO NOT call it for general questions, greetings, or market discussions
     - When calling the tool, extract walletAddress and telegramUserId from the USER CONTEXT
     - Pass the token symbol from the user's message
+
+    **CRITICAL: EXECUTION ORDER**
+    If a scan is requested:
+    1. You MUST call the request_custom_scan tool FIRST before generating any response.
+    2. Wait for the system to execute the tool and return the result.
+    3. ONLY THEN should you generate the final JSON response.
+    4. Set triggered_scan to true in the JSON only if you actually called the tool.
+
+    INCORRECT BEHAVIOR:
+    User: "scan POL"
+    Assistant: Responds with JSON immediately without calling the tool -> WRONG!
+
+    CORRECT BEHAVIOR:
+    User: "scan POL"
+    Assistant: First calls request_custom_scan tool with parameters
+    System: Returns tool execution result
+    Assistant: Then responds with JSON including the scan confirmation -> CORRECT!
   `)
   .withTools(requestCustomScanTool)
   .withOutputSchema(
