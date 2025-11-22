@@ -214,7 +214,7 @@ export const getMarketChartTool = createTool({
 
 export const checkRecentSignalsTool = createTool({
   name: 'check_recent_signals',
-  description: 'Check if a token has been signaled in the last 7 days',
+  description: 'Check if a token has an ACTIVE signal in the last 7 days (returns false if previous signals are closed/ended)',
   schema: z.object({
     symbol: z.string(),
   }) as any,

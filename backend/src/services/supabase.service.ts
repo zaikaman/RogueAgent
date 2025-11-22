@@ -138,18 +138,26 @@ export class SupabaseService {
 
     const { data, error } = await this.client
       .from('runs')
-      .select('id')
+      .select('content')
       .eq('type', 'signal')
       .gte('created_at', cutoffDate.toISOString())
-      .filter('content->token->>symbol', 'eq', symbol)
-      .limit(1);
+      .filter('content->token->>symbol', 'eq', symbol);
 
     if (error) {
       console.error('Error checking recent signals:', error);
       return false;
     }
 
-    return data && data.length > 0;
+    if (!data || data.length === 0) return false;
+
+    // Check if any of the found signals are still active
+    // We consider a signal active if it's NOT in a closed state (tp_hit, sl_hit, closed)
+    const hasActive = data.some((run: any) => {
+        const status = run.content?.status;
+        return !['tp_hit', 'sl_hit', 'closed'].includes(status);
+    });
+
+    return hasActive;
   }
 
   async getRecentSignalCount(hours: number = 24): Promise<number> {
