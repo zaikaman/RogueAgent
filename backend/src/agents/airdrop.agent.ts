@@ -50,18 +50,18 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
     z.object({
       airdrops: z.array(
         z.object({
-          ticker: z.string(),
-          contract: z.string(),
-          chain: z.string(),
-          type: z.string(),
-          why_promising: z.string(),
-          tasks: z.string(),
-          deadline_or_phase: z.string(),
-          est_value_usd: z.string(),
+          ticker: z.string().optional().default('TBD'),
+          contract: z.string().optional().default('N/A'),
+          chain: z.string().optional().default('Unknown'),
+          type: z.string().optional().default('Airdrop'),
+          why_promising: z.string().optional().default('High potential opportunity.'),
+          tasks: z.string().optional().default('Check dashboard for details.'),
+          deadline_or_phase: z.string().optional().default('Ongoing'),
+          est_value_usd: z.string().optional().default('Unknown'),
           link_dashboard: z.string(),
-          link_tg: z.string(),
-          link_x: z.string(),
-          rogue_score: z.number()
+          link_tg: z.string().optional().default(''),
+          link_x: z.string().optional().default(''),
+          rogue_score: z.number().optional().default(0)
         })
       )
     }) as any
