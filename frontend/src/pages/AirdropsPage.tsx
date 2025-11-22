@@ -122,6 +122,15 @@ export function AirdropsPage() {
 }
 
 function AirdropCard({ airdrop, index, featured = false }: { airdrop: Airdrop; index: number; featured?: boolean }) {
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'text-green-400 border-green-400/20 bg-green-400/10';
+    if (score >= 80) return 'text-cyan-400 border-cyan-400/20 bg-cyan-400/10';
+    if (score >= 70) return 'text-yellow-400 border-yellow-400/20 bg-yellow-400/10';
+    return 'text-orange-400 border-orange-400/20 bg-orange-400/10';
+  };
+
+  const scoreColor = getScoreColor(airdrop.rogue_score);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -135,32 +144,37 @@ function AirdropCard({ airdrop, index, featured = false }: { airdrop: Airdrop; i
             {airdrop.ticker}
           </h3>
           <div className="flex items-center gap-2 text-sm text-gray-400 mt-1">
-            <span className="uppercase px-2 py-0.5 rounded bg-gray-800 text-xs font-medium">
+            <span className="uppercase px-2 py-0.5 rounded bg-gray-800 text-xs font-medium text-gray-300 border border-gray-700/50">
               {airdrop.chain}
             </span>
-            <span className="text-xs bg-gray-800/50 px-2 py-0.5 rounded">{airdrop.type}</span>
+            <span className="text-xs bg-gray-800/50 px-2 py-0.5 rounded text-gray-400 border border-gray-800">{airdrop.type}</span>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-            <div className="px-2 py-1 rounded text-xs font-bold border text-cyan-400 border-cyan-400/20 bg-cyan-400/10">
+            <div className={`px-2 py-1 rounded text-xs font-bold border ${scoreColor}`}>
             Score: {airdrop.rogue_score}
             </div>
-            <div className="text-xs text-gray-500">{airdrop.est_value_usd}</div>
+            <div className="text-xs text-gray-500 font-medium">{airdrop.est_value_usd}</div>
         </div>
       </div>
 
       <div className="mb-4 flex-grow">
-        <p className="text-sm text-gray-300 mb-3 font-medium">
+        <p className="text-sm text-gray-300 mb-3 font-medium leading-relaxed">
             {airdrop.why_promising}
         </p>
-        <div className="bg-black/20 p-3 rounded-lg text-xs text-gray-400">
-            <div className="font-semibold text-gray-500 mb-1 uppercase tracking-wider text-[10px]">Tasks</div>
-            {airdrop.tasks}
+        <div className="bg-black/40 border border-gray-800/60 p-3 rounded-lg text-xs text-gray-400">
+            <div className="font-bold text-gray-500 mb-1.5 uppercase tracking-wider text-[10px] flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-cyan-500"></span>
+              Tasks
+            </div>
+            <div className="leading-relaxed text-gray-300">
+              {airdrop.tasks}
+            </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-800/50">
-        <div className="text-xs text-gray-500">
+        <div className="text-xs font-medium text-gray-500 bg-gray-800/30 px-2 py-1 rounded">
             {airdrop.deadline_or_phase}
         </div>
         <div className="flex gap-3">
@@ -179,7 +193,11 @@ function AirdropCard({ airdrop, index, featured = false }: { airdrop: Airdrop; i
                 href={airdrop.link_dashboard}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-cyan-500 hover:text-cyan-400 transition-colors font-medium"
+                className={`inline-flex items-center gap-1 text-sm font-bold transition-colors ${
+                  airdrop.rogue_score >= 90 ? 'text-green-400 hover:text-green-300' : 
+                  airdrop.rogue_score >= 80 ? 'text-cyan-400 hover:text-cyan-300' : 
+                  'text-cyan-500 hover:text-cyan-400'
+                }`}
                 >
                 Farm <ExternalLink className="w-3 h-3" />
                 </a>
