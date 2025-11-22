@@ -404,10 +404,13 @@ export const requestCustomScanTool = createTool({
   schema: z.object({
     tokenSymbol: z.string().describe('The token symbol to scan (e.g. "SOL", "BTC", "BONK")'),
     walletAddress: z.string().describe('The user\'s wallet address for tier validation'),
-    telegramUserId: z.union([z.string(), z.number()]).transform((val: string | number) => Number(val)).describe('The user\'s Telegram user ID'),
+    telegramUserId: z.number().describe('The user\'s Telegram user ID'),
   }) as any,
   fn: async ({ tokenSymbol, walletAddress, telegramUserId }) => {
     const { TIERS } = await import('../constants/tiers');
+    
+    // Handle telegramUserId as either string or number
+    const userId = typeof telegramUserId === 'string' ? parseInt(telegramUserId, 10) : telegramUserId;
     
     // Validate user exists and is DIAMOND tier
     const user = await supabaseService.getUser(walletAddress);
