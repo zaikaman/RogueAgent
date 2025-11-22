@@ -77,6 +77,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
              });
              setIsScanning(true);
           }
+
+          // Check for completion
+          const completionLog = newLogs.find((l: any) => l.message && (l.message.includes('Run completed successfully') || l.message.includes('Swarm run failed')));
+          
+          if (completionLog) {
+             setIsScanning(false);
+             wasScanning = false;
+          }
         }
       } catch (error) {
         console.error('Failed to poll logs:', error);
