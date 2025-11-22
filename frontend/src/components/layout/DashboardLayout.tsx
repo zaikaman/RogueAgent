@@ -9,6 +9,7 @@ import {
   Menu01Icon,
   Coins01Icon
 } from '@hugeicons/core-free-icons';
+import { Send } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
 import { Countdown } from '../Countdown';
 import { useRunStatus } from '../../hooks/useRunStatus';
@@ -85,6 +86,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-4 ml-auto">
+            <a 
+              href="https://t.me/rogueadkbot" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors group"
+            >
+               <Send className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+               <span className="text-sm font-medium hidden sm:inline">Telegram Bot</span>
+            </a>
             <Countdown 
               lastRunTime={lastRunTime} 
               intervalMinutes={runStatus?.interval_minutes}

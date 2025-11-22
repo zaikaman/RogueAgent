@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { WalletConnect } from '../components/WalletConnect'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import { Send } from 'lucide-react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
     ArrowUpRight01Icon,
@@ -98,6 +99,15 @@ export default function Home() {
                             </a>
                         </nav>
                         <div className="flex items-center gap-2">
+                            <a 
+                                href="https://t.me/rogueadkbot" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-all duration-300 text-sm font-medium group"
+                            >
+                                <Send className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                                <span>Join Bot</span>
+                            </a>
                             <WalletConnect />
                         </div>
                     </div>
@@ -429,7 +439,7 @@ export default function Home() {
                                 <span className="text-white text-xl font-bold">ROGUE</span>
                             </div>
                             <p className="text-sm text-gray-500 leading-relaxed">
-                                Autonomous, tokenized AI portfolio manager.
+                                Autonomous, tokenized AI intel and signal provider.
                             </p>
                         </div>
                         <div>
