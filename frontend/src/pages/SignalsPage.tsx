@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useConnect } from 'wagmi';
 import { useRunStatus } from '../hooks/useRunStatus';
 import { useSignalsHistory } from '../hooks/useSignals';
@@ -6,11 +7,12 @@ import { SignalCard } from '../components/SignalCard';
 import { GatedContent } from '../components/GatedContent';
 import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { GpsSignal01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
+import { GpsSignal01Icon, Loading03Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
 export function SignalsPage() {
+  const [page, setPage] = useState(1);
   const { data: runStatus, isLoading: isStatusLoading } = useRunStatus();
-  const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory();
+  const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory(page, 10);
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -21,6 +23,16 @@ export function SignalsPage() {
   
   const latestSignal = runStatus?.latest_signal;
   const historySignals = historyData?.data || [];
+  const pagination = historyData?.pagination;
+  const totalPages = pagination?.pages || 1;
+
+  const handlePrevPage = () => {
+    if (page > 1) setPage(p => p - 1);
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) setPage(p => p + 1);
+  };
 
   return (
     <div className="space-y-6">
@@ -55,11 +67,36 @@ export function SignalsPage() {
           </div>
           
           {historySignals.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {historySignals.map((signal: any) => (
-                <SignalCard key={signal.id} signal={signal} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {historySignals.map((signal: any) => (
+                  <SignalCard key={signal.id} signal={signal} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={page === 1}
+                    className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                  >
+                    <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                    className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                  >
+                    <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             !isHistoryLoading && (
               <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-8 text-center">

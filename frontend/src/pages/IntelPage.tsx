@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useConnect } from 'wagmi';
 import { useIntelHistory } from '../hooks/useIntel';
@@ -7,13 +8,14 @@ import { IntelCard } from '../components/IntelCard';
 import { GatedContent } from '../components/GatedContent';
 import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { News01Icon, ArrowLeft01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
+import { News01Icon, ArrowLeft01Icon, ArrowRight01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 import { Button } from '../components/ui/button';
 
 export function IntelPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: historyData, isLoading } = useIntelHistory();
+  const [page, setPage] = useState(1);
+  const { data: historyData, isLoading } = useIntelHistory(page, 9);
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -23,7 +25,18 @@ export function IntelPage() {
   };
 
   const intelItems = historyData?.data || [];
+  const pagination = historyData?.pagination;
+  const totalPages = pagination?.pages || 1;
+  
   const selectedIntel = id ? intelItems.find(item => item.id === id) : null;
+
+  const handlePrevPage = () => {
+    if (page > 1) setPage(p => p - 1);
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) setPage(p => p + 1);
+  };
 
   if (id && isLoading) {
     return (
@@ -73,8 +86,8 @@ export function IntelPage() {
         )}
       </div>
 
-      {/* Latest Intel - Always Visible */}
-      {intelItems.length > 0 && (
+      {/* Latest Intel - Always Visible on Page 1 */}
+      {page === 1 && intelItems.length > 0 && (
          <div className="mb-8">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Latest Report</h3>
             <IntelCard intel={intelItems[0]} onClick={() => navigate(`/app/intel/${intelItems[0].id}`)} />
@@ -88,18 +101,43 @@ export function IntelPage() {
           requiredTier={TIERS.SILVER}
           onConnect={!isConnected ? handleConnect : undefined}
         >
-          {intelItems.length > 1 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {intelItems.slice(1).map((intel) => (
-                <IntelCard 
-                  key={intel.id} 
-                  intel={intel} 
-                  onClick={() => navigate(`/app/intel/${intel.id}`)} 
-                />
-              ))}
-            </div>
+          {intelItems.length > (page === 1 ? 1 : 0) ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {(page === 1 ? intelItems.slice(1) : intelItems).map((intel) => (
+                  <IntelCard 
+                    key={intel.id} 
+                    intel={intel} 
+                    onClick={() => navigate(`/app/intel/${intel.id}`)} 
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={page === 1}
+                    className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                  >
+                    <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                    className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                  >
+                    <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
-            !isLoading && intelItems.length <= 1 && (
+            !isLoading && (
               <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-12 text-center">
                 <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <HugeiconsIcon icon={News01Icon} className="w-8 h-8 text-gray-600" />

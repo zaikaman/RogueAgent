@@ -17,6 +17,12 @@ export interface IntelItem {
 
 interface IntelResponse {
   data: IntelItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 export function useIntelHistory(page = 1, limit = 10) {

@@ -6,6 +6,7 @@ import { orchestrator } from './agents/orchestrator';
 import { supabaseService } from './services/supabase.service';
 import { signalMonitorService } from './services/signal-monitor.service';
 import { scheduledPostService } from './services/scheduled-post.service';
+import { iqAiService } from './services/iqai.service';
 
 const app = createServer();
 const port = config.PORT;
@@ -37,6 +38,10 @@ const server = app.listen(port, () => {
   
   // Run once immediately on startup
   scheduledPostService.processPendingPosts().catch(err => logger.error('Initial scheduled post processing failed:', err));
+
+  // Start IQ AI Log Processor
+  logger.info('Starting IQ AI Log Processor');
+  iqAiService.startLogProcessor();
 
   // Start Swarm Scheduler
   const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;

@@ -6,12 +6,13 @@ import { TIERS } from '../constants/tiers';
 export const getIntelHistory = async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const page = parseInt(req.query.page as string) || 1;
+    const offset = (page - 1) * limit;
     const walletAddress = req.query.address as string;
 
     let query = supabaseService.getClient()
       .from('runs')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('type', 'intel')
       .order('created_at', { ascending: false });
 
@@ -41,7 +42,7 @@ export const getIntelHistory = async (req: Request, res: Response) => {
     // Apply range last
     query = query.range(offset, offset + limit - 1);
 
-    const { data: runs, error } = await query;
+    const { data: runs, error, count } = await query;
 
     if (error) {
       throw error;
@@ -54,7 +55,15 @@ export const getIntelHistory = async (req: Request, res: Response) => {
       public_posted_at: run.public_posted_at
     }));
 
-    res.json({ data: intel });
+    res.json({ 
+      data: intel,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit)
+      }
+    });
   } catch (error) {
     logger.error('Failed to fetch intel history:', error);
     res.status(500).json({ error: 'Failed to fetch intel history' });

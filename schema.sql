@@ -1,93 +1,91 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Create users table
-CREATE TABLE users (
-  wallet_address TEXT PRIMARY KEY,
-  telegram_user_id BIGINT UNIQUE,
-  telegram_username TEXT,
-  tier TEXT NOT NULL DEFAULT 'NONE' CHECK (tier IN ('NONE', 'SILVER', 'GOLD', 'DIAMOND')),
-  rge_balance_usd NUMERIC(12,2),
-  last_verified_at TIMESTAMPTZ,
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.custom_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_wallet_address text NOT NULL,
+  token_symbol text NOT NULL,
+  token_contract text,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text])),
+  analysis_result jsonb,
+  delivered_at timestamp with time zone,
+  error_message text,
+  requested_at timestamp with time zone NOT NULL DEFAULT now(),
+  completed_at timestamp with time zone,
+  CONSTRAINT custom_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT custom_requests_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
 );
-
-CREATE INDEX idx_users_tier ON users(tier);
-CREATE INDEX idx_users_telegram ON users(telegram_user_id);
-
--- Create updated_at trigger for users
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_users_updated_at
-  BEFORE UPDATE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
--- Create runs table
-CREATE TABLE runs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type TEXT NOT NULL CHECK (type IN ('signal', 'intel', 'skip')),
-  content JSONB NOT NULL,
-  public_posted_at TIMESTAMPTZ,
-  telegram_delivered_at TIMESTAMPTZ,
-  confidence_score INTEGER CHECK (confidence_score BETWEEN 1 AND 100),
-  cycle_started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  cycle_completed_at TIMESTAMPTZ,
-  execution_time_ms INTEGER,
-  error_message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.iqai_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  content text NOT NULL,
+  type text NOT NULL DEFAULT 'Agent'::text,
+  tx_hash text,
+  chain_id text,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text])),
+  retry_count integer NOT NULL DEFAULT 0,
+  error_message text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT iqai_logs_pkey PRIMARY KEY (id)
 );
-
-CREATE INDEX idx_runs_created_at ON runs(created_at DESC);
-CREATE INDEX idx_runs_type ON runs(type);
-
--- Create scheduled_posts table for delayed tier publishing
-CREATE TABLE scheduled_posts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-  tier TEXT NOT NULL CHECK (tier IN ('SILVER', 'GOLD', 'DIAMOND', 'PUBLIC')),
-  content TEXT NOT NULL,
-  scheduled_for TIMESTAMPTZ NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'posted', 'failed')),
-  posted_at TIMESTAMPTZ,
-  error_message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.runs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  type text NOT NULL CHECK (type = ANY (ARRAY['signal'::text, 'intel'::text, 'skip'::text])),
+  content jsonb NOT NULL,
+  public_posted_at timestamp with time zone,
+  telegram_delivered_at timestamp with time zone,
+  confidence_score integer CHECK (confidence_score >= 1 AND confidence_score <= 100),
+  cycle_started_at timestamp with time zone NOT NULL DEFAULT now(),
+  cycle_completed_at timestamp with time zone,
+  execution_time_ms integer,
+  error_message text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT runs_pkey PRIMARY KEY (id)
 );
-
-CREATE INDEX idx_scheduled_posts_status ON scheduled_posts(status, scheduled_for);
-CREATE INDEX idx_scheduled_posts_run_id ON scheduled_posts(run_id);
-
--- Create custom_requests table
-CREATE TABLE custom_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_wallet_address TEXT NOT NULL REFERENCES users(wallet_address) ON DELETE CASCADE,
-  token_symbol TEXT NOT NULL,
-  token_contract TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
-  analysis_result JSONB,
-  delivered_at TIMESTAMPTZ,
-  error_message TEXT,
-  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  completed_at TIMESTAMPTZ
+CREATE TABLE public.scheduled_posts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  run_id uuid NOT NULL,
+  tier text NOT NULL CHECK (tier = ANY (ARRAY['SILVER'::text, 'GOLD'::text, 'DIAMOND'::text, 'PUBLIC'::text])),
+  content text NOT NULL,
+  scheduled_for timestamp with time zone NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'posted'::text, 'failed'::text])),
+  posted_at timestamp with time zone,
+  error_message text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT scheduled_posts_pkey PRIMARY KEY (id),
+  CONSTRAINT scheduled_posts_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs(id)
 );
-
-CREATE INDEX idx_custom_requests_user ON custom_requests(user_wallet_address, requested_at DESC);
-CREATE INDEX idx_custom_requests_status ON custom_requests(status);
-
--- Create tier_snapshots table (optional analytics)
-CREATE TABLE tier_snapshots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-  tier TEXT NOT NULL CHECK (tier IN ('SILVER', 'GOLD', 'DIAMOND')),
-  delivered_at TIMESTAMPTZ NOT NULL,
-  recipient_count INTEGER NOT NULL DEFAULT 0
+CREATE TABLE public.tier_snapshots (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  run_id uuid NOT NULL,
+  tier text NOT NULL CHECK (tier = ANY (ARRAY['SILVER'::text, 'GOLD'::text, 'DIAMOND'::text])),
+  delivered_at timestamp with time zone NOT NULL,
+  recipient_count integer NOT NULL DEFAULT 0,
+  CONSTRAINT tier_snapshots_pkey PRIMARY KEY (id),
+  CONSTRAINT tier_snapshots_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs(id)
 );
-
-CREATE INDEX idx_tier_snapshots_run ON tier_snapshots(run_id);
+CREATE TABLE public.users (
+  wallet_address text NOT NULL,
+  telegram_user_id bigint UNIQUE,
+  telegram_username text,
+  tier text NOT NULL DEFAULT 'NONE'::text CHECK (tier = ANY (ARRAY['NONE'::text, 'SILVER'::text, 'GOLD'::text, 'DIAMOND'::text])),
+  rge_balance_usd numeric,
+  last_verified_at timestamp with time zone,
+  joined_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (wallet_address)
+);
+CREATE TABLE public.yield_opportunities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  pool_id text NOT NULL UNIQUE,
+  protocol text NOT NULL,
+  chain text NOT NULL,
+  symbol text NOT NULL,
+  apy numeric NOT NULL,
+  tvl numeric NOT NULL,
+  risk_level text NOT NULL CHECK (risk_level = ANY (ARRAY['Low'::text, 'Medium'::text, 'High'::text, 'Degen'::text])),
+  analysis text,
+  url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT yield_opportunities_pkey PRIMARY KEY (id)
+);

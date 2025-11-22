@@ -18,6 +18,19 @@ export type DbRun = {
   created_at?: string;
 };
 
+export type DbIqAiLog = {
+  id?: string;
+  content: string;
+  type: 'Agent' | 'Developer';
+  tx_hash?: string;
+  chain_id?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  retry_count?: number;
+  error_message?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export class SupabaseService {
   private client: SupabaseClient;
 
@@ -392,6 +405,42 @@ export class SupabaseService {
       .from('runs')
       .select('*')
       .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async createIqAiLog(logData: DbIqAiLog) {
+    const { data, error } = await this.client
+      .from('iqai_logs')
+      .insert(logData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getPendingIqAiLogs() {
+    const { data, error } = await this.client
+      .from('iqai_logs')
+      .select('*')
+      .in('status', ['pending', 'failed'])
+      .lt('retry_count', 5) // Max retries
+      .order('created_at', { ascending: true })
+      .limit(10); // Process in batches
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateIqAiLog(id: string, updates: Partial<DbIqAiLog>) {
+    const { data, error } = await this.client
+      .from('iqai_logs')
+      .update(updates)
+      .eq('id', id)
+      .select()
       .single();
 
     if (error) throw error;
