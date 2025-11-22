@@ -11,19 +11,8 @@ export const triggerRun = async (req: Request, res: Response) => {
   });
 };
 
-export const streamRun = (req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  const onLog = (data: any) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  };
-
-  orchestrator.on('log', onLog);
-
-  req.on('close', () => {
-    orchestrator.off('log', onLog);
-  });
+export const getRunLogs = (req: Request, res: Response) => {
+  const after = req.query.after ? parseInt(req.query.after as string) : undefined;
+  const logs = orchestrator.getLogs(after);
+  res.json(logs);
 };

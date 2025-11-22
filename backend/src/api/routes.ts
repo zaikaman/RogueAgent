@@ -18,7 +18,7 @@ router.get('/health', healthController.healthCheck);
 
 // Trigger run
 router.post('/run', runController.triggerRun);
-router.get('/run/stream', runController.streamRun);
+router.get('/run/logs', runController.getRunLogs);
 
 // Status and Logs
 router.get('/run-status', statusController.getLatestStatus);

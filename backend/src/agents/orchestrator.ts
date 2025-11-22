@@ -89,9 +89,21 @@ interface WriterResult {
 }
 
 export class Orchestrator extends EventEmitter {
+  private logs: Array<{ message: string; type: string; timestamp: number }> = [];
   
   private broadcast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
-    this.emit('log', { message, type, timestamp: Date.now() });
+    const log = { message, type, timestamp: Date.now() };
+    this.logs.push(log);
+    // Keep last 100 logs
+    if (this.logs.length > 100) {
+      this.logs.shift();
+    }
+    this.emit('log', log);
+  }
+
+  public getLogs(afterTimestamp?: number) {
+    if (!afterTimestamp) return this.logs;
+    return this.logs.filter(log => log.timestamp > afterTimestamp);
   }
 
   async runSwarm() {

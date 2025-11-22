@@ -31,56 +31,57 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const lastRunTime = runStatus?.system_last_run_at || runStatus?.last_run?.created_at;
 
   useEffect(() => {
-    // Auto-connect to stream to detect scanning
-    let eventSource: EventSource | null = null;
+    // Poll for logs
+    let pollInterval: NodeJS.Timeout;
+    let lastTimestamp = 0;
     let wasScanning = false;
 
-    const connectStream = () => {
+    const pollLogs = async () => {
       try {
-        eventSource = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/run/stream`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/run/logs?after=${lastTimestamp}`);
+        if (!response.ok) return;
         
-        eventSource.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          console.log('Received stream data:', data);
+        const newLogs = await response.json();
+        
+        if (newLogs && newLogs.length > 0) {
+          console.log('Received logs:', newLogs);
           
-          // Auto-open modal on first log if not already scanning
-          if (data.message && (data.message.includes('Starting') || data.message.includes('Initializing'))) {
+          // Update timestamp to last log
+          lastTimestamp = newLogs[newLogs.length - 1].timestamp;
+          
+          // Auto-open modal logic
+          const startLog = newLogs.find((l: any) => l.message && (l.message.includes('Starting') || l.message.includes('Initializing')));
+          
+          if (startLog) {
             console.log('New scan detected, opening modal');
-            setLogs([data]); // Reset logs on new run
+            setLogs(newLogs); // Reset/Set logs
             setIsScanning(true);
             setIsModalOpen(true);
             wasScanning = true;
-          } else if (!wasScanning) {
-            // If we just joined a stream in progress, add to logs
-            setLogs(prev => [...prev, data]);
-            setIsScanning(true);
-            setIsModalOpen(true);
-            wasScanning = true;
+          } else if (!wasScanning && newLogs.length > 0) {
+             // If we just joined and there are logs, assume scanning
+             setLogs(prev => [...prev, ...newLogs]);
+             setIsScanning(true);
+             setIsModalOpen(true);
+             wasScanning = true;
           } else {
-            // Normal log append
-            setLogs(prev => [...prev, data]);
-            setIsScanning(true);
+             setLogs(prev => [...prev, ...newLogs]);
+             setIsScanning(true);
           }
-        };
-
-        eventSource.onerror = () => {
-          console.log('EventSource connection error or closed');
-        };
-
-        eventSource.onopen = () => {
-          console.log('EventSource connection opened');
-        };
+        }
       } catch (error) {
-        console.error('Failed to connect to stream:', error);
+        console.error('Failed to poll logs:', error);
       }
     };
 
-    connectStream();
+    // Poll every 2 seconds
+    pollInterval = setInterval(pollLogs, 2000);
+    
+    // Initial poll
+    pollLogs();
 
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
+      clearInterval(pollInterval);
     };
   }, []);
 
