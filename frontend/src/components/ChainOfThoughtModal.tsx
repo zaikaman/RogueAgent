@@ -88,7 +88,7 @@ export function ChainOfThoughtModal({ isOpen, onClose, logs }: ChainOfThoughtMod
                         {log.message}
                       </div>
                       {log.data && (
-                        <pre className="mt-2 p-2 bg-black/50 rounded border border-cyan-500/10 text-[10px] overflow-x-auto text-cyan-300/70">
+                        <pre className="mt-2 p-2 bg-black/50 rounded border border-cyan-500/10 text-[10px] whitespace-pre-wrap break-words text-cyan-300/70 font-mono">
                           {JSON.stringify(log.data, null, 2)}
                         </pre>
                       )}
