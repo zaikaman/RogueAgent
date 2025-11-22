@@ -57,19 +57,23 @@ export class IqAiService {
       // Mark as processing
       await supabaseService.updateIqAiLog(log.id, { status: 'processing' });
 
+      const payload: any = {
+        agentTokenContract: config.AGENT_TOKEN_CONTRACT,
+        content: log.content,
+        type: log.type
+      };
+
+      // Only include txHash and chainId if they exist
+      if (log.tx_hash) payload.txHash = log.tx_hash;
+      if (log.chain_id) payload.chainId = log.chain_id;
+
       const response = await fetch(`${this.baseUrl}/logs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apiKey': config.IQAI_API_KEY!
         },
-        body: JSON.stringify({
-          agentTokenContract: config.AGENT_TOKEN_CONTRACT,
-          content: log.content,
-          type: log.type,
-          txHash: log.tx_hash,
-          chainId: log.chain_id
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
