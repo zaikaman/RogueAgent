@@ -36,7 +36,6 @@ export function IntelPage() {
   if (selectedIntel) {
     const content = selectedIntel.content;
     const blogPost = content.blog_post || content.formatted_thread || content.tweet_text || '';
-    const isLatest = intelItems.length > 0 && selectedIntel.id === intelItems[0].id;
     
     return (
       <div className="space-y-6">
@@ -49,27 +48,12 @@ export function IntelPage() {
           Back to Feed
         </Button>
         
-        {isLatest ? (
-          <IntelBlog 
-            title={content.topic}
-            content={blogPost} 
-            date={new Date(selectedIntel.created_at).toLocaleDateString()} 
-            imageUrl={content.image_url}
-          />
-        ) : (
-          <GatedContent 
-            userTier={tier} 
-            requiredTier={TIERS.SILVER}
-            onConnect={!isConnected ? handleConnect : undefined}
-          >
-            <IntelBlog 
-              title={content.topic}
-              content={blogPost} 
-              date={new Date(selectedIntel.created_at).toLocaleDateString()} 
-              imageUrl={content.image_url}
-            />
-          </GatedContent>
-        )}
+        <IntelBlog 
+          title={content.topic}
+          content={blogPost} 
+          date={new Date(selectedIntel.created_at).toLocaleDateString()} 
+          imageUrl={content.image_url}
+        />
       </div>
     );
   }
