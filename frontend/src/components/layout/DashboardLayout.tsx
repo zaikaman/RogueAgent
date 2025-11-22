@@ -45,46 +45,67 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         const newLogs = await response.json();
         
         if (newLogs && newLogs.length > 0) {
-          console.log('Received logs:', newLogs);
-          
           // Update id to last log
           lastId = newLogs[newLogs.length - 1].id;
+
+          // Update logs state
+          setLogs(prev => {
+            const existingIds = new Set(prev.map(l => l.id));
+            const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
+            return [...prev, ...uniqueNewLogs];
+          });
           
-          // Auto-open modal logic
-          const startLog = newLogs.find((l: any) => l.message && (l.message.includes('Starting') || l.message.includes('Initializing')));
+          // Determine Run State
+          const startLogs = newLogs.filter((l: any) => l.message && (l.message.includes('Starting') || l.message.includes('Initializing')));
+          const endLogs = newLogs.filter((l: any) => l.message && (l.message.includes('Run completed successfully') || l.message.includes('Swarm run failed')));
           
-          if (startLog) {
-            console.log('New scan detected, opening modal');
-            setLogs(newLogs); // Reset/Set logs
-            setIsScanning(true);
-            setIsModalOpen(true);
-            wasScanning = true;
-          } else if (!wasScanning && newLogs.length > 0) {
-             // If we just joined and there are logs, assume scanning
-             setLogs(prev => {
-                // Deduplicate based on ID
-                const existingIds = new Set(prev.map(l => l.id));
-                const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
-                return [...prev, ...uniqueNewLogs];
-             });
+          const lastStart = startLogs.length > 0 ? startLogs[startLogs.length - 1] : null;
+          const lastEnd = endLogs.length > 0 ? endLogs[endLogs.length - 1] : null;
+          
+          const lastStartId = lastStart ? lastStart.id : -1;
+          const lastEndId = lastEnd ? lastEnd.id : -1;
+          
+          // Check if run is active (Start is more recent than End)
+          const isRunActive = lastStartId > lastEndId;
+          
+          // Check recency (if logs are older than 1 minute, assume inactive)
+          const lastLog = newLogs[newLogs.length - 1];
+          const isRecent = (Date.now() - lastLog.timestamp) < 60000;
+
+          if (isRunActive) {
+             // Run is definitely active
              setIsScanning(true);
-             setIsModalOpen(true);
+             
+             // Auto-open if we just detected the start OR if we just loaded the page and it's active
+             if (lastStart || (!wasScanning && isRecent)) {
+                 setIsModalOpen(true);
+             }
              wasScanning = true;
           } else {
-             setLogs(prev => {
-                const existingIds = new Set(prev.map(l => l.id));
-                const uniqueNewLogs = newLogs.filter((l: any) => !existingIds.has(l.id));
-                return [...prev, ...uniqueNewLogs];
-             });
-             setIsScanning(true);
-          }
-
-          // Check for completion
-          const completionLog = newLogs.find((l: any) => l.message && (l.message.includes('Run completed successfully') || l.message.includes('Swarm run failed')));
-          
-          if (completionLog) {
-             setIsScanning(false);
-             wasScanning = false;
+             // Run is finished OR ambiguous (no start/end markers in this batch)
+             
+             if (lastEndId > lastStartId) {
+                 // Definitely finished
+                 setIsScanning(false);
+                 wasScanning = false;
+             } else {
+                 // Ambiguous case (middle of run, or start/end pushed out of buffer)
+                 if (wasScanning) {
+                     // We were already scanning, so assume it continues
+                     setIsScanning(true);
+                 } else {
+                     // Fresh load. Check recency.
+                     if (isRecent) {
+                         setIsScanning(true);
+                         // Only open modal if we are VERY sure (maybe don't auto-open on ambiguous middle-state to be safe?)
+                         // Let's auto-open if it's recent.
+                         setIsModalOpen(true);
+                         wasScanning = true;
+                     } else {
+                         setIsScanning(false);
+                     }
+                 }
+             }
           }
         }
       } catch (error) {
