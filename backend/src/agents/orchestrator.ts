@@ -304,6 +304,7 @@ export class Orchestrator extends EventEmitter {
       } else {
         // Fallback to Intel
         logger.info('Running Intel Flow...');
+        this.broadcast('Running Intel Flow...', 'info');
         
         // Fetch recent topics to avoid repetition
         const recentTopics = await supabaseService.getRecentIntelTopics(5);
@@ -329,9 +330,11 @@ export class Orchestrator extends EventEmitter {
           'Intel Agent'
         );
         logger.info('Intel result:', intelResult);
+        this.broadcast(`Intel Agent generated report: ${intelResult.topic}`, 'success', intelResult);
 
         if (intelResult.topic === 'SKIP' || intelResult.importance_score < 7) {
             logger.info('Intel Agent decided to SKIP (Low importance or no new topics).');
+            this.broadcast('Intel Agent decided to SKIP (Low importance or no new topics).', 'warning');
             await this.saveRun(
                 runId,
                 'intel',
@@ -347,6 +350,7 @@ export class Orchestrator extends EventEmitter {
 
         // 2. Generator (Intel)
         logger.info('Running Generator Agent (Intel)...');
+        this.broadcast('Running Generator Agent (Intel)...', 'info');
         const { runner: generator } = await GeneratorAgent.build();
         const generatorPrompt = `Generate content for this INTEL REPORT.
         
@@ -360,9 +364,11 @@ export class Orchestrator extends EventEmitter {
           'Generator Agent (Intel)'
         );
         logger.info('Generator result:', generatorResult);
+        this.broadcast('Generator Agent produced content.', 'success', generatorResult);
 
         // 2.1 Writer Agent (Long Form)
         logger.info('Running Writer Agent (Intel)...');
+        this.broadcast('Running Writer Agent (Intel)...', 'info');
         const { runner: writer } = await WriterAgent.build();
         const writerPrompt = `Write a deep-dive article for this INTEL REPORT.
         Report: ${JSON.stringify(intelResult)}`;
@@ -373,16 +379,20 @@ export class Orchestrator extends EventEmitter {
             'Writer Agent (Intel)'
         );
         logger.info('Writer result:', writerResult);
+        this.broadcast('Writer Agent completed deep-dive article.', 'success', writerResult);
 
         // 2.5 Image Generation
         let imageUrl: string | null = null;
         if (generatorResult.image_prompt) {
           logger.info('Generating image for intel...');
+          this.broadcast('Generating image for intel...', 'info');
           imageUrl = await runwareService.generateImage(generatorResult.image_prompt);
+          this.broadcast('Image generated successfully.', 'success', { imageUrl });
         }
 
         // 3. Publisher (Tiered)
         logger.info(`Publishing Intel for run ${runId}...`);
+        this.broadcast(`Publishing Intel for run ${runId}...`, 'info');
         const tweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
         const blogContent = generatorResult.blog_post || generatorResult.formatted_content;
         
@@ -434,9 +444,11 @@ export class Orchestrator extends EventEmitter {
       }
       
       logger.info('Run completed successfully.');
+      this.broadcast('Run completed successfully.', 'success');
 
     } catch (error: any) {
       logger.error('Swarm run failed:', error);
+      this.broadcast(`Swarm run failed: ${error.message}`, 'error');
       await this.saveRun(runId, 'skip', { error: error.message }, startTime, null, error.message);
     }
   }
