@@ -18,12 +18,12 @@ import {
 
 export default function Home() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    // Static stats for RogueAgent
+    // Static stats for Rogue
     const [stats] = useState([
-        { label: 'ACTIVE SIGNALS', value: '124', change: '+12' },
-        { label: 'INTEL PROCESSED', value: '1.2M', change: '+50K' },
+        { label: 'ALPHA SIGNALS', value: '124', change: '+12' },
+        { label: 'NARRATIVES TRACKED', value: '1.2K', change: '+50' },
         { label: 'SUCCESS RATE', value: '94%', change: '+2.1%' },
-        { label: 'AGENTS ACTIVE', value: '850', change: '+45' },
+        { label: 'SOURCES SCANNED', value: '850+', change: '+45' },
     ])
 
     useEffect(() => {
@@ -193,8 +193,6 @@ export default function Home() {
                         >
                             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 text-white tracking-tight leading-[0.95]">
                                 ROGUE
-                                <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-glow to-teal-dark">ORACLE</span>
                             </h1>
                         </motion.div>
 
@@ -204,7 +202,7 @@ export default function Home() {
                             transition={{ duration: 0.6, delay: 0.2 }}
                             className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed"
                         >
-                            Autonomous Intel & Signal Provider. Hands-off, multi-agent analysis on <span className="font-mono text-teal-glow">Fraxtal</span>. Connect to receive real-time alpha.
+                            The Real-Time Crypto Alpha Oracle. Relentlessly scanning the ecosystem to surface explosive low-cap opportunities and narrative shifts before they hit mainstream.
                         </motion.p>
 
                         <motion.div
@@ -277,25 +275,25 @@ export default function Home() {
                 <div className="container mx-auto px-4 max-w-6xl">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-5xl font-bold mb-4 text-white tracking-tight">
-                            Why Choose <span className="text-teal-glow">RogueAgent</span>?
+                            Why Choose <span className="text-teal-glow">Rogue</span>?
                         </h2>
                         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-                            Deploy autonomous agents to gather intel, analyze signals, and publish reports.
+                            The only oracle that combines social sentiment, on-chain data, and narrative analysis to find the next 100x.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                            { icon: ArrowUpRight01Icon, title: 'Intel Gathering', desc: 'Automated scanning of on-chain data, subgraphs, and social signals.' },
-                            { icon: FlashIcon, title: 'Signal Analysis', desc: 'Real-time processing of market movements and liquidity changes.' },
+                            { icon: ArrowUpRight01Icon, title: 'Ecosystem Scanning', desc: '24/7 monitoring of X, Telegram, and on-chain flows to detect early movers.' },
+                            { icon: FlashIcon, title: 'High-Conviction Signals', desc: 'Actionable trade setups with entry, target, and stop-loss levels.' },
                             {
-                                icon: Shield02Icon, title: 'Real-time Publishing', desc: (
+                                icon: Shield02Icon, title: 'Token-Gated Speed', desc: (
                                     <span>
-                                        Instant signal broadcasting via <span className="font-mono text-teal-glow">Twitter/Telegram</span>.
+                                        $RGE holders receive signals 15-30 minutes before the public feed.
                                     </span>
                                 )
                             },
-                            { icon: Analytics01Icon, title: 'Full Transparency', desc: 'All agent actions and decisions are logged and auditable.' },
+                            { icon: Analytics01Icon, title: 'Narrative Intelligence', desc: 'Identify mindshare surges and sentiment shifts before the crowd.' },
                         ].map((feature, i) => (
                             <div key={i} className="group rounded-2xl bg-noir-dark border border-white/5 p-8 hover:border-teal-glow/30 transition-all duration-300 hover:-translate-y-1">
                                 <div className="w-12 h-12 rounded-xl bg-teal-glow/10 flex items-center justify-center mb-6 group-hover:bg-teal-glow/20 transition-colors">
@@ -321,24 +319,24 @@ export default function Home() {
                                 <div>
                                     <span className="text-sm font-mono text-teal-glow tracking-wider uppercase">Platform</span>
                                     <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mt-4 mb-8 leading-[1.1]">
-                                        A platform for automated Intel & Signals.
+                                        A platform for real-time Crypto Alpha.
                                     </h2>
 
                                     <div className="space-y-8 relative pl-6 border-l border-white/10">
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-teal-glow shadow-[0_0_10px_rgba(0,212,255,0.5)]" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Researcher Agent</h3>
-                                            <p className="text-gray-400">Scans subgraphs and APIs to surface top opportunities by APY, volatility and gas.</p>
+                                            <h3 className="text-xl font-bold text-white mb-2">Ecosystem Scanner</h3>
+                                            <p className="text-gray-400">Relentlessly monitors X, Telegram, and on-chain data to surface opportunities before they trend.</p>
                                         </div>
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-teal-dark" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Analyzer Agent</h3>
-                                            <p className="text-gray-400">Builds a risk‑adjusted allocation and simulates expected P&L.</p>
+                                            <h3 className="text-xl font-bold text-white mb-2">Signal Analyzer</h3>
+                                            <p className="text-gray-400">Filters noise to identify high-conviction setups with clear entry, target, and stop-loss levels.</p>
                                         </div>
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-gray-600" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Publisher Agent</h3>
-                                            <p className="text-gray-400">Broadcasts validated signals and intel reports to social channels.</p>
+                                            <h3 className="text-xl font-bold text-white mb-2">Alpha Publisher</h3>
+                                            <p className="text-gray-400">Broadcasts validated signals to $RGE holders instantly, and to the public feed after a delay.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -415,12 +413,12 @@ export default function Home() {
 
                     <div className="space-y-6">
                         {[
-                            { step: '01', title: 'Connect Wallet', desc: 'Connect your Fraxtal wallet in seconds.' },
-                            { step: '02', title: 'Configure Agents', desc: 'Select your preferred intel sources and risk parameters.' },
+                            { step: '01', title: 'Connect Wallet', desc: 'Connect your wallet to verify your $RGE holdings.' },
+                            { step: '02', title: 'Unlock Tiers', desc: 'Hold more $RGE to get faster access and exclusive deep-dive reports.' },
                             {
                                 step: '03', title: 'Receive Signals', desc: (
                                     <span>
-                                        Get real-time signals and intel reports automatically.
+                                        Get real-time signals and intel reports automatically via Telegram or Dashboard.
                                     </span>
                                 )
                             },
@@ -458,7 +456,7 @@ export default function Home() {
                                 Ready to <span className="text-teal-glow">Go Rogue</span>?
                             </h2>
                             <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-                                Join the network of autonomous agents on Fraxtal.
+                                Join the elite network of alpha hunters.
                             </p>
                             <Link to="/app" className="inline-flex items-center justify-center gap-2 bg-teal-glow hover:bg-teal-dark text-noir-black px-10 py-5 rounded-lg text-lg font-bold transition-all duration-300 shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:scale-105">
                                 Launch Terminal
@@ -479,7 +477,7 @@ export default function Home() {
                                 <span className="text-white text-xl font-bold">ROGUE</span>
                             </div>
                             <p className="text-sm text-gray-500 leading-relaxed">
-                                Autonomous, tokenized AI intel and signal provider.
+                                The Real-Time Crypto Alpha Oracle.
                             </p>
                         </div>
                         <div>
