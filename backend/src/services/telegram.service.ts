@@ -6,6 +6,7 @@ import { retry } from '../utils/retry.util';
 export class TelegramService {
   private bot: TelegramBot | null = null;
   private channelId: string | undefined;
+  private chatHistory: Map<number, Array<{ role: 'user' | 'assistant', content: string }>> = new Map();
 
   constructor() {
     if (config.TELEGRAM_BOT_TOKEN) {
@@ -213,11 +214,20 @@ USER MESSAGE: scan ${tokenSymbol}`;
         const { ChatAgent } = await import('../agents/chat.agent');
         const { runner } = await ChatAgent.build();
         
+        // Get history
+        const history = this.chatHistory.get(userId) || [];
+        
+        // Format history
+        const historyText = history.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
+
         // Build prompt with user context embedded
         const promptWithContext = `USER CONTEXT:
 - Wallet: ${user.wallet_address}
 - Tier: ${user.tier}
 - Telegram ID: ${userId}
+
+CHAT HISTORY:
+${historyText}
 
 USER MESSAGE: ${userMessage}`;
         
@@ -226,6 +236,17 @@ USER MESSAGE: ${userMessage}`;
         
         // Send response
         const responseMessage = result?.message || "I'm having trouble processing that request right now.";
+        
+        // Update history
+        history.push({ role: 'user', content: userMessage });
+        history.push({ role: 'assistant', content: responseMessage });
+        
+        // Keep last 20 messages
+        if (history.length > 20) {
+            history.splice(0, history.length - 20);
+        }
+        this.chatHistory.set(userId, history);
+
         await this.bot?.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
         
       } catch (error) {

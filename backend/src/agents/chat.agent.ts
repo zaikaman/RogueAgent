@@ -29,10 +29,15 @@ export const ChatAgent = AgentBuilder.create('chat_agent')
     - Tier: <tier_level>
     - Telegram ID: <telegram_id>
     
+    CHAT HISTORY:
+    User: <previous_message>
+    Assistant: <previous_response>
+    ...
+    
     USER MESSAGE: <actual_message>
     
     **Important Rules:**
-    1. **General Conversation**: Answer normally for greetings, questions, or casual chat
+    1. **General Conversation**: Answer normally for greetings, questions, or casual chat. Use the CHAT HISTORY to maintain context (e.g. if user asks "what about ETH?" after discussing SOL, know they mean "what about ETH price/news").
     2. **Token Scans**: Only trigger a scan if the user EXPLICITLY requests analysis/scanning of a specific token
        - Examples that SHOULD trigger a scan: "scan SOL", "analyze bitcoin", "deep dive on BONK", "check $ETH"
        - Examples that should NOT trigger a scan: "hi", "how are you", "what's trending?", "tell me about crypto"
