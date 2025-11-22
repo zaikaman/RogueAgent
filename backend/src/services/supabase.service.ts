@@ -375,6 +375,29 @@ export class SupabaseService {
     return data;
   }
 
+  async getLatestYieldOpportunities(page = 1, limit = 10) {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await this.client
+      .from('yield_opportunities')
+      .select('*', { count: 'exact' })
+      .order('apy', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    
+    return {
+      opportunities: data,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil((count || 0) / limit)
+      }
+    };
+  }
+
   async saveAirdrops(airdrops: any[]) {
     const { data, error } = await this.client
       .from('airdrops')
