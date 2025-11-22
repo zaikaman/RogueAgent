@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { WalletConnect } from '../components/WalletConnect'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { Send } from 'lucide-react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -11,10 +11,13 @@ import {
     Shield02Icon,
     ArrowRight01Icon,
     Analytics01Icon,
-    SecurityCheckIcon
+    SecurityCheckIcon,
+    Menu01Icon,
+    Cancel01Icon
 } from '@hugeicons/core-free-icons'
 
 export default function Home() {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     // Static stats for RogueAgent
     const [stats] = useState([
         { label: 'ACTIVE SIGNALS', value: '124', change: '+12' },
@@ -78,7 +81,7 @@ export default function Home() {
 
             {/* Header - Enhanced Glassmorphic */}
             <header className="fixed top-0 left-0 right-0 z-50 pt-6 px-6">
-                <div className="max-w-7xl mx-auto rounded-full px-6 py-3 bg-noir-black/70 backdrop-blur-xl border border-white/10 shadow-2xl">
+                <div className="max-w-7xl mx-auto rounded-full px-6 py-3 bg-noir-black/70 backdrop-blur-xl border border-white/10 shadow-2xl relative">
                     <div className="flex items-center justify-between">
                         <Link to="/" className="flex items-center gap-3 group">
                             <img src="/logo.webp" alt="Rogue Logo" className="w-8 h-8 rounded-full" />
@@ -98,20 +101,57 @@ export default function Home() {
                                 Docs
                             </a>
                         </nav>
-                        <div className="flex items-center gap-2">
+                        <div className="hidden md:flex items-center gap-4">
                             <a 
                                 href="https://t.me/rogueadkbot" 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-all duration-300 text-sm font-medium group"
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors group"
                             >
                                 <Send className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-                                <span>Join Bot</span>
+                                <span className="text-sm font-medium">Telegram Bot</span>
                             </a>
                             <WalletConnect />
                         </div>
+
+                        {/* Mobile Menu Toggle */}
+                        <button 
+                            className="md:hidden text-white/80 hover:text-white p-1"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            <HugeiconsIcon icon={isMobileMenuOpen ? Cancel01Icon : Menu01Icon} className="w-6 h-6" />
+                        </button>
                     </div>
                 </div>
+
+                {/* Mobile Menu Overlay */}
+                <AnimatePresence>
+                    {isMobileMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-full left-6 right-6 mt-2 p-4 rounded-2xl bg-noir-black/95 backdrop-blur-xl border border-white/10 shadow-2xl md:hidden flex flex-col gap-2"
+                        >
+                            <a className="text-white/80 hover:text-white py-3 px-4 rounded-lg hover:bg-white/5 font-medium" href="#features" onClick={() => setIsMobileMenuOpen(false)}>Features</a>
+                            <a className="text-white/80 hover:text-white py-3 px-4 rounded-lg hover:bg-white/5 font-medium" href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)}>How It Works</a>
+                            <Link className="text-white/80 hover:text-white py-3 px-4 rounded-lg hover:bg-white/5 font-medium" to="/app" onClick={() => setIsMobileMenuOpen(false)}>Terminal</Link>
+                            <a className="text-white/80 hover:text-white py-3 px-4 rounded-lg hover:bg-white/5 font-medium" href="#">Docs</a>
+                            <a 
+                                href="https://t.me/rogueadkbot" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors group font-medium"
+                            >
+                                <Send className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                                <span>Telegram Bot</span>
+                            </a>
+                            <div className="pt-3 mt-1 border-t border-white/10 flex justify-center">
+                                <WalletConnect />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </header>
 
             {/* Hero Section with Animated Background */}

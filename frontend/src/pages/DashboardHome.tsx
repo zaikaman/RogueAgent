@@ -80,8 +80,7 @@ export function DashboardHome() {
         </div>
 
         {/* Sidebar Column */}
-        <div className="lg:relative">
-          <div className="flex flex-col gap-6 lg:absolute lg:inset-0">
+        <div className="flex flex-col gap-6">
             <TierDisplay 
               tier={userTier} 
               balance={balance} 
@@ -111,7 +110,6 @@ export function DashboardHome() {
               logs={logsData?.data || []} 
               className="flex-1 min-h-[300px] lg:min-h-0" 
             />
-          </div>
         </div>
       </div>
     </div>

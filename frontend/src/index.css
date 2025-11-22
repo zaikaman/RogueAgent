@@ -100,3 +100,8 @@
   scrollbar-width: thin;
   scrollbar-color: #2D2D2D #0A0A0A;
 }
+
+.mask-linear-fade {
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}

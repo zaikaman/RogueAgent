@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
@@ -7,7 +7,8 @@ import {
   News01Icon, 
   GpsSignal01Icon,
   Menu01Icon,
-  Coins01Icon
+  Coins01Icon,
+  Cancel01Icon
 } from '@hugeicons/core-free-icons';
 import { Send } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
@@ -20,9 +21,9 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: runStatus } = useRunStatus();
   const lastRunTime = runStatus?.last_run?.created_at;
-  const isDashboard = location.pathname === '/app';
 
   const navItems = [
     { icon: Home01Icon, label: 'Dashboard', path: '/app' },
@@ -35,14 +36,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500/30 flex">
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-        <aside className="w-64 border-r border-gray-800 bg-gray-950/50 backdrop-blur hidden md:flex flex-col fixed h-full z-40">
-        <Link to="/" className="h-16 flex items-center px-6 border-b border-gray-800 gap-3 no-underline">
-          <div className="p-1 bg-cyan-500/10 rounded-lg border border-cyan-500/20 flex items-center justify-center">
-            <img src="/logo.webp" alt="Rogue" className="h-6 w-6 object-contain rounded" />
-          </div>
-          <span className="font-bold text-white tracking-tight">ROGUE</span>
-        </Link>
+        <aside className={`
+          w-64 border-r border-gray-800 bg-gray-950/95 backdrop-blur flex flex-col fixed h-full z-50 transition-transform duration-300 ease-in-out
+          md:translate-x-0 md:z-40
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800">
+          <Link to="/" className="flex items-center gap-3 no-underline" onClick={() => setIsMobileMenuOpen(false)}>
+            <div className="p-1 bg-cyan-500/10 rounded-lg border border-cyan-500/20 flex items-center justify-center">
+              <img src="/logo.webp" alt="Rogue" className="h-6 w-6 object-contain rounded" />
+            </div>
+            <span className="font-bold text-white tracking-tight">ROGUE</span>
+          </Link>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden text-gray-400 hover:text-white"
+          >
+            <HugeiconsIcon icon={Cancel01Icon} className="w-6 h-6" />
+          </button>
+        </div>
 
         <nav className="flex-1 py-6 px-3 space-y-1">
           {navItems.map((item) => {
@@ -51,6 +72,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
                   isActive 
                     ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
@@ -64,6 +86,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           })}
         </nav>
 
+        {/* Mobile Only Actions */}
+        <div className="md:hidden p-4 border-t border-gray-800 space-y-4 bg-gray-900/30">
+            <div className="flex justify-center w-full">
+                <Countdown 
+                  lastRunTime={lastRunTime} 
+                  intervalMinutes={runStatus?.interval_minutes}
+                />
+            </div>
+            <a 
+              href="https://t.me/rogueadkbot" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors group w-full"
+            >
+               <Send className="w-4 h-4" />
+               <span className="text-sm font-medium">Telegram Bot</span>
+            </a>
+            <div className="flex justify-center w-full">
+                <WalletConnect />
+            </div>
+        </div>
+
         <div className="p-4 border-t border-gray-800">
           <div className="text-xs text-gray-600 font-mono text-center">
             v1.0.0-alpha
@@ -76,8 +120,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Header */}
         <header className="h-16 border-b border-gray-800 bg-gray-950/50 backdrop-blur sticky top-0 z-30 px-6 flex items-center justify-between">
            <div className="md:hidden flex items-center gap-3">
-             {/* Mobile Menu Trigger - Placeholder */}
-             <HugeiconsIcon icon={Menu01Icon} className="w-6 h-6 text-gray-400" />
+             {/* Mobile Menu Trigger */}
+             <button onClick={() => setIsMobileMenuOpen(true)} className="text-gray-400 hover:text-white">
+                <HugeiconsIcon icon={Menu01Icon} className="w-6 h-6" />
+             </button>
              <Link to="/" className="font-bold text-white no-underline">ROGUE</Link>
            </div>
           
@@ -85,7 +131,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
              {/* Breadcrumbs or Page Title could go here */}
           </div>
 
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="hidden md:flex items-center gap-4 ml-auto">
             <a 
               href="https://t.me/rogueadkbot" 
               target="_blank" 
@@ -104,7 +150,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        <main className={`flex-1 p-6 ${isDashboard ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto space-y-8">
             {children}
           </div>
