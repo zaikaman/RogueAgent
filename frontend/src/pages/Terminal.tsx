@@ -86,7 +86,7 @@ export function Terminal() {
         {/* Top Section: Signal & Tier */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <SignalCard signal={latestSignal} isLoading={isRunLoading} />
+            <SignalCard signal={latestSignal} isLoading={isRunLoading} isLatest={true} />
             
             {/* Mindshare Chart (Gated) */}
             <GatedContent userTier={userTier} requiredTier={TIERS.SILVER}>

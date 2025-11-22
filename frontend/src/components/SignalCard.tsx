@@ -1,13 +1,16 @@
-import { ArrowUpRight, Activity, Target, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, Activity, Target, ShieldAlert, Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 interface SignalCardProps {
   signal: any;
   isLoading?: boolean;
+  isLatest?: boolean;
 }
 
-export function SignalCard({ signal, isLoading }: SignalCardProps) {
+export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
   if (isLoading) {
     return <div className="h-64 bg-gray-900/50 animate-pulse rounded-xl border border-gray-800" />;
   }
@@ -50,7 +53,7 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Latest Signal</div>
+              {isLatest && <div className="text-xs text-gray-500 uppercase tracking-wider">Latest Signal</div>}
               {getStatusBadge()}
             </div>
             <CardTitle className="text-2xl font-bold text-white flex items-center gap-2">
@@ -104,6 +107,67 @@ export function SignalCard({ signal, isLoading }: SignalCardProps) {
                 <span className="font-mono text-sm text-red-300">${stop_loss}</span>
               </div>
           </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" className="w-full mt-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30 border border-cyan-900/30">
+                <Maximize2 className="w-4 h-4 mr-2" /> View Full Analysis
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                   <span className="text-3xl">{token?.symbol}</span>
+                   {getStatusBadge()}
+                </DialogTitle>
+                <div className="text-gray-400">{token?.name}</div>
+              </DialogHeader>
+              
+              <div className="space-y-6 mt-4">
+                 <div className="grid grid-cols-3 gap-4">
+                    <div className="flex flex-col p-3 bg-gray-950/50 rounded-lg border border-gray-800">
+                      <span className="text-xs text-gray-500 uppercase mb-1">Entry</span>
+                      <span className="font-mono text-lg text-gray-300">${entry_price}</span>
+                    </div>
+                    <div className="flex flex-col p-3 bg-gray-950/50 rounded-lg border border-gray-800">
+                      <span className="text-xs text-gray-500 uppercase mb-1">Target</span>
+                      <span className="font-mono text-lg text-cyan-400">${target_price}</span>
+                    </div>
+                    <div className="flex flex-col p-3 bg-gray-950/50 rounded-lg border border-gray-800">
+                      <span className="text-xs text-gray-500 uppercase mb-1">Stop Loss</span>
+                      <span className="font-mono text-lg text-red-400">${stop_loss}</span>
+                    </div>
+                 </div>
+
+                 <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-cyan-400" />
+                      Signal Analysis
+                    </h3>
+                    <div className="p-4 bg-gray-950 rounded-lg border border-gray-800">
+                      <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-base">
+                        {analysis}
+                      </p>
+                    </div>
+                 </div>
+
+                 <div className="flex justify-between items-center pt-4 border-t border-gray-800">
+                    <div className="text-sm text-gray-500">
+                      Confidence Score
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-32 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-purple-500" 
+                          style={{ width: `${confidence}%` }}
+                        />
+                      </div>
+                      <span className="font-mono text-cyan-400">{confidence}/100</span>
+                    </div>
+                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>

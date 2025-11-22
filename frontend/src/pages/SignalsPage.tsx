@@ -49,7 +49,7 @@ export function SignalsPage() {
       {/* Latest Signal - Always Visible */}
       <div className="space-y-4">
         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Latest Signal</h3>
-        <SignalCard signal={latestSignal} isLoading={isStatusLoading} />
+        <SignalCard signal={latestSignal} isLoading={isStatusLoading} isLatest={true} />
       </div>
 
       <GatedContent 

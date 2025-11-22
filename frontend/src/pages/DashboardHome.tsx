@@ -75,7 +75,7 @@ export function DashboardHome() {
                  View All <HugeiconsIcon icon={ArrowRight01Icon} className="w-3 h-3" />
                </Link>
             </div>
-            <SignalCard signal={latestSignal} isLoading={isRunLoading} />
+            <SignalCard signal={latestSignal} isLoading={isRunLoading} isLatest={true} />
           </div>
         </div>
 
