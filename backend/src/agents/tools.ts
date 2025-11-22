@@ -407,13 +407,19 @@ export const requestCustomScanTool = createTool({
     telegramUserId: z.number().describe('The user\'s Telegram user ID'),
   }) as any,
   fn: async ({ tokenSymbol, walletAddress, telegramUserId }) => {
+    console.log('🔥🔥🔥 request_custom_scan TOOL INVOKED 🔥🔥🔥');
+    console.log('Parameters:', { tokenSymbol, walletAddress, telegramUserId });
+    
     const { TIERS } = await import('../constants/tiers');
     
     // Handle telegramUserId as either string or number
     const userId = typeof telegramUserId === 'string' ? parseInt(telegramUserId, 10) : telegramUserId;
+    console.log('Parsed userId:', userId);
     
     // Validate user exists and is DIAMOND tier
+    console.log('Fetching user from DB:', walletAddress);
     const user = await supabaseService.getUser(walletAddress);
+    console.log('User fetched:', user ? `${user.wallet_address} (${user.tier})` : 'NOT FOUND');
     
     if (!user) {
       return { 
@@ -433,21 +439,27 @@ export const requestCustomScanTool = createTool({
     }
     
     // Create custom request
+    console.log('Creating custom request in DB for:', { walletAddress, tokenSymbol });
     const request = await supabaseService.createCustomRequest({
       user_wallet_address: walletAddress,
       token_symbol: tokenSymbol,
       status: 'pending',
     });
+    console.log('Custom request created! ID:', request.id);
     
     // Trigger orchestrator (async)
+    console.log('Importing and triggering orchestrator for request:', request.id);
     const { orchestrator } = await import('./orchestrator');
     orchestrator.processCustomRequest(request.id, tokenSymbol, walletAddress)
       .catch((err: any) => console.error('Error processing custom request:', err));
+    console.log('Orchestrator triggered (async)');
     
-    return {
+    const result = {
       success: true,
       message: `Scan initiated for ${tokenSymbol}. You will receive the analysis via Telegram shortly.`,
       request_id: request.id,
     };
+    console.log('Tool returning success:', result);
+    return result;
   },
 });

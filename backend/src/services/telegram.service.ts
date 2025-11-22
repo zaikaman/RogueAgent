@@ -155,7 +155,7 @@ You can chat with me normally! Ask about:
     this.bot.onText(/\/scan (.+)/, async (msg, match) => {
       const chatId = msg.chat.id;
       const userId = msg.from?.id;
-      const tokenSymbol = match?.[1];
+      const tokenSymbol = match?.[1]?.trim().toUpperCase();
       
       if (!userId || !tokenSymbol) return;
 
@@ -167,22 +167,28 @@ You can chat with me normally! Ask about:
           return;
         }
 
-        // Import ChatAgent dynamically
-        const { ChatAgent } = await import('../agents/chat.agent');
-        const { runner } = await ChatAgent.build();
-        
-        // Build prompt for explicit scan request
-        const promptWithContext = `USER CONTEXT:
-- Wallet: ${user.wallet_address}
-- Tier: ${user.tier}
-- Telegram ID: ${userId}
+        // Check tier
+        const { TIERS } = await import('../constants/tiers');
+        if (user.tier !== TIERS.DIAMOND) {
+          await this.bot?.sendMessage(chatId, `⛔ Custom scans are exclusive to DIAMOND tier users (1,000+ $RGE).\n\nYour current tier: ${user.tier}`, { parse_mode: 'Markdown' });
+          return;
+        }
 
-USER MESSAGE: scan ${tokenSymbol}`;
-        
-        const result = await runner.ask(promptWithContext) as any;
-        
-        const responseMessage = result?.message || "I'm having trouble processing that scan request.";
-        await this.bot?.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
+        // Create custom request directly
+        console.log('📊 Creating custom request for:', { userId, tokenSymbol, wallet: user.wallet_address });
+        const request = await supabaseService.createCustomRequest({
+          user_wallet_address: user.wallet_address,
+          token_symbol: tokenSymbol,
+          status: 'pending',
+        });
+        console.log('📊 Custom request created! ID:', request.id);
+
+        // Trigger orchestrator (async)
+        const { orchestrator } = await import('../agents/orchestrator');
+        orchestrator.processCustomRequest(request.id, tokenSymbol, user.wallet_address)
+          .catch((err: any) => logger.error('Error processing custom request:', err));
+
+        await this.bot?.sendMessage(chatId, `🔍 Scan initiated for **${tokenSymbol}**.\n\nYou'll receive a detailed analysis via DM shortly.`, { parse_mode: 'Markdown' });
         
       } catch (error) {
         logger.error('Error in /scan command', error);
@@ -232,7 +238,9 @@ ${historyText}
 USER MESSAGE: ${userMessage}`;
         
         // Call ChatAgent
+        console.log('🤖 Calling ChatAgent with prompt:', promptWithContext);
         const result = await runner.ask(promptWithContext) as any;
+        console.log('🤖 ChatAgent returned:', JSON.stringify(result, null, 2));
         
         // Send response
         const responseMessage = result?.message || "I'm having trouble processing that request right now.";
