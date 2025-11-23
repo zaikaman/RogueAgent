@@ -10,24 +10,14 @@ export const createServer = () => {
   const app = express();
 
   // CORS Configuration
-  const allowedOrigins = [
-    'http://localhost:5173', // Vite dev
-    'https://rogue-adk.vercel.app', // Production 
-    'https://api.vapi.ai', // VAPI API
-    'https://vapi.ai', // VAPI Dashboard
-    process.env.FRONTEND_URL // Configurable
-  ].filter(Boolean);
-
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl requests, or server-to-server)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.indexOf(origin) === -1 && config.NODE_ENV === 'production') {
-        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
+      // Allow all origins for VAPI tool endpoints
+      // VAPI makes requests from various IPs/domains that are hard to whitelist
+      callback(null, true);
     },
     credentials: true
   }));
