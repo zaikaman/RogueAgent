@@ -10,16 +10,12 @@ export const getIntelHistory = async (req: Request, res: Response) => {
     const offset = (page - 1) * limit;
     const walletAddress = req.query.address as string;
 
-    let query = supabaseService.getClient()
-      .from('runs')
-      .select('*', { count: 'exact' })
-      .eq('type', 'intel')
-      .order('created_at', { ascending: false });
-
+    let userTier: string | undefined;
     let cutoffTime: string | undefined;
 
     if (walletAddress) {
       const user = await supabaseService.getUser(walletAddress);
+      userTier = user?.tier;
       if (user && user.tier) {
         if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
           cutoffTime = undefined;
@@ -34,6 +30,18 @@ export const getIntelHistory = async (req: Request, res: Response) => {
     } else {
       cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     }
+
+    // Gold/Diamond users see both 'intel' and 'deep_dive' types
+    // Other users only see 'intel'
+    const allowedTypes = (userTier === TIERS.GOLD || userTier === TIERS.DIAMOND) 
+      ? ['intel', 'deep_dive']
+      : ['intel'];
+
+    let query = supabaseService.getClient()
+      .from('runs')
+      .select('*', { count: 'exact' })
+      .in('type', allowedTypes)
+      .order('created_at', { ascending: false });
 
     if (cutoffTime) {
       query = query.lt('created_at', cutoffTime);
