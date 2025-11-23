@@ -58,6 +58,7 @@ export const getIntelHistory = async (req: Request, res: Response) => {
 
     const intel = runs.map(run => ({
       id: run.id,
+      type: run.type,
       created_at: run.created_at,
       content: run.content,
       public_posted_at: run.public_posted_at
