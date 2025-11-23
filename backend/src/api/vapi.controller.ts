@@ -105,19 +105,27 @@ export const vapiController = {
     try {
       logger.info('VAPI Web/X Search Tool called. Body:', JSON.stringify(req.body));
       
-      // VAPI sends data in a nested message structure
-      let query = req.body.query;
-      let toolCallId = req.body.toolCallId;
+      // Extract from VAPI's nested structure
+      const toolCall = req.body.message?.toolCallList?.[0];
+      const toolCallId = toolCall?.id;
       
-      // If query is not at root level, try to extract from VAPI's message structure
-      if (!query && req.body.message?.toolCallList?.[0]?.arguments?.query) {
-        query = req.body.message.toolCallList[0].arguments.query;
-        toolCallId = req.body.message.toolCallList[0].id;
+      // Parse arguments - VAPI sends it as a JSON string
+      let query;
+      if (toolCall?.function?.arguments) {
+        const args = typeof toolCall.function.arguments === 'string' 
+          ? JSON.parse(toolCall.function.arguments)
+          : toolCall.function.arguments;
+        query = args.query;
       }
 
       if (!query) {
         logger.warn('VAPI Web/X Search: Missing query parameter');
-        return res.status(400).json({ error: 'Query is required', received: req.body });
+        return res.status(400).json({ 
+          results: [{
+            toolCallId: toolCallId || 'unknown',
+            result: 'Query is required'
+          }]
+        });
       }
 
       logger.info('VAPI Web/X Search Tool query:', query);
