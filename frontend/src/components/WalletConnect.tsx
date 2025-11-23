@@ -1,83 +1,105 @@
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { Wallet } from 'lucide-react';
 import { Button } from './ui/button';
-import { Loader2, Wallet } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
-import { useState } from 'react';
 
-interface WalletConnectProps {
-  onConnect?: (address: string) => void;
-}
-
-export function WalletConnect({ onConnect }: WalletConnectProps) {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
-  const { disconnect } = useDisconnect();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleConnect = (connector: any) => {
-    connect({ connector });
-    setIsOpen(false);
-  };
-
-  // Trigger callback when connected
-  if (isConnected && address && onConnect) {
-    // We might want to debounce this or handle it in a useEffect in the parent
-    // But for now, let's just expose the address
-  }
-
-  if (isConnected) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="px-3 py-1.5 bg-green-900/30 border border-green-500/50 rounded text-green-400 font-mono text-sm">
-          {address?.slice(0, 6)}...{address?.slice(-4)}
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => disconnect()}
-          className="border-red-900/50 text-red-400 hover:bg-red-900/20 hover:text-red-300"
-        >
-          Disconnect
-        </Button>
-      </div>
-    );
-  }
-
+export function WalletConnect() {
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          className="bg-cyan-600 hover:bg-cyan-500 text-white font-mono"
-        >
-          <Wallet className="mr-2 h-4 w-4" />
-          Connect Wallet
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-slate-950 border-slate-800 text-slate-100">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-mono text-cyan-400">Select Wallet</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {connectors.map((connector) => (
-            <Button
-              key={connector.uid}
-              onClick={() => handleConnect(connector)}
-              disabled={isPending}
-              variant="outline"
-              className="w-full justify-start text-left font-mono border-slate-700 hover:bg-slate-800 hover:text-cyan-400 h-12"
-            >
-              <span className="capitalize">{connector.name}</span>
-              {isPending && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
-            </Button>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+        authenticationStatus,
+        mounted,
+      }) => {
+        const ready = mounted && authenticationStatus !== 'loading';
+        const connected =
+          ready &&
+          account &&
+          chain &&
+          (!authenticationStatus ||
+            authenticationStatus === 'authenticated');
+
+        return (
+          <div
+            {...(!ready && {
+              'aria-hidden': true,
+              'style': {
+                opacity: 0,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              },
+            })}
+          >
+            {(() => {
+              if (!connected) {
+                return (
+                  <Button 
+                    onClick={openConnectModal}
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-mono"
+                  >
+                    <Wallet className="mr-2 h-4 w-4" />
+                    Connect Wallet
+                  </Button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <Button 
+                    onClick={openChainModal}
+                    variant="destructive"
+                    className="font-mono"
+                  >
+                    Wrong network
+                  </Button>
+                );
+              }
+
+              return (
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={openChainModal}
+                    variant="outline"
+                    className="hidden sm:flex items-center gap-2 border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white font-mono h-9"
+                  >
+                    {chain.hasIcon && (
+                      <div
+                        style={{
+                          background: chain.iconBackground,
+                          width: 12,
+                          height: 12,
+                          borderRadius: 999,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {chain.iconUrl && (
+                          <img
+                            alt={chain.name ?? 'Chain icon'}
+                            src={chain.iconUrl}
+                            style={{ width: 12, height: 12 }}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {chain.name}
+                  </Button>
+
+                  <Button 
+                    onClick={openAccountModal}
+                    variant="outline"
+                    className="bg-green-900/30 border-green-500/50 text-green-400 hover:bg-green-900/50 hover:text-green-300 font-mono h-9"
+                  >
+                    {account.displayName}
+                  </Button>
+                </div>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
   );
 }
