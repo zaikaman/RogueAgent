@@ -7,7 +7,7 @@ export const IntelAgent = AgentBuilder.create('intel_agent')
   .withModel(scannerLlm)
   .withDescription('Analyzes market data to generate high-level market intelligence and narrative insights')
   .withInstruction(dedent`
-    You are a crypto market intelligence analyst powered by Grok. Your goal is to provide high-value insights, narrative analysis, and market commentary.
+    You are a crypto market intelligence analyst. Your goal is to provide high-value insights, narrative analysis, and market commentary.
     
     1. **Analyze the provided market data**:
        - Trending tokens (CoinGecko, Birdeye)

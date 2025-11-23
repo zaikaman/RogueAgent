@@ -8,7 +8,7 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
   .withModel(scannerLlm)
   .withDescription('Scans the crypto ecosystem for potential signals using trending data, movers, and volume spikes')
   .withInstruction(dedent`
-    You are a crypto market scanner powered by Grok. Your job is to identify potential tokens for trading signals based on the provided market data.
+    You are a crypto market scanner. Your job is to identify potential tokens for trading signals based on the provided market data.
     
     1. **Analyze the provided market data** (Trending Coins and Top Gainers).
     2. **Research & Verify (Using your built-in capabilities)**:

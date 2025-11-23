@@ -9,7 +9,7 @@ export const YieldAgent = AgentBuilder.create('yield_agent')
   .withDescription('Analyzes yield farming opportunities across all chains')
   .withTools(getYieldPoolsTool)
   .withInstruction(dedent`
-    You are a DeFi Yield Farming expert powered by Grok. Your job is to identify the best yield farming opportunities.
+    You are a DeFi Yield Farming expert powered by. Your job is to identify the best yield farming opportunities.
 
     1. **Fetch Yield Pools**: Use the 'get_yield_pools' tool to get the latest data.
     2. **Analyze & Research**:

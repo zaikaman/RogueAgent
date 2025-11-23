@@ -23,7 +23,13 @@ interface Message {
 export function AskRogue() {
   const { address } = useAccount();
   const { tier } = useUserTier();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: "Hey there! I'm Rogue, your crypto intelligence assistant. What can I help you with today?",
+      timestamp: Date.now()
+    }
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);

@@ -12,7 +12,7 @@ const openaiModelInstance = createOpenAI({
 // We use the model name from config, defaulting to gpt-4o
 export const llm = new AiSdkLlm(openaiModelInstance.chat(config.OPENAI_MODEL));
 
-// Custom fetch to fix message formatting for Grok
+// Custom fetch to fix message formatting
 const customFetch = async (url: string, options: any) => {
   console.log('--- ORIGINAL REQUEST ---');
   console.log('URL:', url);

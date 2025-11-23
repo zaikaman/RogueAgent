@@ -57,7 +57,7 @@ const marketData = {
   ]
 };
 
-const systemPrompt = `You are a crypto market scanner powered by Grok. Your job is to identify potential tokens for trading signals based on the provided market data.
+const systemPrompt = `You are a crypto market scanner. Your job is to identify potential tokens for trading signals based on the provided market data.
 
 1. **Analyze the provided market data** (Trending Coins and Top Gainers).
 2. **Research & Verify (Using your built-in capabilities)**:
