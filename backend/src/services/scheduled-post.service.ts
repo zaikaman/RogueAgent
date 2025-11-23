@@ -4,6 +4,16 @@ import { twitterService } from './twitter.service';
 import { iqAiService } from './iqai.service';
 import { logger } from '../utils/logger.util';
 import { TIERS } from '../constants/tiers';
+import { AgentBuilder } from '@iqai/adk';
+import { llm } from '../config/llm.config';
+import { z } from 'zod';
+
+const ShortenerAgent = AgentBuilder.create('shortener_agent')
+  .withModel(llm)
+  .withDescription('Shortens text to fit Twitter limits')
+  .withInstruction('You are a text shortener. Your ONLY job is to shorten the input text to be under 240 characters while preserving the core meaning, tickers, and hashtags. Return ONLY the shortened text. Do not add quotes or conversational filler.')
+  .withInputSchema(z.object({ text: z.string() }) as any)
+  .withOutputSchema(z.object({ shortened_text: z.string() }) as any);
 
 export class ScheduledPostService {
   
@@ -72,12 +82,74 @@ export class ScheduledPostService {
 
         } catch (error: any) {
           logger.error(`Error publishing scheduled post ${post.id}:`, error);
+
+          let handled = false;
+
+          // Check if error is length related (186 is Twitter's code for too long)
+          if (error.message && (error.message.includes('186') || error.message.includes('shorter') || error.message.includes('too long'))) {
+             logger.info(`Tweet too long for post ${post.id}. Attempting to shorten...`);
+             try {
+                const { runner } = await ShortenerAgent.build();
+                const result = await (runner as any).run({ text: post.content });
+                
+                if (result.shortened_text) {
+                   logger.info(`Shortened tweet: ${result.shortened_text}`);
+                   // Retry posting
+                   const tweetId = await twitterService.postTweet(result.shortened_text);
+                   if (tweetId) {
+                      logger.info(`Twitter post successful after shortening for scheduled post ${post.id}: ${tweetId}`);
+                      
+                      // Update the original run with public_posted_at
+                      await supabaseService.updateRun(post.run_id, { 
+                        public_posted_at: new Date().toISOString() 
+                      });
+
+                      // Update scheduled post with new content and status
+                      await supabaseService.updateScheduledPost(post.id, {
+                        content: result.shortened_text,
+                        status: 'posted',
+                        posted_at: new Date().toISOString()
+                      });
+                      
+                      // Post to IQ AI
+                      try {
+                        const run = await supabaseService.getRunById(post.run_id);
+                        if (run && run.content) {
+                          let logContent = '';
+                          
+                          if (run.type === 'signal') {
+                            const baseLog = run.content.log_message || `SIGNAL LOCKED: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
+                            const twitterLink = `https://x.com/RogueADK/status/${tweetId}`;
+                            logContent = `${baseLog} ${twitterLink}`;
+                          } else if (run.type === 'intel') {
+                            const topic = run.content.topic || 'Market Intel';
+                            const intelLink = `https://rogue-adk.vercel.app/app/intel/${run.id}`;
+                            logContent = `intel ping: ${topic}. ${intelLink}`;
+                          }
+
+                          if (logContent) {
+                            await iqAiService.postLog(logContent);
+                          }
+                        }
+                      } catch (error) {
+                        logger.error('Error posting log to IQ AI:', error);
+                      }
+                      
+                      handled = true;
+                   }
+                }
+             } catch (shortenError) {
+                logger.error('Failed to shorten tweet:', shortenError);
+             }
+          }
           
-          // Mark as failed
-          await supabaseService.updateScheduledPost(post.id, {
-            status: 'failed',
-            error_message: error.message
-          });
+          if (!handled) {
+            // Mark as failed
+            await supabaseService.updateScheduledPost(post.id, {
+              status: 'failed',
+              error_message: error.message
+            });
+          }
         }
       }
 

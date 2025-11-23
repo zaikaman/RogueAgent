@@ -382,6 +382,7 @@ export class SupabaseService {
     status?: 'pending' | 'posted' | 'failed';
     posted_at?: string;
     error_message?: string;
+    content?: string;
   }) {
     const { data, error } = await this.client
       .from('scheduled_posts')

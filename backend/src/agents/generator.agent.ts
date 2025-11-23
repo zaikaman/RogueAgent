@@ -26,14 +26,14 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        confidence: ...
        analysis...
        #hashtag1 #hashtag2 (do NOT include the label "hashtags:", just the tags)
-     - strict limit: under 260 characters.
+     - strict limit: under 270 characters (CRITICAL).
      - output field: 'tweet_text'
      - generate a 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "SIGNAL LOCKED: $MET showing breakout patterns."
 
      mode 2: market intel
      - you must generate FIVE outputs:
        1. 'topic': a short 3-5 word title for the intel.
-       2. 'tweet_text': a short, punchy tweet (under 260 chars).
+       2. 'tweet_text': a short, punchy tweet (under 270 chars - CRITICAL).
        3. 'blog_post': a full markdown blog post/article. MUST be under 3500 characters to fit in one Telegram message.
        4. 'image_prompt': a detailed, creative prompt for an AI image generator to create a visual for this intel. style: cyberpunk, futuristic, high-tech, cinematic.
        5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
@@ -68,7 +68,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      - output field: 'formatted_content'
 
      IMPORTANT: you must return the result in strict JSON format matching the output schema.
-     IMPORTANT: ensure the 'tweet_text' is less than 260 characters.
+     IMPORTANT: ensure the 'tweet_text' is less than 270 characters. This is a HARD LIMIT.
 
      example json output:
      {
