@@ -7,7 +7,7 @@ import {
   Message01Icon, 
   Loading03Icon
 } from '@hugeicons/core-free-icons';
-import { Mic, Square, Send } from 'lucide-react';
+import { Mic, Square, Send, X } from 'lucide-react';
 import Vapi from '@vapi-ai/web';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -233,26 +233,6 @@ export function AskRogue() {
           </h2>
           <p className="text-gray-400 mt-1">Chat with Rogue for real-time insights and analysis.</p>
         </div>
-        <button
-          onClick={toggleVoiceChat}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-            isCallActive 
-              ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20' 
-              : 'bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20 border border-cyan-500/20'
-          }`}
-        >
-          {isCallActive ? (
-            <>
-              <Square className="w-5 h-5" />
-              End Voice Chat
-            </>
-          ) : (
-            <>
-              <Mic className="w-5 h-5" />
-              Start Voice Chat
-            </>
-          )}
-        </button>
       </div>
 
       {/* Chat Area */}
@@ -261,20 +241,63 @@ export function AskRogue() {
         <AnimatePresence>
           {isCallActive && (
             <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-gray-900/90 backdrop-blur-md border border-cyan-500/30 px-6 py-2 rounded-full flex items-center gap-3 shadow-lg shadow-cyan-500/10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-gray-900/95 backdrop-blur-xl flex flex-col items-center justify-center"
             >
-              <div className="relative flex items-center justify-center w-3 h-3">
-                {isSpeaking && (
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75 animate-ping"></span>
-                )}
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${isSpeaking ? 'bg-cyan-500' : 'bg-gray-500'}`}></span>
+              <button 
+                onClick={toggleVoiceChat}
+                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="relative">
+                {/* Pulsing Rings */}
+                <motion.div 
+                  animate={{ 
+                    scale: isSpeaking ? [1, 1.2, 1] : 1,
+                    opacity: isSpeaking ? [0.5, 0.2, 0.5] : 0.1
+                  }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="absolute inset-0 bg-cyan-500 rounded-full blur-xl"
+                />
+                <motion.div 
+                  animate={{ 
+                    scale: isSpeaking ? [1, 1.5, 1] : 1,
+                    opacity: isSpeaking ? [0.3, 0.1, 0.3] : 0.05
+                  }}
+                  transition={{ repeat: Infinity, duration: 2, delay: 0.2 }}
+                  className="absolute inset-0 bg-cyan-400 rounded-full blur-2xl"
+                />
+                
+                {/* Central Orb */}
+                <div className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500 ${
+                  isSpeaking 
+                    ? 'bg-gradient-to-br from-cyan-400 to-blue-600 shadow-[0_0_50px_rgba(34,211,238,0.5)]' 
+                    : 'bg-gray-800 border border-gray-700'
+                }`}>
+                  <Mic className={`w-12 h-12 ${isSpeaking ? 'text-white' : 'text-gray-500'}`} />
+                </div>
               </div>
-              <span className="text-sm font-medium text-cyan-100">
-                {isSpeaking ? 'Rogue is speaking...' : 'Listening...'}
-              </span>
+
+              <div className="mt-12 text-center space-y-2">
+                <h3 className="text-2xl font-bold text-white tracking-tight">
+                  {isSpeaking ? 'Rogue is speaking...' : 'Listening...'}
+                </h3>
+                <p className="text-gray-400">
+                  {isSpeaking ? 'Listen carefully' : 'Go ahead, I\'m listening'}
+                </p>
+              </div>
+
+              <button
+                onClick={toggleVoiceChat}
+                className="mt-12 px-8 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-full font-medium transition-all flex items-center gap-2 group"
+              >
+                <Square className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
+                End Session
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -341,6 +364,17 @@ export function AskRogue() {
 
         <div className="p-4 bg-gray-900 border-t border-gray-800">
           <div className="flex gap-2">
+            <button
+              onClick={toggleVoiceChat}
+              className={`p-2.5 rounded-lg transition-all duration-300 flex items-center justify-center ${
+                isCallActive 
+                  ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 animate-pulse' 
+                  : 'bg-gray-800 text-gray-400 hover:text-cyan-400 hover:bg-gray-700 border border-gray-700'
+              }`}
+              title={isCallActive ? "End Voice Chat" : "Start Voice Chat"}
+            >
+              <Mic className={`w-5 h-5 ${isCallActive ? 'animate-bounce' : ''}`} />
+            </button>
             <input
               type="text"
               value={input}
