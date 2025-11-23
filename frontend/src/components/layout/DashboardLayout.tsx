@@ -11,10 +11,11 @@ import {
   Cancel01Icon,
   Rocket01Icon
 } from '@hugeicons/core-free-icons';
-import { Send, Terminal } from 'lucide-react';
+import { Send, Terminal, DollarSign } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
 import { Countdown } from '../Countdown';
 import { ChainOfThoughtModal } from '../ChainOfThoughtModal';
+import { BuyRGEModal } from '../BuyRGEModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRunStatus } from '../../hooks/useRunStatus';
 
@@ -26,6 +27,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
   const { data: runStatus } = useRunStatus();
@@ -166,8 +168,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: Coins01Icon, label: 'Yield', path: '/app/yield' },
     { icon: Rocket01Icon, label: 'Airdrops', path: '/app/airdrops' },
     { icon: ChartHistogramIcon, label: 'Analytics', path: '/app/analytics' },
-    // { icon: Settings01Icon, label: 'Settings', path: '/app/settings' },
   ];
+
+  const pageTitles: Record<string, string> = {
+    '/app': 'MISSION CONTROL',
+    '/app/signals': 'SIGNAL INTERCEPT',
+    '/app/intel': 'INTELLIGENCE FEED',
+    '/app/yield': 'YIELD PROTOCOLS',
+    '/app/airdrops': 'AIRDROP TRACKER',
+    '/app/analytics': 'DATA ANALYTICS',
+  };
+
+  const currentTitle = pageTitles[location.pathname] || 'SYSTEM OVERVIEW';
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-sans selection:bg-cyan-500/30 flex">
@@ -200,7 +212,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
         </div>
 
-        <nav className="flex-1 py-6 px-3 space-y-1">
+        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -221,31 +233,45 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           })}
         </nav>
 
-        {/* Mobile Only Actions */}
-        <div className="md:hidden p-4 border-t border-gray-800 space-y-4 bg-gray-900/30">
-            <div className="flex justify-center w-full">
+        {/* System Status & Actions (Desktop & Mobile) */}
+        <div className="p-4 border-t border-gray-800 bg-gray-900/30 space-y-4">
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold pl-1">System Status</div>
+              <div className="bg-black/50 rounded-lg p-3 border border-gray-800">
                 <Countdown 
                   lastRunTime={lastRunTime} 
                   intervalMinutes={runStatus?.interval_minutes}
                 />
+              </div>
             </div>
-            <a 
-              href="https://t.me/rogueadkbot" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors group w-full"
-            >
-               <Send className="w-4 h-4" />
-               <span className="text-sm font-medium">Telegram Bot</span>
-            </a>
-            <div className="flex justify-center w-full">
-                <WalletConnect />
+
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                onClick={() => setIsBuyModalOpen(true)}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 transition-colors group"
+              >
+                <DollarSign className="w-4 h-4" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">Buy $RGE</span>
+              </button>
+              <a 
+                href="https://t.me/rogueadkbot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg bg-[#2AABEE]/5 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/10 transition-colors group"
+              >
+                <Send className="w-4 h-4" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">Telegram</span>
+              </a>
+            </div>
+            
+            <div className="md:hidden">
+               <WalletConnect />
             </div>
         </div>
 
-        <div className="p-4 border-t border-gray-800">
-          <div className="text-xs text-gray-600 font-mono text-center">
-            v1.0.0-alpha
+        <div className="p-2 border-t border-gray-800 bg-black">
+          <div className="text-[10px] text-gray-700 font-mono text-center">
+            ROGUE_OS v1.0.0-alpha
           </div>
         </div>
       </aside>
@@ -262,25 +288,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
              <Link to="/" className="font-bold text-white no-underline">ROGUE</Link>
            </div>
           
-          <div className="hidden md:block">
-             {/* Breadcrumbs or Page Title could go here */}
+          <div className="hidden md:flex items-center">
+             <div className="flex items-center gap-2 text-sm font-mono text-gray-500">
+                <span className="text-cyan-500">/</span>
+                <span className="tracking-widest">{currentTitle}</span>
+             </div>
           </div>
 
           <div className="hidden md:flex items-center gap-4 ml-auto">
-            <a 
-              href="https://t.me/rogueadkbot" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/20 transition-colors group"
-            >
-               <Send className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-               <span className="text-sm font-medium hidden sm:inline">Telegram Bot</span>
-            </a>
-            <Countdown 
-              lastRunTime={lastRunTime} 
-              intervalMinutes={runStatus?.interval_minutes}
-            />
-            <div className="h-6 w-px bg-gray-800" />
             <WalletConnect />
           </div>
         </header>
@@ -297,6 +312,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         logs={logs} 
+      />
+
+      {/* Buy RGE Modal */}
+      <BuyRGEModal 
+        isOpen={isBuyModalOpen} 
+        onClose={() => setIsBuyModalOpen(false)} 
       />
 
       {/* Reopen Button */}
