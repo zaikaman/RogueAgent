@@ -24,7 +24,9 @@ ${history?.map((h: any) => `User: ${h.user}\nAssistant: ${h.assistant}`).join('\
 USER MESSAGE: ${message}
       `.trim();
 
-      const result = await ChatAgent.run(agentInput);
+      // Build and run the agent (same pattern as telegram service)
+      const { runner } = await ChatAgent.build();
+      const result = await runner.ask(agentInput);
 
       res.json(result);
     } catch (error: any) {
