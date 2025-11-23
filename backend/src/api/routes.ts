@@ -31,6 +31,7 @@ router.post('/vapi/tools/signals', vapiController.getRecentSignals);
 router.post('/vapi/tools/intel', vapiController.getRecentIntel);
 router.post('/vapi/tools/yield', vapiController.getYieldOpportunities);
 router.post('/vapi/tools/airdrops', vapiController.getAirdrops);
+router.post('/vapi/tools/search', vapiController.searchWebAndX);
 
 // Trigger run
 router.post('/run', runController.triggerRun);

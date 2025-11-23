@@ -224,9 +224,9 @@ You can chat with me normally! Ask about:
           return;
         }
 
-        // Import ChatAgent dynamically
+        // Import agents dynamically
+        const { InitialChatAgent } = await import('../agents/initial-chat.agent');
         const { ChatAgent } = await import('../agents/chat.agent');
-        const { runner } = await ChatAgent.build();
         
         // Get history
         const history = this.chatHistory.get(userId) || [];
@@ -245,92 +245,50 @@ ${historyText}
 
 USER MESSAGE: ${userMessage}`;
         
-        // Retry logic for schema validation errors
-        const maxAttempts = 3;
-        let attempts = 0;
-        let lastError: any;
-        let result: any;
+        try {
+          // Step 1: Call InitialChatAgent (GPT-4o with database tools)
+          const initialAgent = await InitialChatAgent;
+          const initialResult = await initialAgent.runner.ask(basePrompt) as any;
 
-        while (attempts < maxAttempts) {
-          try {
-            attempts++;
-            let currentPrompt = basePrompt;
+          let responseMessage: string;
 
-            if (attempts > 1) {
-              const errorMessage = lastError?.message || 'Unknown error';
-              const isSchemaError = errorMessage.includes('schema') || 
-                                    errorMessage.includes('validation') || 
-                                    errorMessage.includes('parse') ||
-                                    errorMessage.includes('JSON');
-              
-              if (isSchemaError) {
-                currentPrompt = `${basePrompt}
+          // Step 2: Check if web search is needed
+          if (initialResult.needs_web_search) {
+            // Route to ChatAgent (Grok) with context
+            const grokInput = `USER CONTEXT:
+- Wallet: ${user.wallet_address}
+- Tier: ${user.tier}
+- Telegram ID: ${userId}
 
-⚠️ PREVIOUS ATTEMPT ${attempts - 1} FAILED DUE TO OUTPUT FORMATTING ERROR ⚠️
+ROUTING CONTEXT:
+The user's question requires real-time web/X search capabilities.
+Reasoning: ${initialResult.reasoning}
 
-Error: ${errorMessage}
+CHAT HISTORY:
+${historyText}
 
-CRITICAL INSTRUCTIONS TO FIX:
-1. You MUST return ONLY ONE valid JSON object that exactly matches the output schema
-2. ALL required fields must be present: message (string), triggered_scan (boolean), token_scanned (string)
-3. Do NOT output duplicate JSON objects
-4. Do NOT include any text before or after the JSON
-5. Do NOT include any error messages in the output
-6. Ensure proper JSON syntax with no trailing commas or invalid characters
-7. The message field should contain your response to the user
+USER MESSAGE: ${userMessage}`;
 
-Please retry with correctly formatted output.`;
-                logger.info(`ChatAgent retry attempt ${attempts}/${maxAttempts} due to validation error`);
-              }
-            }
-            
-            // Call ChatAgent
-            console.log(`🤖 Calling ChatAgent (attempt ${attempts}/${maxAttempts}):`, currentPrompt);
-            result = await runner.ask(currentPrompt) as any;
-            console.log('🤖 ChatAgent returned:', JSON.stringify(result, null, 2));
-            
-            // Success - break out of retry loop
-            if (attempts > 1) {
-              logger.info(`ChatAgent succeeded on attempt ${attempts}/${maxAttempts}`);
-            }
-            break;
-            
-          } catch (error: any) {
-            logger.warn(`ChatAgent attempt ${attempts}/${maxAttempts} failed:`, {
-              message: error.message,
-              error: error.toString()
-            });
-            lastError = error;
-            
-            if (attempts >= maxAttempts) {
-              logger.error(`ChatAgent failed after ${maxAttempts} attempts. Last error:`, error);
-              // Don't throw - send fallback message instead
-              result = { message: "I'm having trouble processing that request right now. Please try again." };
-              break;
-            }
-            
-            // Wait before retry (exponential backoff)
-            const waitTime = Math.min(1000 * Math.pow(2, attempts - 1), 3000);
-            logger.info(`Waiting ${waitTime}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+            const grokAgent = await ChatAgent;
+            const grokResult: any = await grokAgent.runner.ask(grokInput);
+            responseMessage = typeof grokResult === 'string' ? grokResult : grokResult.message || JSON.stringify(grokResult);
+          } else {
+            // Use the direct response from InitialChatAgent
+            responseMessage = initialResult.response || 'I processed your request.';
           }
-        }
-        
-        // Send response
-        const responseMessage = result?.message || "I'm having trouble processing that request right now.";
-        
-        // Update history
-        history.push({ role: 'user', content: userMessage });
-        history.push({ role: 'assistant', content: responseMessage });
-        
-        // Keep last 20 messages
-        if (history.length > 20) {
-            history.splice(0, history.length - 20);
-        }
-        this.chatHistory.set(userId, history);
 
-        await this.bot?.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
-        
+          // Send response
+          await this.bot?.sendMessage(chatId, responseMessage, { parse_mode: 'Markdown' });
+
+          // Update history
+          history.push({ role: 'user', content: userMessage });
+          history.push({ role: 'assistant', content: responseMessage });
+          if (history.length > 10) history.splice(0, history.length - 10); // Keep last 5 exchanges
+          this.chatHistory.set(userId, history);
+        } catch (error: any) {
+          logger.error('Error in chat handler:', error);
+          await this.bot?.sendMessage(chatId, '❌ Sorry, I encountered an error. Please try again.');
+        }
       } catch (error) {
         logger.error('Error in Telegram message handler', error);
         await this.bot?.sendMessage(chatId, '❌ An error occurred while processing your message.');

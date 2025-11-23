@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { supabaseService } from '../services/supabase.service';
+import { ChatAgent } from '../agents/chat.agent';
 import { logger } from '../utils/logger.util';
 
 export const vapiController = {
@@ -98,5 +99,43 @@ export const vapiController = {
       logger.error('VAPI Airdrops Error', error);
       res.status(500).json({ error: 'Failed to fetch airdrops' });
     }
+  },
+
+  async searchWebAndX(req: Request, res: Response) {
+    try {
+      const { query } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: 'Query is required' });
+      }
+
+      logger.info('VAPI Web/X Search Tool called with query:', query);
+
+      // Call ChatAgent (Grok) with the query
+      const grokInput = `USER CONTEXT:
+- Source: VAPI Voice Assistant
+- Request Type: Web/X Search
+
+USER MESSAGE: ${query}`;
+
+      const grokAgent = await ChatAgent;
+      const result: any = await grokAgent.runner.ask(grokInput);
+
+      // Extract text response
+      const responseText = typeof result === 'string' ? result : result.message || JSON.stringify(result);
+
+      logger.info('VAPI Web/X Search Tool response length:', responseText.length);
+
+      // Return formatted response for VAPI
+      res.json({
+        answer: responseText,
+        query: query,
+        source: 'grok_web_search'
+      });
+    } catch (error: any) {
+      logger.error('VAPI Web/X Search Error', error);
+      res.status(500).json({ error: 'Failed to search web/X', message: error.message });
+    }
   }
 };
+
