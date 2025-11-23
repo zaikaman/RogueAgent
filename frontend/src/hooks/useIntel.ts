@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 export interface IntelItem {
   id: string;
   created_at: string;
+  type?: string;
   content: {
     tweet_text?: string;
     blog_post?: string;
