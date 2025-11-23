@@ -136,10 +136,9 @@ USER MESSAGE: ${query}`;
       logger.info('VAPI Web/X Search Tool response length:', responseText.length);
 
       // Return formatted response for VAPI
+      // VAPI expects a simple structure that it can read to the user
       res.json({
-        answer: responseText,
-        query: query,
-        source: 'grok_web_search'
+        result: responseText
       });
     } catch (error: any) {
       logger.error('VAPI Web/X Search Error', error);
