@@ -45,7 +45,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     // Poll for logs
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: any;
     let lastId = 0;
     let wasScanning = false;
 
