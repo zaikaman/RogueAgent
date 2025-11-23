@@ -10,7 +10,7 @@ interface IntelCardProps {
 }
 
 export function IntelCard({ intel, onClick }: IntelCardProps) {
-  const { content, created_at } = intel;
+  const { content, created_at, type } = intel;
   const title = content.topic || "Market Intelligence Report";
   const excerpt = content.tweet_text || content.formatted_thread?.slice(0, 150) + '...';
   const date = new Date(created_at).toLocaleDateString(undefined, { 
@@ -19,6 +19,12 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
     hour: '2-digit',
     minute: '2-digit'
   });
+
+  const isDeepDive = type === 'deep_dive';
+  const badgeText = isDeepDive ? 'DEEP DIVE' : 'ALPHA REPORT';
+  const badgeClass = isDeepDive 
+    ? 'bg-gradient-to-r from-amber-500/90 to-orange-500/90 backdrop-blur-md text-white border-amber-400/30 font-bold'
+    : 'bg-black/50 backdrop-blur-md text-white border-white/20';
 
   // Generate a deterministic gradient based on the ID or title
   const gradients = [
@@ -50,8 +56,8 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
         
         {/* Overlay Content */}
         <div className="relative z-10">
-          <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 mb-2 hover:bg-black/60 text-xs h-6 px-2.5">
-            ALPHA REPORT
+          <Badge className={`${badgeClass} mb-2 hover:bg-black/60 text-xs h-6 px-2.5`}>
+            {badgeText}
           </Badge>
           <h3 className="text-xl font-bold text-white leading-tight line-clamp-2 drop-shadow-md">
             {title}
