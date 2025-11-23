@@ -107,10 +107,12 @@ export const vapiController = {
       
       // VAPI sends data in a nested message structure
       let query = req.body.query;
+      let toolCallId = req.body.toolCallId;
       
       // If query is not at root level, try to extract from VAPI's message structure
-      if (!query && req.body.message?.toolCalls?.[0]?.function?.arguments?.query) {
-        query = req.body.message.toolCalls[0].function.arguments.query;
+      if (!query && req.body.message?.toolCallList?.[0]?.arguments?.query) {
+        query = req.body.message.toolCallList[0].arguments.query;
+        toolCallId = req.body.message.toolCallList[0].id;
       }
 
       if (!query) {
@@ -119,6 +121,7 @@ export const vapiController = {
       }
 
       logger.info('VAPI Web/X Search Tool query:', query);
+      logger.info('VAPI Web/X Search Tool toolCallId:', toolCallId);
 
       // Call ChatAgent (Grok) with the query
       const grokInput = `USER CONTEXT:
@@ -136,9 +139,14 @@ USER MESSAGE: ${query}`;
       logger.info('VAPI Web/X Search Tool response length:', responseText.length);
 
       // Return formatted response for VAPI
-      // VAPI expects a simple structure that it can read to the user
+      // VAPI expects: { results: [{ toolCallId: "X", result: "Y" }] }
       res.json({
-        result: responseText
+        results: [
+          {
+            toolCallId: toolCallId,
+            result: responseText
+          }
+        ]
       });
     } catch (error: any) {
       logger.error('VAPI Web/X Search Error', error);
