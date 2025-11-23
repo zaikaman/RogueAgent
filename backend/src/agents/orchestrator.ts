@@ -401,7 +401,12 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
           * Visual hierarchy (use bold, italics, blockquotes for emphasis)
           * Actionable insights (specific entry points, risk levels, timeframes)
           * Forward-looking thesis for next week
-        - image_prompt: Sophisticated, premium aesthetic (avoid generic crypto visuals)
+        - image_prompt: PREMIUM COVER IMAGE - Create a sophisticated, editorial-style prompt:
+          * Think: Financial Times, Bloomberg Markets, or premium research report covers
+          * Avoid: Crypto clichés (coins, charts, generic blockchain visuals)
+          * Use: Cinematic lighting, architectural elements, abstract financial concepts, luxury aesthetic
+          * Examples: "Minimalist marble trading floor bathed in golden hour light, abstract market data streams flowing through brutalist architecture, hyperrealistic 8k, premium editorial photography" or "Luxury penthouse office at night overlooking cityscape, holographic financial data projections, warm amber lighting, architectural digest style, ultra-detailed"
+          * Make it look like a $10,000 stock photo, not AI crypto art
         
         Report: ${JSON.stringify(intelResult)}
         
