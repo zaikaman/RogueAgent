@@ -313,7 +313,7 @@ export class SupabaseService {
     let query = this.client
       .from('runs')
       .select('*')
-      .eq('type', 'intel')
+      .in('type', ['intel', 'deep_dive'])
       .order('created_at', { ascending: false })
       .limit(1);
 
