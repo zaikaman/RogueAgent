@@ -83,7 +83,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
   .withOutputSchema(
     z.object({
       topic: z.string().optional(),
-      tweet_text: z.string().optional(),
+      tweet_text: z.string().max(280, "Tweet text must be under 280 characters").optional(),
       blog_post: z.string().optional(),
       image_prompt: z.string().optional(),
       formatted_content: z.string().optional(), // For backward compatibility/signals/custom reports

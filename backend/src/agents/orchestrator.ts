@@ -728,7 +728,7 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         if (attempts > 1) {
           // Add error context to help the agent fix the issue
           const errorMessage = lastError?.message || 'Unknown error';
-          const isSchemaError = errorMessage.includes('schema') || errorMessage.includes('validation') || errorMessage.includes('parse');
+          const isSchemaError = errorMessage.includes('schema') || errorMessage.includes('validation') || errorMessage.includes('parse') || errorMessage.includes('Tweet text must be under 280 characters');
           
           if (isSchemaError) {
             currentPrompt = `${prompt}
@@ -744,6 +744,7 @@ CRITICAL INSTRUCTIONS TO FIX:
 4. Enum values must be exactly as specified (e.g., 'signal', 'skip', or 'no_signal')
 5. Do NOT include any conversational text - ONLY the JSON object
 6. Double-check your JSON syntax is valid
+7. IF THE ERROR WAS ABOUT TWEET LENGTH: You MUST shorten the 'tweet_text' to be under 280 characters. This is a HARD requirement.
 
 Please retry with correctly formatted output.`;
           } else {

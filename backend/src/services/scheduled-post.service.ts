@@ -11,7 +11,7 @@ import { z } from 'zod';
 const ShortenerAgent = AgentBuilder.create('shortener_agent')
   .withModel(llm)
   .withDescription('Shortens text to fit Twitter limits')
-  .withInstruction('You are a text shortener. Your ONLY job is to shorten the input text to be under 240 characters while preserving the core meaning, tickers, and hashtags. Return ONLY the shortened text. Do not add quotes or conversational filler.')
+  .withInstruction('You are a text shortener. Your ONLY job is to shorten the input text to be under 270 characters while preserving the core meaning, tickers, and hashtags. Return ONLY the shortened text. Do not add quotes or conversational filler.')
   .withInputSchema(z.object({ text: z.string() }) as any)
   .withOutputSchema(z.object({ shortened_text: z.string() }) as any);
 
