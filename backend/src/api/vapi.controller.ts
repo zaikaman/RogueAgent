@@ -105,7 +105,13 @@ export const vapiController = {
     try {
       logger.info('VAPI Web/X Search Tool called. Body:', JSON.stringify(req.body));
       
-      const { query } = req.body;
+      // VAPI sends data in a nested message structure
+      let query = req.body.query;
+      
+      // If query is not at root level, try to extract from VAPI's message structure
+      if (!query && req.body.message?.toolCalls?.[0]?.function?.arguments?.query) {
+        query = req.body.message.toolCalls[0].function.arguments.query;
+      }
 
       if (!query) {
         logger.warn('VAPI Web/X Search: Missing query parameter');
