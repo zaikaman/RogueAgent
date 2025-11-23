@@ -430,7 +430,9 @@ export class Orchestrator extends EventEmitter {
            const prefix = shouldGenerateDeepDive ? '📊 EXCLUSIVE DEEP DIVE 📊\n\n' : '';
            logger.info(`Distributing ${shouldGenerateDeepDive ? 'Deep Dive' : 'Intel'} to GOLD/DIAMOND for run ${runId}...`);
            const intelLink = `https://rogue-adk.vercel.app/app/intel/${runId}`;
-           const messageWithLink = `${prefix}${blogContent}\n\n[View full ${shouldGenerateDeepDive ? 'deep dive' : 'intel'} here](${intelLink})`;
+           // Use TLDR for Telegram, full content is on the website
+           const tldrText = writerResult.tldr || intelResult.insight || 'New intel available';
+           const messageWithLink = `${prefix}${writerResult.headline}\n\n${tldrText}\n\n[View full ${shouldGenerateDeepDive ? 'deep dive' : 'intel'} here](${intelLink})`;
            telegramService.broadcastToTiers(messageWithLink, [TIERS.GOLD, TIERS.DIAMOND])
              .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
         }
