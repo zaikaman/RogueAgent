@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export const CustomCursor = () => {
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -7,6 +8,7 @@ export const CustomCursor = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isClicking, setIsClicking] = useState(false);
   const [isPointerFine, setIsPointerFine] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(pointer: fine)');
@@ -92,15 +94,54 @@ export const CustomCursor = () => {
     };
   }, [isPointerFine]);
 
-  if (!isPointerFine) return null;
+  useEffect(() => {
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.top = '0';
+    div.style.left = '0';
+    div.style.width = '100%';
+    div.style.height = '0';
+    div.style.pointerEvents = 'none';
+    div.style.zIndex = '2147483647';
+    document.body.appendChild(div);
+    setPortalContainer(div);
 
-  return (
+    const observer = new MutationObserver((mutations) => {
+      let shouldMove = false;
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (let i = 0; i < mutation.addedNodes.length; i++) {
+            if (mutation.addedNodes[i] !== div) {
+              shouldMove = true;
+              break;
+            }
+          }
+        }
+      }
+      if (shouldMove && document.body.lastChild !== div) {
+        document.body.appendChild(div);
+      }
+    });
+    
+    observer.observe(document.body, { childList: true });
+
+    return () => {
+      observer.disconnect();
+      if (document.body.contains(div)) {
+        document.body.removeChild(div);
+      }
+    };
+  }, []);
+
+  if (!isPointerFine || !portalContainer) return null;
+
+  return createPortal(
     <>
       {/* Main Crosshair Cursor */}
       <div
         ref={cursorRef}
-        className={`pointer-events-none fixed left-0 top-0 z-[9999] transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-        style={{ willChange: 'transform' }}
+        className={`pointer-events-none fixed left-0 top-0 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        style={{ willChange: 'transform', zIndex: 2147483647 }}
       >
         <div className={`relative -ml-3 -mt-3 h-6 w-6 transition-transform duration-100 ${isClicking ? 'scale-75' : 'scale-100'}`}>
           {/* Crosshair lines */}
@@ -114,8 +155,8 @@ export const CustomCursor = () => {
       {/* Trailing Ring */}
       <div
         ref={trailerRef}
-        className={`pointer-events-none fixed left-0 top-0 z-[9998] transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-        style={{ willChange: 'transform' }}
+        className={`pointer-events-none fixed left-0 top-0 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        style={{ willChange: 'transform', zIndex: 2147483646 }}
       >
         <div 
           className={`
@@ -131,6 +172,7 @@ export const CustomCursor = () => {
           <div className="absolute -bottom-[1px] -right-[1px] h-2 w-2 border-b border-r border-cyan-500/60" />
         </div>
       </div>
-    </>
+    </>,
+    portalContainer
   );
 };
