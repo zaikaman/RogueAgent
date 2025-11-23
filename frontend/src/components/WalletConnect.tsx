@@ -1,6 +1,14 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { Button } from './ui/button';
 import { Loader2, Wallet } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { useState } from 'react';
 
 interface WalletConnectProps {
   onConnect?: (address: string) => void;
@@ -10,10 +18,11 @@ export function WalletConnect({ onConnect }: WalletConnectProps) {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleConnect = () => {
-    const connector = connectors[0]; // Injected connector
+  const handleConnect = (connector: any) => {
     connect({ connector });
+    setIsOpen(false);
   };
 
   // Trigger callback when connected
@@ -41,17 +50,34 @@ export function WalletConnect({ onConnect }: WalletConnectProps) {
   }
 
   return (
-    <Button 
-      onClick={handleConnect} 
-      disabled={isPending}
-      className="bg-cyan-600 hover:bg-cyan-500 text-white font-mono"
-    >
-      {isPending ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      ) : (
-        <Wallet className="mr-2 h-4 w-4" />
-      )}
-      Connect Wallet
-    </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button 
+          className="bg-cyan-600 hover:bg-cyan-500 text-white font-mono"
+        >
+          <Wallet className="mr-2 h-4 w-4" />
+          Connect Wallet
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px] bg-slate-950 border-slate-800 text-slate-100">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-mono text-cyan-400">Select Wallet</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          {connectors.map((connector) => (
+            <Button
+              key={connector.uid}
+              onClick={() => handleConnect(connector)}
+              disabled={isPending}
+              variant="outline"
+              className="w-full justify-start text-left font-mono border-slate-700 hover:bg-slate-800 hover:text-cyan-400 h-12"
+            >
+              <span className="capitalize">{connector.name}</span>
+              {isPending && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
+            </Button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
