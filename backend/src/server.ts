@@ -13,12 +13,14 @@ export const createServer = () => {
   const allowedOrigins = [
     'http://localhost:5173', // Vite dev
     'https://rogue-adk.vercel.app', // Production 
+    'https://api.vapi.ai', // VAPI API
+    'https://vapi.ai', // VAPI Dashboard
     process.env.FRONTEND_URL // Configurable
   ].filter(Boolean);
 
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like mobile apps, curl requests, or server-to-server)
       if (!origin) return callback(null, true);
       
       if (allowedOrigins.indexOf(origin) === -1 && config.NODE_ENV === 'production') {
@@ -26,7 +28,8 @@ export const createServer = () => {
         return callback(new Error(msg), false);
       }
       return callback(null, true);
-    }
+    },
+    credentials: true
   }));
 
   // Middleware
