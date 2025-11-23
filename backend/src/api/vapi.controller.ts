@@ -103,13 +103,16 @@ export const vapiController = {
 
   async searchWebAndX(req: Request, res: Response) {
     try {
+      logger.info('VAPI Web/X Search Tool called. Body:', JSON.stringify(req.body));
+      
       const { query } = req.body;
 
       if (!query) {
-        return res.status(400).json({ error: 'Query is required' });
+        logger.warn('VAPI Web/X Search: Missing query parameter');
+        return res.status(400).json({ error: 'Query is required', received: req.body });
       }
 
-      logger.info('VAPI Web/X Search Tool called with query:', query);
+      logger.info('VAPI Web/X Search Tool query:', query);
 
       // Call ChatAgent (Grok) with the query
       const grokInput = `USER CONTEXT:
