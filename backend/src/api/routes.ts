@@ -9,6 +9,9 @@ import * as signalsController from './signals.controller';
 import * as intelController from './intel.controller';
 import { yieldController } from './yield.controller';
 import * as airdropsController from './airdrops.controller';
+import { chatController } from './chat.controller';
+import { vapiController } from './vapi.controller';
+import { scanController } from './scan.controller';
 
 import * as healthController from './health.controller';
 
@@ -16,6 +19,18 @@ const router = Router();
 
 // Health check
 router.get('/health', healthController.healthCheck);
+
+// Chat
+router.post('/chat', chatController.chat);
+
+// Scan (DIAMOND tier only)
+router.post('/scan', scanController.requestScan);
+
+// VAPI Tools
+router.post('/vapi/tools/signals', vapiController.getRecentSignals);
+router.post('/vapi/tools/intel', vapiController.getRecentIntel);
+router.post('/vapi/tools/yield', vapiController.getYieldOpportunities);
+router.post('/vapi/tools/airdrops', vapiController.getAirdrops);
 
 // Trigger run
 router.post('/run', runController.triggerRun);

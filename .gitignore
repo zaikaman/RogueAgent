@@ -40,4 +40,4 @@ out/
 secrets/
 *.key
 *.crt
-adk-ts
+docs

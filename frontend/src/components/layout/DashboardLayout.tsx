@@ -9,7 +9,8 @@ import {
   Menu01Icon,
   Coins01Icon,
   Cancel01Icon,
-  Rocket01Icon
+  Rocket01Icon,
+  Message01Icon
 } from '@hugeicons/core-free-icons';
 import { Send, Terminal, DollarSign } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
@@ -163,6 +164,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     { icon: Home01Icon, label: 'Dashboard', path: '/app' },
+    { icon: Message01Icon, label: 'Ask Rogue', path: '/app/ask' },
     { icon: GpsSignal01Icon, label: 'Signals', path: '/app/signals' },
     { icon: News01Icon, label: 'Intel', path: '/app/intel' },
     { icon: Coins01Icon, label: 'Yield', path: '/app/yield' },
@@ -172,6 +174,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const pageTitles: Record<string, string> = {
     '/app': 'MISSION CONTROL',
+    '/app/ask': 'ASK ROGUE',
     '/app/signals': 'SIGNAL INTERCEPT',
     '/app/intel': 'INTELLIGENCE FEED',
     '/app/yield': 'YIELD PROTOCOLS',

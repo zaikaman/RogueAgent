@@ -497,6 +497,30 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
+
+  async getRecentSignals(limit: number = 5) {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('content, created_at')
+      .eq('type', 'signal')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getRecentIntels(limit: number = 5) {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('content, created_at')
+      .in('type', ['intel', 'deep_dive'])
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const supabaseService = new SupabaseService();

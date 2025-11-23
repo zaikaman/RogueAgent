@@ -16,6 +16,7 @@ import { AnalyticsOverview } from './pages/analytics/AnalyticsOverview';
 import { PerformanceAnalytics } from './pages/analytics/PerformanceAnalytics';
 import { MarketAnalytics } from './pages/analytics/MarketAnalytics';
 import { SignalAnalytics } from './pages/analytics/SignalAnalytics';
+import { AskRogue } from './pages/AskRogue';
 import { Toaster } from 'sonner';
 import { CustomCursor } from './components/ui/CustomCursor';
 
@@ -40,6 +41,11 @@ function App() {
               <Route path="/app" element={
                 <DashboardLayout>
                   <DashboardHome />
+                </DashboardLayout>
+              } />
+              <Route path="/app/ask" element={
+                <DashboardLayout>
+                  <AskRogue />
                 </DashboardLayout>
               } />
               <Route path="/app/signals" element={
