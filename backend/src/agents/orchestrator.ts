@@ -318,7 +318,24 @@ export class Orchestrator extends EventEmitter {
         
         // 1. Intel Agent
         const { runner: intelAgent } = await IntelAgent.build();
-        let intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
+        let intelPrompt = shouldGenerateDeepDive
+          ? `🔥 PREMIUM DEEP DIVE MODE 🔥
+
+This is an EXCLUSIVE Sunday Deep Dive for Gold/Diamond tier users only. This is NOT a regular intel report.
+
+Your task: Synthesize the ENTIRE WEEK's market movements into a comprehensive strategic analysis.
+
+CURRENT MARKET DATA:
+${JSON.stringify(marketData, null, 2)}
+
+THIS WEEK'S COVERAGE (Use these as foundation - synthesize and expand):
+${JSON.stringify(recentPosts)}
+
+TOPICS ALREADY COVERED THIS WEEK (Build upon these):
+${recentTopics.join(', ')}
+
+Your task: Connect the dots between all these topics. How do they relate? What's the bigger picture?`
+          : `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
         
         RECENTLY POSTED CONTENT (Avoid repeating these):
         ${JSON.stringify(recentPosts)}
@@ -326,7 +343,20 @@ export class Orchestrator extends EventEmitter {
         AVOID these recently covered topics: ${recentTopics.join(', ')}`;
 
         if (shouldGenerateDeepDive) {
-            intelPrompt += `\n\nIMPORTANT: Generate an EXCLUSIVE "Deep Dive" report focusing on the week's sharpest mindshare divergences, KOL narratives, and major market shifts. This is a premium weekly analysis.`;
+            intelPrompt += `
+
+Focus on:
+1. **Cross-Narrative Connections**: How did different sectors (DeFi, AI, Privacy, Gaming, etc.) interact this week? What capital rotations occurred?
+2. **Mindshare vs. Price Divergences**: Which narratives gained social traction but price lagged (or vice versa)? Why?
+3. **KOL Influence Analysis**: Which influencer narratives actually moved markets? What did they get right/wrong?
+4. **Hidden Alpha**: What non-obvious patterns emerged that most traders missed?
+5. **Week-Ahead Positioning**: Based on this week's data, what are the 2-3 highest-conviction plays for next week?
+6. **Macro Context**: How did broader market conditions (ETF flows, regulatory news, tech sector moves) impact crypto?
+7. **On-Chain Evidence**: What do TVL flows, whale movements, and protocol metrics actually tell us?
+
+IMPORTANCE SCORE: Set to 10 automatically for Deep Dives.
+TOPIC: Should be a bold, specific thesis (e.g., "The Silent Rotation: How Privacy Coins Became the Week's Contrarian Play")
+INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dates, and actionable takeaways.`;
         }
         
         const intelResult = await this.runAgentWithRetry<IntelResult>(
@@ -357,7 +387,26 @@ export class Orchestrator extends EventEmitter {
         logger.info('Running Generator Agent (Intel)...');
         this.broadcast('Running Generator Agent (Intel)...', 'info');
         const { runner: generator } = await GeneratorAgent.build();
-        const generatorPrompt = `Generate content for this INTEL REPORT.
+        const generatorPrompt = shouldGenerateDeepDive 
+          ? `Generate content for this PREMIUM DEEP DIVE REPORT.
+        
+        This is exclusive Sunday content for Gold/Diamond users. Make it EXCEPTIONAL.
+        
+        Requirements:
+        - tweet_text: NOT USED for deep dives (set to empty string or brief teaser)
+        - blog_post: A comprehensive 1500-2000 word Markdown article with:
+          * Executive Summary (3-4 bullet points of key findings)
+          * Multiple sections with H2/H3 headers
+          * Data-backed arguments (include specific percentages, dates, prices)
+          * Visual hierarchy (use bold, italics, blockquotes for emphasis)
+          * Actionable insights (specific entry points, risk levels, timeframes)
+          * Forward-looking thesis for next week
+        - image_prompt: Sophisticated, premium aesthetic (avoid generic crypto visuals)
+        
+        Report: ${JSON.stringify(intelResult)}
+        
+        Make this feel like a $500/month newsletter, not a free blog post.`
+          : `Generate content for this INTEL REPORT.
         
         I need both a 'tweet_text' (short, lowercase, alpha vibe) and a 'blog_post' (full markdown analysis).
         
@@ -375,7 +424,35 @@ export class Orchestrator extends EventEmitter {
         logger.info('Running Writer Agent (Intel)...');
         this.broadcast('Running Writer Agent (Intel)...', 'info');
         const { runner: writer } = await WriterAgent.build();
-        const writerPrompt = `Write a deep-dive article for this INTEL REPORT.
+        const writerPrompt = shouldGenerateDeepDive
+          ? `Write an ELITE-TIER investigative article for this PREMIUM DEEP DIVE.
+        
+        This is exclusive Sunday content worth $100+ in value. Treat it like a Bloomberg/The Block premium piece.
+        
+        Structure:
+        1. **Headline**: Punchy, thesis-driven (10-15 words max)
+        2. **Lead Paragraph**: Hook readers with the single most important finding
+        3. **Context Section**: What happened this week that matters (300-400 words)
+        4. **Deep Analysis**: Multi-angle investigation with sub-sections (800-1000 words):
+           - On-chain data interpretation
+           - Social sentiment analysis
+           - Cross-market correlations
+           - Hidden patterns/contrarian takes
+        5. **Strategic Implications**: What this means for traders (200-300 words)
+        6. **Week Ahead**: Specific plays, price levels, catalysts to watch (200-300 words)
+        7. **TLDR**: 3-sentence executive summary for busy traders
+        
+        Writing Style:
+        - Authoritative but accessible
+        - Use specific data points ("BTC fell 12.3% to $85,432" not "BTC dropped")
+        - Include direct quotes or paraphrases from KOL analysis
+        - Call out consensus views then challenge them
+        - End sections with clear takeaways
+        
+        Report Data: ${JSON.stringify(intelResult)}
+        
+        This should be indistinguishable from premium paid research.`
+          : `Write a deep-dive article for this INTEL REPORT.
         Report: ${JSON.stringify(intelResult)}`;
         
         const writerResult = await this.runAgentWithRetry<WriterResult>(
