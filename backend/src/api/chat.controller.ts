@@ -27,7 +27,7 @@ USER MESSAGE: ${message}
 
       // Step 1: Call InitialChatAgent (GPT-4o with database tools)
       const initialAgent = await InitialChatAgent;
-      const initialResult = await initialAgent.runner.ask(agentInput);
+      const initialResult: any = await initialAgent.runner.ask(agentInput);
 
       // Step 2: Check if web search is needed
       if (initialResult.needs_web_search) {
