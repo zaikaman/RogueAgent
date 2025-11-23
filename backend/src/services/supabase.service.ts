@@ -6,7 +6,7 @@ import { z } from 'zod';
 // Database types based on our schema
 export type DbRun = {
   id?: string;
-  type: 'signal' | 'intel' | 'skip';
+  type: 'signal' | 'intel' | 'skip' | 'deep_dive';
   content: any;
   public_posted_at?: string | null;
   telegram_delivered_at?: string | null;
@@ -93,6 +93,27 @@ export class SupabaseService {
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
     return data;
+  }
+
+  async hasDeepDiveToday(): Promise<boolean> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
+
+    const { data, error } = await this.client
+      .from('runs')
+      .select('id')
+      .eq('type', 'deep_dive')
+      .gte('created_at', todayISO)
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error checking for deep dive today:', error);
+      return false;
+    }
+
+    return !!data;
   }
 
   async getUser(walletAddress: string) {

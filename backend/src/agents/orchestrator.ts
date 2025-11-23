@@ -311,9 +311,13 @@ export class Orchestrator extends EventEmitter {
         const recentTopics = await supabaseService.getRecentIntelTopics(5);
         logger.info('Recent Intel Topics:', recentTopics);
         
+        // Check if we should generate exclusive Deep Dive (only once per Sunday)
+        const isSunday = new Date().getDay() === 0;
+        const hasDeepDiveToday = isSunday ? await supabaseService.hasDeepDiveToday() : false;
+        const shouldGenerateDeepDive = isSunday && !hasDeepDiveToday;
+        
         // 1. Intel Agent
         const { runner: intelAgent } = await IntelAgent.build();
-        const isSunday = new Date().getDay() === 0;
         let intelPrompt = `Analyze this market data and generate an intel report: ${JSON.stringify(marketData, null, 2)}
         
         RECENTLY POSTED CONTENT (Avoid repeating these):
@@ -321,8 +325,8 @@ export class Orchestrator extends EventEmitter {
         
         AVOID these recently covered topics: ${recentTopics.join(', ')}`;
 
-        if (isSunday) {
-            intelPrompt += `\n\nIMPORTANT: It is Sunday. Generate a "Deep Dive" report focusing on the week's sharpest mindshare divergences and KOL narratives. This will be exclusive to high-tier users.`;
+        if (shouldGenerateDeepDive) {
+            intelPrompt += `\n\nIMPORTANT: Generate an EXCLUSIVE "Deep Dive" report focusing on the week's sharpest mindshare divergences, KOL narratives, and major market shifts. This is a premium weekly analysis.`;
         }
         
         const intelResult = await this.runAgentWithRetry<IntelResult>(
@@ -400,7 +404,7 @@ export class Orchestrator extends EventEmitter {
         // Save run first to ensure ID exists for scheduled posts
         await this.saveRun(
           runId, 
-          'intel', 
+          shouldGenerateDeepDive ? 'deep_dive' : 'intel', 
           { 
             ...intelResult, 
             tweet_text: tweetContent,
@@ -412,35 +416,39 @@ export class Orchestrator extends EventEmitter {
             image_url: imageUrl,
             formatted_tweet: tweetContent, // Keep for backward compat
             log_message: generatorResult.log_message,
+            is_deep_dive: shouldGenerateDeepDive,
           }, 
           startTime, 
           null,
           undefined,
-          null, // publicPostedAt is delayed
+          shouldGenerateDeepDive ? null : undefined, // Don't post deep dives publicly
           new Date().toISOString() // telegramDeliveredAt (immediate for Gold/Diamond)
         );
 
         // Immediate: Gold/Diamond (Blog Post)
         if (blogContent) {
-           logger.info(`Distributing Intel Blog to GOLD/DIAMOND for run ${runId}...`);
+           const prefix = shouldGenerateDeepDive ? '📊 EXCLUSIVE DEEP DIVE 📊\n\n' : '';
+           logger.info(`Distributing ${shouldGenerateDeepDive ? 'Deep Dive' : 'Intel'} to GOLD/DIAMOND for run ${runId}...`);
            const intelLink = `https://rogue-adk.vercel.app/app/intel/${runId}`;
-           const messageWithLink = `${blogContent}\n\n[View full intel here](${intelLink})`;
+           const messageWithLink = `${prefix}${blogContent}\n\n[View full ${shouldGenerateDeepDive ? 'deep dive' : 'intel'} here](${intelLink})`;
            telegramService.broadcastToTiers(messageWithLink, [TIERS.GOLD, TIERS.DIAMOND])
              .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
         }
 
-        // Delayed 15m: Silver (Blog Post) - SKIP if Sunday Deep Dive
-        if (blogContent && !isSunday) {
+        // Delayed 15m: Silver (Blog Post) - SKIP if it's an exclusive Deep Dive
+        if (blogContent && !shouldGenerateDeepDive) {
            logger.info(`Scheduling Intel Blog for SILVER (+15m) for run ${runId}...`);
            await scheduledPostService.schedulePost(runId, 'SILVER', blogContent, 15)
              .catch(err => logger.error('Error scheduling SILVER intel post', err));
         }
 
-        // Delayed 30m: Public (Twitter) - SKIP if Sunday Deep Dive
-        if (tweetContent && !isSunday) {
+        // Delayed 30m: Public (Twitter) - SKIP if it's an exclusive Deep Dive
+        if (tweetContent && !shouldGenerateDeepDive) {
            logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
            await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent, 30)
              .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
+        } else if (shouldGenerateDeepDive) {
+           logger.info(`Deep Dive is exclusive - skipping public distribution for run ${runId}`);
         }
       }
       
@@ -593,7 +601,7 @@ export class Orchestrator extends EventEmitter {
 
   private async saveRun(
     id: string, 
-    type: 'signal' | 'intel' | 'skip', 
+    type: 'signal' | 'intel' | 'skip' | 'deep_dive', 
     content: any, 
     startTime: number,
     confidence?: number | null,
