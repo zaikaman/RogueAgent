@@ -137,6 +137,78 @@ class BirdeyeService {
       return [];
     }
   }
+
+  /**
+   * Get OHLCV data for advanced TA indicators
+   * Returns candles with open, high, low, close, volume data
+   */
+  async getOHLCVData(address: string, chain?: string, days: number = 7, interval: '1m' | '5m' | '15m' | '1H' | '4H' | '1D' = '1H'): Promise<Array<{
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>> {
+    if (!this.apiKey) return [];
+    
+    const timeTo = Math.floor(Date.now() / 1000);
+    const timeFrom = timeTo - (days * 24 * 60 * 60);
+
+    try {
+      return await retry(async () => {
+        const mappedChain = chain ? this.mapChain(chain) : undefined;
+        const headers = mappedChain 
+          ? { ...this.headers, 'x-chain': mappedChain }
+          : this.headers;
+
+        const response = await axios.get(`${this.baseUrl}/defi/ohlcv`, {
+          headers,
+          params: {
+            address: address,
+            type: interval,
+            time_from: timeFrom,
+            time_to: timeTo
+          }
+        });
+
+        if (response.data && response.data.success && response.data.data.items) {
+          return response.data.data.items.map((item: any) => ({
+            timestamp: item.unixTime * 1000,
+            open: item.o || item.value,
+            high: item.h || item.value,
+            low: item.l || item.value,
+            close: item.c || item.value,
+            volume: item.v || 0
+          }));
+        }
+        return [];
+      }, 3, 2000, 2, (error: any) => {
+        if (error.response && error.response.status) {
+          const status = error.response.status;
+          if (status >= 400 && status < 500 && status !== 429) {
+            return false;
+          }
+        }
+        return true;
+      });
+    } catch (error: any) {
+      logger.error(`Birdeye OHLCV API error for ${address}:`, error.message);
+      // Fallback to price history and construct approximate OHLCV
+      const priceHistory = await this.getPriceHistory(address, chain, days);
+      if (priceHistory && priceHistory.length > 0) {
+        return priceHistory.map((item: any) => ({
+          timestamp: item.unixTime * 1000,
+          open: item.value,
+          high: item.value,
+          low: item.value,
+          close: item.value,
+          volume: 0
+        }));
+      }
+      return [];
+    }
+  }
 }
 
 export const birdeyeService = new BirdeyeService();

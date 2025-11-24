@@ -9,6 +9,7 @@ import { tavilyService } from '../services/tavily.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { TechnicalAnalysis } from '../utils/ta.util';
+import { logger } from '../utils/logger.util';
 
 export const getTrendingCoinsTool = createTool({
   name: 'get_trending_coins',
@@ -273,7 +274,7 @@ export const searchTweetsTool = createTool({
 
 export const getTechnicalAnalysisTool = createTool({
   name: 'get_technical_analysis',
-  description: 'Calculate technical indicators (RSI, MACD, SMA, EMA) for a token. Can use CoinGecko ID or (Chain + Address) for Birdeye.',
+  description: 'Advanced technical analysis with 2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, Heikin-Ashi, SuperTrend, BB Squeeze, Fibonacci, VW-MACD, and MTF alignment. Works multi-chain.',
   schema: z.object({
     tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
     chain: z.string().optional().describe('The blockchain network (solana, ethereum, arbitrum, avalanche, bsc, optimism, polygon, base, zksync, sui, aptos)'),
@@ -282,20 +283,58 @@ export const getTechnicalAnalysisTool = createTool({
   }) as any,
   fn: async ({ tokenId, chain, address, days }) => {
     let prices: number[] = [];
+    let ohlcv: Array<{ timestamp: number; open: number; high: number; low: number; close: number; volume: number }> = [];
 
-    // Try Birdeye first
-    if (chain && address) {
+    // Try CoinGecko first if we have a tokenId (for native coins like BTC, ETH, FIRO)
+    if (tokenId && !address) {
       try {
-        const history = await birdeyeService.getPriceHistory(address, chain, days || 30);
-        if (history && history.length > 0) {
-          prices = history.map((h: any) => h.value);
+        const data = await coingeckoService.getMarketChart(tokenId, days || 30);
+        if (data && data.prices && data.prices.length > 0) {
+          prices = data.prices.map(p => p[1]);
+          // Construct approximate OHLCV from price data
+          ohlcv = data.prices.map((p: any, idx: number) => {
+            const price = p[1];
+            return {
+              timestamp: p[0],
+              open: price,
+              high: price * 1.01, // Approximate
+              low: price * 0.99,
+              close: price,
+              volume: 0 // CoinGecko market chart doesn't include volume per timestamp
+            };
+          });
         }
       } catch (e) {
-        // Fallback to CoinGecko
+        logger.warn(`CoinGecko market chart failed for ${tokenId}:`, e);
       }
     }
 
-    // Fallback to CoinGecko if prices are empty
+    // Try Birdeye OHLCV for tokens with addresses
+    if (ohlcv.length === 0 && chain && address) {
+      try {
+        ohlcv = await birdeyeService.getOHLCVData(address, chain, days || 30, '1H');
+        if (ohlcv && ohlcv.length > 0) {
+          prices = ohlcv.map((candle) => candle.close);
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    // Fallback to DexScreener if Birdeye fails
+    if (ohlcv.length === 0 && chain && address) {
+      try {
+        const { dexScreenerService } = require('../services/dexscreener.service');
+        ohlcv = await dexScreenerService.getOHLCVData(address, chain);
+        if (ohlcv && ohlcv.length > 0) {
+          prices = ohlcv.map((candle) => candle.close);
+        }
+      } catch (e) {
+        // Continue to CoinGecko fallback
+      }
+    }
+
+    // Final fallback to CoinGecko for tokens (prices only, no OHLCV)
     if (prices.length === 0) {
       let targetTokenId: string | undefined = tokenId;
 
@@ -310,16 +349,26 @@ export const getTechnicalAnalysisTool = createTool({
         const data = await coingeckoService.getMarketChart(targetTokenId, days || 30);
         if (data && data.prices) {
           prices = data.prices.map(p => p[1]);
+          // Construct approximate OHLCV from price data
+          ohlcv = data.prices.map((p: any) => ({
+            timestamp: p[0],
+            open: p[1],
+            high: p[1],
+            low: p[1],
+            close: p[1],
+            volume: 0
+          }));
         }
       }
     }
 
     if (prices.length === 0) {
-      return { error: 'No price data available from Birdeye or CoinGecko' };
+      return { error: 'No price data available from Birdeye, DexScreener, or CoinGecko' };
     }
 
     const currentPrice = prices[prices.length - 1];
 
+    // ========== BASIC INDICATORS ==========
     const rsi = TechnicalAnalysis.calculateRSI(prices, 14);
     const sma20 = TechnicalAnalysis.calculateSMA(prices, 20);
     const ema20 = TechnicalAnalysis.calculateEMA(prices, 20);
@@ -332,8 +381,159 @@ export const getTechnicalAnalysisTool = createTool({
     const latestSignal = macd.signal[macd.signal.length - 1];
     const latestHistogram = macd.histogram[macd.histogram.length - 1];
 
+    // ========== ADVANCED INDICATORS (2025 META) ==========
+    let advancedIndicators: any = {};
+
+    if (ohlcv.length > 20) { // Only calculate advanced if we have enough data
+      // 1. CVD - Orderflow Divergence
+      const cvdResult = TechnicalAnalysis.calculateCVD(ohlcv);
+      
+      // 2. ICT Order Blocks & Fair Value Gaps
+      const ictResult = TechnicalAnalysis.detectOrderBlocksAndFVG(ohlcv);
+      
+      // 3. Volume Profile (VPFR)
+      const vpResult = TechnicalAnalysis.calculateVolumeProfile(ohlcv, 20);
+      
+      // 4. Heikin-Ashi + SuperTrend
+      const haCandles = TechnicalAnalysis.calculateHeikinAshi(ohlcv);
+      const stResult = TechnicalAnalysis.calculateSuperTrend(haCandles, 10, 3);
+      const currentSuperTrend = stResult.trend[stResult.trend.length - 1];
+      
+      // 5. Bollinger Bands Squeeze & Keltner Channel
+      const bbResult = TechnicalAnalysis.calculateBollingerBands(prices, 20, 2);
+      const kcResult = TechnicalAnalysis.calculateKeltnerChannel(ohlcv, 20, 2);
+      
+      // Check for BB squeeze breakout (price outside Keltner while BB squeezed)
+      const currentBBUpper = bbResult.upper[bbResult.upper.length - 1];
+      const currentBBLower = bbResult.lower[bbResult.lower.length - 1];
+      const currentKCUpper = kcResult.upper[kcResult.upper.length - 1];
+      const currentKCLower = kcResult.lower[kcResult.lower.length - 1];
+      const breakout = (currentPrice > currentKCUpper || currentPrice < currentKCLower) && bbResult.squeeze;
+      
+      // 6. Volume-Weighted MACD
+      const vwmacd = TechnicalAnalysis.calculateVolumeWeightedMACD(ohlcv, 12, 26, 9);
+      const latestVWMACD = vwmacd.macd[vwmacd.macd.length - 1];
+      const latestVWSignal = vwmacd.signal[vwmacd.signal.length - 1];
+      const latestVWHistogram = vwmacd.histogram[vwmacd.histogram.length - 1];
+      
+      // 7. Fibonacci Levels
+      const swingPoints = TechnicalAnalysis.detectSwingPoints(ohlcv, 20);
+      const fibResult = TechnicalAnalysis.calculateFibonacci(swingPoints.swingHigh, swingPoints.swingLow);
+      
+      // Check if price is near key Fib levels
+      const fibLevels = Object.values(fibResult.retracement);
+      const nearFib = fibLevels.find(level => Math.abs(currentPrice - level) / currentPrice < 0.02); // Within 2%
+      
+      // 8. Multi-Timeframe Alignment
+      const mtfResult = TechnicalAnalysis.calculateMTFAlignment(prices);
+
+      advancedIndicators = {
+        cvd: {
+          bullish_divergence: cvdResult.divergence,
+          description: cvdResult.divergence ? 'CVD rising while price falling - whale accumulation detected' : 'No divergence'
+        },
+        ict_orderflow: {
+          order_blocks: ictResult.orderBlocks.slice(-2), // Last 2 order blocks
+          fair_value_gaps: ictResult.fairValueGaps.slice(-2),
+          active_zones: ictResult.orderBlocks.length + ictResult.fairValueGaps.length,
+          description: ictResult.orderBlocks.length > 0 ? `${ictResult.orderBlocks.length} institutional zones detected` : 'No major order blocks'
+        },
+        volume_profile: {
+          poc: vpResult.poc,
+          value_area_high: vpResult.valueArea.high,
+          value_area_low: vpResult.valueArea.low,
+          price_near_poc: Math.abs(currentPrice - vpResult.poc) / currentPrice < 0.03,
+          description: Math.abs(currentPrice - vpResult.poc) / currentPrice < 0.03 
+            ? `Price near high-volume POC at $${vpResult.poc.toFixed(4)} - strong support/resistance`
+            : 'Price outside value area'
+        },
+        heikin_ashi_supertrend: {
+          trend: currentSuperTrend,
+          supertrend_level: stResult.supertrend[stResult.supertrend.length - 1],
+          description: currentSuperTrend === 'up' ? 'SuperTrend bullish - price above support' : 'SuperTrend bearish - price below resistance'
+        },
+        bollinger_squeeze: {
+          squeeze: bbResult.squeeze,
+          breakout: breakout,
+          breakout_direction: currentPrice > currentKCUpper ? 'bullish' : currentPrice < currentKCLower ? 'bearish' : 'none',
+          description: breakout ? `Squeeze breakout ${currentPrice > currentKCUpper ? 'UP' : 'DOWN'} - high volatility expansion expected` : 
+                       bbResult.squeeze ? 'Bollinger squeeze detected - volatility contraction, breakout imminent' : 'Normal volatility'
+        },
+        vw_macd: {
+          macd_line: latestVWMACD,
+          signal_line: latestVWSignal,
+          histogram: latestVWHistogram,
+          crossover: latestVWHistogram > 0 && vwmacd.histogram[vwmacd.histogram.length - 2] <= 0,
+          description: latestVWHistogram > 0 ? 'Volume-weighted MACD bullish' : 'Volume-weighted MACD bearish'
+        },
+        fibonacci: {
+          swing_high: swingPoints.swingHigh,
+          swing_low: swingPoints.swingLow,
+          key_retracements: {
+            '38.2%': fibResult.retracement['38.2'],
+            '50%': fibResult.retracement['50'],
+            '61.8%': fibResult.retracement['61.8']
+          },
+          near_key_level: nearFib ? nearFib : null,
+          description: nearFib ? `Price near Fibonacci level $${nearFib.toFixed(4)} - potential bounce zone` : 'No Fib level nearby'
+        },
+        mtf_alignment: {
+          score: mtfResult.score,
+          aligned: mtfResult.aligned,
+          bias: mtfResult.bias,
+          description: mtfResult.aligned && mtfResult.score > 75 
+            ? `Strong ${mtfResult.bias} trend - all timeframes aligned (${mtfResult.score.toFixed(0)}% score)`
+            : mtfResult.score > 60 
+            ? `Moderate ${mtfResult.bias} bias (${mtfResult.score.toFixed(0)}%)`
+            : 'Choppy market - no clear trend alignment'
+        }
+      };
+    }
+
+    // Generate overall signal quality score
+    let signalQuality = 0;
+    let confidenceBoost = 0;
+    const insights: string[] = [];
+
+    if (advancedIndicators.cvd?.bullish_divergence) {
+      confidenceBoost += 15;
+      insights.push('✅ CVD bullish divergence - whale accumulation');
+    }
+    if (advancedIndicators.ict_orderflow?.active_zones > 2) {
+      confidenceBoost += 10;
+      insights.push('✅ Multiple ICT zones active - institutional interest');
+    }
+    if (advancedIndicators.volume_profile?.price_near_poc) {
+      confidenceBoost += 10;
+      insights.push('✅ Price at POC - high-volume support/resistance');
+    }
+    if (advancedIndicators.heikin_ashi_supertrend?.trend === 'up') {
+      confidenceBoost += 12;
+      insights.push('✅ SuperTrend bullish');
+    }
+    if (advancedIndicators.bollinger_squeeze?.breakout) {
+      confidenceBoost += 20;
+      insights.push('🚀 BB Squeeze breakout - volatility expansion!');
+    }
+    if (advancedIndicators.vw_macd?.crossover) {
+      confidenceBoost += 15;
+      insights.push('✅ VW-MACD bullish crossover');
+    }
+    if (advancedIndicators.fibonacci?.near_key_level) {
+      confidenceBoost += 8;
+      insights.push('✅ Price near Fibonacci level');
+    }
+    if (advancedIndicators.mtf_alignment?.aligned && advancedIndicators.mtf_alignment?.score > 75) {
+      confidenceBoost += 18;
+      insights.push(`✅ MTF aligned ${advancedIndicators.mtf_alignment.bias} - strong trend`);
+    }
+
+    signalQuality = Math.min(confidenceBoost, 100);
+
     return {
       current_price: currentPrice,
+      
+      // Basic indicators
       rsi_14: latestRSI,
       sma_20: latestSMA,
       ema_20: latestEMA,
@@ -343,7 +543,19 @@ export const getTechnicalAnalysisTool = createTool({
         histogram: latestHistogram
       },
       trend: latestMACD > latestSignal ? 'bullish' : 'bearish',
-      rsi_condition: latestRSI > 70 ? 'overbought' : latestRSI < 30 ? 'oversold' : 'neutral'
+      rsi_condition: latestRSI > 70 ? 'overbought' : latestRSI < 30 ? 'oversold' : 'neutral',
+      
+      // Advanced 2025 meta indicators
+      advanced: advancedIndicators,
+      
+      // Overall assessment
+      signal_quality_score: signalQuality,
+      confidence_boost: `+${confidenceBoost}%`,
+      key_insights: insights,
+      
+      summary: insights.length > 0 
+        ? `🔥 High-quality setup detected! ${insights.length} bullish factors aligned.` 
+        : 'Standard setup - no advanced confluences detected.'
     };
   },
 });
