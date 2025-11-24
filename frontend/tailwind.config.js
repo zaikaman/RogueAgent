@@ -83,6 +83,10 @@ export default {
           '0%': { transform: 'translateX(0%)' },
           '100%': { transform: 'translateX(-50%)' },
         },
+        grow: {
+          '0%, 100%': { transform: 'scaleX(0)', opacity: '0' },
+          '50%': { transform: 'scaleX(1)', opacity: '1' },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -91,6 +95,7 @@ export default {
         'glitch': 'glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
         'scan': 'scan 3s linear infinite',
         'marquee': 'marquee 25s linear infinite',
+        'grow': 'grow 3s ease-in-out infinite',
       },
     },
   },
