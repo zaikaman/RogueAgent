@@ -259,9 +259,9 @@ export default function Home() {
                                 Open Terminal
                                 <HugeiconsIcon icon={ArrowRight01Icon} size={20} />
                             </Link>
-                            <a href="#features" className="inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-4 rounded-lg text-base font-medium transition-all duration-300 backdrop-blur-sm">
-                                Explore Features
-                            </a>
+                            <Link to="/docs" className="inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-4 rounded-lg text-base font-medium transition-all duration-300 backdrop-blur-sm">
+                                Read Documentation
+                            </Link>
                         </motion.div>
 
                         {/* Stats Bar */}
