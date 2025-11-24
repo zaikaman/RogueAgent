@@ -3,8 +3,8 @@
 ## Critical (Launch Blockers)
 
 ### 1. Testing & Quality
-- [ ] Add unit tests for core agents (scanner, analyzer, orchestrator)
-- [ ] Integration tests for API endpoints
+- [x] Add unit tests for core agents (scanner, analyzer, orchestrator)
+- [x] Integration tests for API endpoints
 - [ ] E2E tests for signal generation flow
 - [ ] Test coverage: minimum 60% for business logic
 
