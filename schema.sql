@@ -48,7 +48,7 @@ CREATE TABLE public.iqai_logs (
 );
 CREATE TABLE public.runs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  type text NOT NULL CHECK (type = ANY (ARRAY['signal'::text, 'intel'::text, 'skip'::text])),
+  type text NOT NULL CHECK (type = ANY (ARRAY['signal'::text, 'intel'::text, 'skip'::text, 'deep_dive'::text])),
   content jsonb NOT NULL,
   public_posted_at timestamp with time zone,
   telegram_delivered_at timestamp with time zone,

@@ -1016,8 +1016,8 @@ User → Speaks: "What's happening with Solana?"
 
 **AI & Agent Orchestration**:
 - **IQAI ADK (Agent Development Kit)**: Agent builder framework
-- **OpenAI GPT-4o**: Primary LLM for analysis
-- **Grok (X.AI)**: Real-time web/X search for Chat + Scanner
+- **OpenAI GPT-5 (gpt-5-nano)**: Primary LLM for analysis
+- **Grok 4 (grok-4-fast)**: Real-time web/X search and Scanner
 - **Zod**: Schema validation for agent outputs
 
 **Data Sources & APIs**:
@@ -1714,7 +1714,7 @@ See [LICENSE](LICENSE) for full details.
 ## 🙏 Acknowledgments
 
 **Built With**:
-- [OpenAI](https://openai.com/) - GPT-4o for agent intelligence
+- [OpenAI](https://openai.com/) - GPT-5 (gpt-5-nano) for agent intelligence
 - [IQAI](https://iqai.com/) - Agent Development Kit
 - [Supabase](https://supabase.com/) - Database infrastructure
 - [Vercel](https://vercel.com/) - Frontend hosting

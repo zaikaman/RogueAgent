@@ -17,6 +17,11 @@ import { PerformanceAnalytics } from './pages/analytics/PerformanceAnalytics';
 import { MarketAnalytics } from './pages/analytics/MarketAnalytics';
 import { SignalAnalytics } from './pages/analytics/SignalAnalytics';
 import { AskRogue } from './pages/AskRogue';
+import Introduction from './pages/docs/Introduction';
+import Quickstart from './pages/docs/Quickstart';
+import Architecture from './pages/docs/Architecture';
+import Agents from './pages/docs/Agents';
+import Configuration from './pages/docs/Configuration';
 import { Toaster } from 'sonner';
 import { CustomCursor } from './components/ui/CustomCursor';
 
@@ -38,6 +43,11 @@ function App() {
             <Toaster position="top-right" theme="dark" closeButton />
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/docs" element={<Introduction />} />
+              <Route path="/docs/quickstart" element={<Quickstart />} />
+              <Route path="/docs/architecture" element={<Architecture />} />
+              <Route path="/docs/agents" element={<Agents />} />
+              <Route path="/docs/configuration" element={<Configuration />} />
               <Route path="/app" element={
                 <DashboardLayout>
                   <DashboardHome />

@@ -97,9 +97,9 @@ export default function Home() {
                             <Link className="hover:text-white transition-colors duration-300 px-4 py-2 rounded-full hover:bg-white/5" to="/app">
                                 Terminal
                             </Link>
-                            <a className="hover:text-white transition-colors duration-300 px-4 py-2 rounded-full hover:bg-white/5" href="#">
+                            <Link className="hover:text-white transition-colors duration-300 px-4 py-2 rounded-full hover:bg-white/5" to="/docs">
                                 Docs
-                            </a>
+                            </Link>
                         </nav>
                         <div className="hidden md:flex items-center gap-4">
                             <a 
