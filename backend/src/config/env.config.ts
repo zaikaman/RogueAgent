@@ -30,6 +30,37 @@ const envSchema = z.object({
   SCANNER_MODEL: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   RUN_INTERVAL_MINUTES: z.string().transform(Number).default('60'),
+  // API Key arrays for round-robin rotation
+  COINGECKO_API_KEY_1: z.string().optional(),
+  COINGECKO_API_KEY_2: z.string().optional(),
+  COINGECKO_API_KEY_3: z.string().optional(),
+  COINGECKO_API_KEY_4: z.string().optional(),
+  COINGECKO_API_KEY_5: z.string().optional(),
+  COINGECKO_API_KEY_6: z.string().optional(),
+  COINGECKO_API_KEY_7: z.string().optional(),
+  COINGECKO_API_KEY_8: z.string().optional(),
+  COINGECKO_API_KEY_9: z.string().optional(),
+  COINGECKO_API_KEY_10: z.string().optional(),
+  BIRDEYE_API_KEY_1: z.string().optional(),
+  BIRDEYE_API_KEY_2: z.string().optional(),
+  BIRDEYE_API_KEY_3: z.string().optional(),
+  BIRDEYE_API_KEY_4: z.string().optional(),
+  BIRDEYE_API_KEY_5: z.string().optional(),
+  BIRDEYE_API_KEY_6: z.string().optional(),
+  BIRDEYE_API_KEY_7: z.string().optional(),
+  BIRDEYE_API_KEY_8: z.string().optional(),
+  BIRDEYE_API_KEY_9: z.string().optional(),
+  BIRDEYE_API_KEY_10: z.string().optional(),
+  CMC_API_KEY_1: z.string().optional(),
+  CMC_API_KEY_2: z.string().optional(),
+  CMC_API_KEY_3: z.string().optional(),
+  CMC_API_KEY_4: z.string().optional(),
+  CMC_API_KEY_5: z.string().optional(),
+  CMC_API_KEY_6: z.string().optional(),
+  CMC_API_KEY_7: z.string().optional(),
+  CMC_API_KEY_8: z.string().optional(),
+  CMC_API_KEY_9: z.string().optional(),
+  CMC_API_KEY_10: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -61,6 +92,37 @@ const processEnv = {
   SCANNER_MODEL: process.env.SCANNER_MODEL,
   NODE_ENV: process.env.NODE_ENV,
   RUN_INTERVAL_MINUTES: process.env.RUN_INTERVAL_MINUTES,
+  // API Key arrays for round-robin rotation
+  COINGECKO_API_KEY_1: process.env.COINGECKO_API_KEY_1,
+  COINGECKO_API_KEY_2: process.env.COINGECKO_API_KEY_2,
+  COINGECKO_API_KEY_3: process.env.COINGECKO_API_KEY_3,
+  COINGECKO_API_KEY_4: process.env.COINGECKO_API_KEY_4,
+  COINGECKO_API_KEY_5: process.env.COINGECKO_API_KEY_5,
+  COINGECKO_API_KEY_6: process.env.COINGECKO_API_KEY_6,
+  COINGECKO_API_KEY_7: process.env.COINGECKO_API_KEY_7,
+  COINGECKO_API_KEY_8: process.env.COINGECKO_API_KEY_8,
+  COINGECKO_API_KEY_9: process.env.COINGECKO_API_KEY_9,
+  COINGECKO_API_KEY_10: process.env.COINGECKO_API_KEY_10,
+  BIRDEYE_API_KEY_1: process.env.BIRDEYE_API_KEY_1,
+  BIRDEYE_API_KEY_2: process.env.BIRDEYE_API_KEY_2,
+  BIRDEYE_API_KEY_3: process.env.BIRDEYE_API_KEY_3,
+  BIRDEYE_API_KEY_4: process.env.BIRDEYE_API_KEY_4,
+  BIRDEYE_API_KEY_5: process.env.BIRDEYE_API_KEY_5,
+  BIRDEYE_API_KEY_6: process.env.BIRDEYE_API_KEY_6,
+  BIRDEYE_API_KEY_7: process.env.BIRDEYE_API_KEY_7,
+  BIRDEYE_API_KEY_8: process.env.BIRDEYE_API_KEY_8,
+  BIRDEYE_API_KEY_9: process.env.BIRDEYE_API_KEY_9,
+  BIRDEYE_API_KEY_10: process.env.BIRDEYE_API_KEY_10,
+  CMC_API_KEY_1: process.env.CMC_API_KEY_1,
+  CMC_API_KEY_2: process.env.CMC_API_KEY_2,
+  CMC_API_KEY_3: process.env.CMC_API_KEY_3,
+  CMC_API_KEY_4: process.env.CMC_API_KEY_4,
+  CMC_API_KEY_5: process.env.CMC_API_KEY_5,
+  CMC_API_KEY_6: process.env.CMC_API_KEY_6,
+  CMC_API_KEY_7: process.env.CMC_API_KEY_7,
+  CMC_API_KEY_8: process.env.CMC_API_KEY_8,
+  CMC_API_KEY_9: process.env.CMC_API_KEY_9,
+  CMC_API_KEY_10: process.env.CMC_API_KEY_10,
 };
 
 const parsed = envSchema.safeParse(processEnv);
@@ -73,4 +135,22 @@ if (!parsed.success) {
   }
 }
 
-export const config = parsed.success ? parsed.data : (processEnv as unknown as EnvConfig);
+const baseConfig = parsed.success ? parsed.data : (processEnv as unknown as EnvConfig);
+
+// Helper to build API key arrays for round-robin rotation
+const buildApiKeyArray = (prefix: 'COINGECKO' | 'BIRDEYE' | 'CMC'): string[] => {
+  const keys: string[] = [];
+  for (let i = 1; i <= 10; i++) {
+    const key = (baseConfig as any)[`${prefix}_API_KEY_${i}`];
+    if (key) keys.push(key);
+  }
+  return keys;
+};
+
+// Export config with added API key arrays
+export const config = {
+  ...baseConfig,
+  COINGECKO_API_KEYS: buildApiKeyArray('COINGECKO'),
+  BIRDEYE_API_KEYS: buildApiKeyArray('BIRDEYE'),
+  CMC_API_KEYS: buildApiKeyArray('CMC'),
+};

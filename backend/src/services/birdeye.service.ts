@@ -5,14 +5,25 @@ import { retry } from '../utils/retry.util';
 
 class BirdeyeService {
   private baseUrl = 'https://public-api.birdeye.so';
+  private currentKeyIndex = 0;
+  private apiKeys: string[] = [];
   
   private get apiKey() {
     return config.BIRDEYE_API_KEY;
   }
 
+  private getNextApiKey(): string | undefined {
+    if (this.apiKeys.length === 0) return undefined;
+    
+    const key = this.apiKeys[this.currentKeyIndex];
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    return key;
+  }
+
   private get headers() {
+    const apiKey = this.getNextApiKey() || this.apiKey;
     return {
-      'X-API-KEY': this.apiKey || '',
+      'X-API-KEY': apiKey || '',
       'accept': 'application/json'
     };
   }
@@ -30,7 +41,14 @@ class BirdeyeService {
   }
 
   constructor() {
-    if (!this.apiKey) {
+    // Initialize API keys array with round-robin rotation
+    this.apiKeys = config.BIRDEYE_API_KEYS && config.BIRDEYE_API_KEYS.length > 0 
+      ? config.BIRDEYE_API_KEYS 
+      : (config.BIRDEYE_API_KEY ? [config.BIRDEYE_API_KEY] : []);
+    
+    if (this.apiKeys.length > 0) {
+      logger.info(`Birdeye: Initialized with ${this.apiKeys.length} API key(s)`);
+    } else {
       logger.warn('⚠️ BIRDEYE_API_KEY missing. Birdeye service will not function.');
     }
   }

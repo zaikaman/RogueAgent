@@ -34,20 +34,38 @@ class CoinMarketCapService {
   private cache: Map<string, { price: number; change_24h: number; timestamp: number }> = new Map();
   private CACHE_TTL = 3 * 60 * 1000; // 3 minutes - optimized for signal monitoring
   private inflightRequests: Map<string, Promise<number | null>> = new Map();
+  private currentKeyIndex = 0;
+  private apiKeys: string[] = [];
 
   private get apiKey() {
     return config.CMC_API_KEY;
   }
 
+  private getNextApiKey(): string | undefined {
+    if (this.apiKeys.length === 0) return undefined;
+    
+    const key = this.apiKeys[this.currentKeyIndex];
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    return key;
+  }
+
   private get headers() {
+    const apiKey = this.getNextApiKey() || this.apiKey;
     return {
-      'X-CMC_PRO_API_KEY': this.apiKey || '',
+      'X-CMC_PRO_API_KEY': apiKey || '',
       'Accept': 'application/json'
     };
   }
 
   constructor() {
-    if (!this.apiKey) {
+    // Initialize API keys array with round-robin rotation
+    this.apiKeys = config.CMC_API_KEYS && config.CMC_API_KEYS.length > 0 
+      ? config.CMC_API_KEYS 
+      : (config.CMC_API_KEY ? [config.CMC_API_KEY] : []);
+    
+    if (this.apiKeys.length > 0) {
+      logger.info(`CoinMarketCap: Initialized with ${this.apiKeys.length} API key(s)`);
+    } else {
       logger.warn('⚠️ CMC_API_KEY missing. CoinMarketCap service will not function.');
     }
   }

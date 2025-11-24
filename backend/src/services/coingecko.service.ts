@@ -15,12 +15,26 @@ class CoinGeckoService {
   private cache: Map<string, { price: number; timestamp: number }> = new Map();
   private CACHE_TTL = 3 * 60 * 1000; // 3 minutes - optimized for signal monitoring
   private inflightRequests: Map<string, Promise<number | null>> = new Map();
+  private currentKeyIndex = 0;
+  private apiKeys: string[] = [];
 
   constructor() {
-    if (config.COINGECKO_API_KEY) {
-      // If we had a pro plan, we'd change the URL and add headers
-      // this.baseUrl = 'https://pro-api.coingecko.com/api/v3';
+    // Initialize API keys array with round-robin rotation
+    this.apiKeys = config.COINGECKO_API_KEYS && config.COINGECKO_API_KEYS.length > 0 
+      ? config.COINGECKO_API_KEYS 
+      : (config.COINGECKO_API_KEY ? [config.COINGECKO_API_KEY] : []);
+    
+    if (this.apiKeys.length > 0) {
+      logger.info(`CoinGecko: Initialized with ${this.apiKeys.length} API key(s)`);
     }
+  }
+
+  private getNextApiKey(): string | undefined {
+    if (this.apiKeys.length === 0) return undefined;
+    
+    const key = this.apiKeys[this.currentKeyIndex];
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    return key;
   }
 
   private mapChainToPlatformId(chain: string): string | null {
@@ -75,12 +89,13 @@ class CoinGeckoService {
 
   private async fetchPrice(tokenId: string): Promise<number | null> {
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/price`, {
         params: {
           ids: tokenId,
           vs_currencies: 'usd',
           include_24hr_change: true,
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
 
@@ -132,11 +147,12 @@ class CoinGeckoService {
       const batch = toFetch.slice(i, i + BATCH_SIZE);
       
       try {
+        const apiKey = this.getNextApiKey();
         const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/price`, {
           params: {
             ids: batch.join(','),
             vs_currencies: 'usd',
-            x_cg_demo_api_key: config.COINGECKO_API_KEY,
+            x_cg_demo_api_key: apiKey,
           },
         });
 
@@ -162,12 +178,13 @@ class CoinGeckoService {
 
   async getPriceWithChange(tokenId: string): Promise<{ price: number; change_24h: number } | null> {
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/price`, {
         params: {
           ids: tokenId,
           vs_currencies: 'usd',
           include_24hr_change: true,
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
 
@@ -186,9 +203,10 @@ class CoinGeckoService {
 
   async getTrending(): Promise<any[]> {
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get(`${this.baseUrl}/search/trending`, {
         params: {
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
       return response.data.coins || [];
@@ -204,6 +222,7 @@ class CoinGeckoService {
       // Public API doesn't have a direct "top gainers" endpoint easily accessible without parsing large lists.
       // However, we can use /coins/markets with order=price_change_percentage_24h_desc
       
+      const apiKey = this.getNextApiKey();
       const response = await axios.get(`${this.baseUrl}/coins/markets`, {
         params: {
           vs_currency: 'usd',
@@ -212,7 +231,7 @@ class CoinGeckoService {
           page: 1,
           sparkline: false,
           price_change_percentage: '24h',
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
       return response.data || [];
@@ -230,11 +249,12 @@ class CoinGeckoService {
     }
 
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/token_price/${platformId}`, {
         params: {
           contract_addresses: contractAddress,
           vs_currencies: 'usd',
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
 
@@ -256,6 +276,7 @@ class CoinGeckoService {
 
   async getCoinDetails(tokenId: string): Promise<any | null> {
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get(`${this.baseUrl}/coins/${tokenId}`, {
         params: {
           localization: false,
@@ -264,7 +285,7 @@ class CoinGeckoService {
           community_data: true,
           developer_data: true,
           sparkline: false,
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
       return response.data;
@@ -294,6 +315,7 @@ class CoinGeckoService {
     if (!platformId) return null;
 
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get(`${this.baseUrl}/coins/${platformId}/contract/${address}`, {
         params: {
           localization: false,
@@ -302,7 +324,7 @@ class CoinGeckoService {
           community_data: true,
           developer_data: true,
           sparkline: false,
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
       return response.data;
@@ -315,10 +337,11 @@ class CoinGeckoService {
 
   async searchCoin(query: string): Promise<string | null> {
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get(`${this.baseUrl}/search`, {
         params: {
           query: query,
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
       
@@ -334,11 +357,12 @@ class CoinGeckoService {
 
   async getMarketChart(tokenId: string, days: number = 7): Promise<{ prices: [number, number][] } | null> {
     try {
+      const apiKey = this.getNextApiKey();
       const response = await axios.get(`${this.baseUrl}/coins/${tokenId}/market_chart`, {
         params: {
           vs_currency: 'usd',
           days: days,
-          x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          x_cg_demo_api_key: apiKey,
         },
       });
       return response.data;
