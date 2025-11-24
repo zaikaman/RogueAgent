@@ -21,11 +21,11 @@ const server = app.listen(port, () => {
     telegramService.startPolling();
   }
 
-  // Start Signal Monitor (every 1 minute)
-  logger.info('Starting Signal Monitor (Interval: 1m)');
+  // Start Signal Monitor (every 2 minutes - aligned with cache TTL)
+  logger.info('Starting Signal Monitor (Interval: 2m)');
   setInterval(() => {
     signalMonitorService.checkActiveSignals().catch(err => logger.error('Signal monitor failed:', err));
-  }, 60 * 1000);
+  }, 120 * 1000); // 2 minutes - optimized to match cache TTL
   
   // Run once immediately on startup
   signalMonitorService.checkActiveSignals().catch(err => logger.error('Initial signal monitor failed:', err));

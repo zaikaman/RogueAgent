@@ -32,7 +32,8 @@ interface CMCResponse {
 class CoinMarketCapService {
   private baseUrl = 'https://pro-api.coinmarketcap.com/v1';
   private cache: Map<string, { price: number; change_24h: number; timestamp: number }> = new Map();
-  private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private CACHE_TTL = 3 * 60 * 1000; // 3 minutes - optimized for signal monitoring
+  private inflightRequests: Map<string, Promise<number | null>> = new Map();
 
   private get apiKey() {
     return config.CMC_API_KEY;
@@ -52,8 +53,31 @@ class CoinMarketCapService {
   }
 
   async getPrice(symbol: string): Promise<number | null> {
-    const data = await this.getPriceWithChange(symbol);
-    return data ? data.price : null;
+    const cached = this.cache.get(symbol.toLowerCase());
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.price;
+    }
+
+    // Check for in-flight request
+    const existingRequest = this.inflightRequests.get(symbol.toLowerCase());
+    if (existingRequest) {
+      logger.debug(`Reusing in-flight CMC request for ${symbol}`);
+      return existingRequest;
+    }
+
+    // Create and track new request
+    const pricePromise = (async () => {
+      const data = await this.getPriceWithChange(symbol);
+      return data ? data.price : null;
+    })();
+    
+    this.inflightRequests.set(symbol.toLowerCase(), pricePromise);
+    
+    try {
+      return await pricePromise;
+    } finally {
+      this.inflightRequests.delete(symbol.toLowerCase());
+    }
   }
 
   async getPriceBySlug(slug: string): Promise<{ price: number; change_24h: number } | null> {

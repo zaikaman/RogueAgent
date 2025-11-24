@@ -38,7 +38,42 @@ export class SignalMonitorService {
 
     logger.info(`Found ${runs.length} recent signals. Checking for active ones...`);
 
-    for (const run of runs) {
+    // Pre-filter active signals and group by price lookup method
+    const activeSignals = runs.filter(r => {
+      const content = r.content as SignalContent;
+      return content.status !== 'tp_hit' && content.status !== 'sl_hit' && content.status !== 'closed';
+    });
+
+    if (activeSignals.length === 0) {
+      logger.info('No active signals to track.');
+      return;
+    }
+
+    logger.info(`Tracking ${activeSignals.length} active signals (${runs.length - activeSignals.length} already closed)`);
+
+    // Group tokens by lookup method for batch fetching
+    const coingeckoIds: string[] = [];
+    const tokenMap = new Map<string, any>();
+
+    for (const run of activeSignals) {
+      const content = run.content as SignalContent;
+      const token = content.token;
+      
+      if ((token as any).coingecko_id) {
+        coingeckoIds.push((token as any).coingecko_id);
+        tokenMap.set((token as any).coingecko_id, { runId: run.id, content });
+      }
+    }
+
+    // Batch fetch CoinGecko prices
+    let batchPrices = new Map<string, number>();
+    if (coingeckoIds.length > 0) {
+      logger.info(`Batch fetching ${coingeckoIds.length} CoinGecko prices...`);
+      batchPrices = await coingeckoService.getBatchPrices(coingeckoIds);
+    }
+
+    // Now process each signal with pre-fetched or individually fetched prices
+    for (const run of activeSignals) {
         const content = run.content as SignalContent;
 
         // If already closed, skip
@@ -48,12 +83,17 @@ export class SignalMonitorService {
 
         logger.info(`Tracking signal: ${run.id} (${content.token.symbol}) Status: ${content.status || 'active'}`);
 
-        // Get current price
+        // Get current price - use batch-fetched price if available
         let currentPrice: number | null = null;
         
         try {
-            // Priority 1: Try address-based lookup first (most accurate for all tokens)
-            if ((content.token as any).chain && (content.token as any).address) {
+            // Priority 1: Use batch-fetched CoinGecko price
+            if ((content.token as any).coingecko_id) {
+                currentPrice = batchPrices.get((content.token as any).coingecko_id) || null;
+            }
+
+            // Priority 2: Try address-based lookup (only if not in batch)
+            if (!currentPrice && (content.token as any).chain && (content.token as any).address) {
                 const chain = (content.token as any).chain;
                 const address = (content.token as any).address;
                 
@@ -69,13 +109,13 @@ export class SignalMonitorService {
                 }
             }
 
-            // Priority 2: Fallback to CMC by symbol (for popular tokens without addresses)
+            // Priority 3: Fallback to CMC by symbol (for popular tokens)
             if (!currentPrice && content.token.symbol) {
                 currentPrice = await coinMarketCapService.getPrice(content.token.symbol);
             }
 
-            // Priority 3: Fallback to CoinGecko by ID
-            if (!currentPrice && (content.token as any).coingecko_id) {
+            // Priority 4: Fallback to individual CoinGecko fetch by ID (if batch failed)
+            if (!currentPrice && (content.token as any).coingecko_id && !batchPrices.has((content.token as any).coingecko_id)) {
                 currentPrice = await coingeckoService.getPrice((content.token as any).coingecko_id);
             }
         } catch (err) {

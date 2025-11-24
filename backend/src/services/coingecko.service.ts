@@ -13,7 +13,8 @@ interface CoinGeckoPrice {
 class CoinGeckoService {
   private baseUrl = 'https://api.coingecko.com/api/v3';
   private cache: Map<string, { price: number; timestamp: number }> = new Map();
-  private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private CACHE_TTL = 3 * 60 * 1000; // 3 minutes - optimized for signal monitoring
+  private inflightRequests: Map<string, Promise<number | null>> = new Map();
 
   constructor() {
     if (config.COINGECKO_API_KEY) {
@@ -53,6 +54,26 @@ class CoinGeckoService {
       return cached.price;
     }
 
+    // Check for in-flight request to prevent duplicate API calls
+    const existingRequest = this.inflightRequests.get(tokenId);
+    if (existingRequest) {
+      logger.debug(`Reusing in-flight CoinGecko request for ${tokenId}`);
+      return existingRequest;
+    }
+
+    // Create and track new request
+    const pricePromise = this.fetchPrice(tokenId);
+    this.inflightRequests.set(tokenId, pricePromise);
+    
+    try {
+      const price = await pricePromise;
+      return price;
+    } finally {
+      this.inflightRequests.delete(tokenId);
+    }
+  }
+
+  private async fetchPrice(tokenId: string): Promise<number | null> {
     try {
       const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/price`, {
         params: {
@@ -82,6 +103,61 @@ class CoinGeckoService {
       logger.error(`CoinGecko API error for ${tokenId}:`, error);
       return null;
     }
+  }
+
+  async getBatchPrices(tokenIds: string[]): Promise<Map<string, number>> {
+    const results = new Map<string, number>();
+    const uniqueIds = [...new Set(tokenIds)];
+    const toFetch: string[] = [];
+
+    // Check cache first
+    for (const id of uniqueIds) {
+      const cached = this.cache.get(id);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        results.set(id, cached.price);
+      } else {
+        toFetch.push(id);
+      }
+    }
+
+    if (toFetch.length === 0) {
+      return results;
+    }
+
+    logger.info(`Batch fetching ${toFetch.length} CoinGecko prices (${results.size} from cache)`);
+
+    // CoinGecko allows up to 250 IDs in a single request
+    const BATCH_SIZE = 100; // Conservative batch size
+    for (let i = 0; i < toFetch.length; i += BATCH_SIZE) {
+      const batch = toFetch.slice(i, i + BATCH_SIZE);
+      
+      try {
+        const response = await axios.get<CoinGeckoPrice>(`${this.baseUrl}/simple/price`, {
+          params: {
+            ids: batch.join(','),
+            vs_currencies: 'usd',
+            x_cg_demo_api_key: config.COINGECKO_API_KEY,
+          },
+        });
+
+        for (const [id, data] of Object.entries(response.data)) {
+          if (data && data.usd) {
+            const price = data.usd;
+            this.cache.set(id, { price, timestamp: Date.now() });
+            results.set(id, price);
+          }
+        }
+      } catch (error) {
+        logger.error(`Error fetching batch prices for CoinGecko:`, error);
+      }
+
+      // Add delay between batches to respect rate limits
+      if (i + BATCH_SIZE < toFetch.length) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+
+    return results;
   }
 
   async getPriceWithChange(tokenId: string): Promise<{ price: number; change_24h: number } | null> {
