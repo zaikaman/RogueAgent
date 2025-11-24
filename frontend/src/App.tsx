@@ -17,11 +17,11 @@ import { PerformanceAnalytics } from './pages/analytics/PerformanceAnalytics';
 import { MarketAnalytics } from './pages/analytics/MarketAnalytics';
 import { SignalAnalytics } from './pages/analytics/SignalAnalytics';
 import { AskRogue } from './pages/AskRogue';
-import Introduction from './pages/docs/Introduction.tsx';
-import Quickstart from './pages/docs/Quickstart.tsx';
-import Architecture from './pages/docs/Architecture.tsx';
-import Agents from './pages/docs/Agents.tsx';
-import Configuration from './pages/docs/Configuration.tsx';
+import Introduction from './pages/docs/Introduction';
+import Quickstart from './pages/docs/Quickstart';
+import Architecture from './pages/docs/Architecture';
+import Agents from './pages/docs/Agents';
+import Configuration from './pages/docs/Configuration';
 import { Toaster } from 'sonner';
 import { CustomCursor } from './components/ui/CustomCursor';
 
