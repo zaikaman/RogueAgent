@@ -42,3 +42,15 @@ export function useIntelHistory(page = 1, limit = 10) {
     refetchInterval: 30000, // Poll every 30 seconds
   });
 }
+
+export function useIntelDetail(id?: string) {
+  return useQuery({
+    queryKey: ['intelDetail', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await api.get<IntelItem>(`${endpoints.intelDetail}/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}

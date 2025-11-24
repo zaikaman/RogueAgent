@@ -46,6 +46,7 @@ router.get('/signals/history', signalsController.getSignalHistory);
 
 // Intel
 router.get('/intel/history', intelController.getIntelHistory);
+router.get('/intel/:id', intelController.getIntelById);
 
 // Yield
 router.get('/yield', yieldController.getOpportunities);

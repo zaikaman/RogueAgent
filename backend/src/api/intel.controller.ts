@@ -78,3 +78,41 @@ export const getIntelHistory = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch intel history' });
   }
 };
+
+export const getIntelById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const { data: run, error } = await supabaseService.getClient()
+      .from('runs')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!run) {
+      return res.status(404).json({ error: 'Intel not found' });
+    }
+
+    // Allow if type is intel or deep_dive
+    if (run.type !== 'intel' && run.type !== 'deep_dive') {
+         return res.status(404).json({ error: 'Intel not found' });
+    }
+
+    const intel = {
+      id: run.id,
+      type: run.type,
+      created_at: run.created_at,
+      content: run.content,
+      public_posted_at: run.public_posted_at
+    };
+
+    res.json(intel);
+  } catch (error) {
+    logger.error('Failed to fetch intel detail:', error);
+    res.status(500).json({ error: 'Failed to fetch intel detail' });
+  }
+};

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useConnect } from 'wagmi';
-import { useIntelHistory } from '../hooks/useIntel';
+import { useIntelHistory, useIntelDetail } from '../hooks/useIntel';
 import { useUserTier } from '../hooks/useUserTier';
 import { IntelBlog } from '../components/IntelBlog';
 import { IntelCard } from '../components/IntelCard';
@@ -15,9 +15,12 @@ export function IntelPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const { data: historyData, isLoading } = useIntelHistory(page, page === 1 ? 10 : 9);
+  const { data: historyData, isLoading: isHistoryLoading } = useIntelHistory(page, page === 1 ? 10 : 9);
+  const { data: detailData, isLoading: isDetailLoading } = useIntelDetail(id);
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
+
+  const isLoading = id ? isDetailLoading : isHistoryLoading;
 
   const handleConnect = () => {
     const connector = connectors[0];
@@ -42,7 +45,7 @@ export function IntelPage() {
     return intelItems.slice(0, 9); // pages 2+ show 9 items
   })();
 
-  const selectedIntel = id ? intelItems.find(item => item.id === id) : null;
+  const selectedIntel = id ? detailData : null;
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
