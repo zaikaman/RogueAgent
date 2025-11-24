@@ -139,7 +139,7 @@ export default function Introduction() {
                     </div>
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Autonomous Operation</h3>
-                        <p className="text-gray-400">No manual input required. Rogue runs on a configurable schedule (default: every 4 hours), hunting for alpha while you sleep.</p>
+                        <p className="text-gray-400">No manual input required. Rogue runs on a configurable schedule (default: every 1 hour), hunting for alpha while you sleep.</p>
                     </div>
                 </div>
 

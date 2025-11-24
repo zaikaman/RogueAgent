@@ -40,4 +40,3 @@ out/
 secrets/
 *.key
 *.crt
-/docs

@@ -1,6 +1,6 @@
 # ROGUE | The Crypto Alpha Oracle
 
-![Rogue Agent Banner](https://rogue-adk.vercel.app/og-image.png)
+![Rogue Agent Banner](https://rogue-adk.vercel.app/logo.webp)
 
 <div align="center">
 
@@ -46,7 +46,7 @@ Built on cutting-edge AI agent orchestration, Rogue continuously monitors the cr
 - **Traditional indicators** (RSI, MACD, EMAs, support/resistance levels)
 - **Fundamental analysis** (market cap, FDV ratios, tokenomics)
 
-The platform operates autonomously on a configurable schedule (default: every 4 hours), running coordinated "swarms" of specialized AI agents that collaborate to identify, analyze, and distribute high-signal opportunities.
+The platform operates autonomously on a configurable schedule (default: every 1 hour), running coordinated "swarms" of specialized AI agents that collaborate to identify, analyze, and distribute high-signal opportunities.
 
 ### What Makes Rogue Different?
 
@@ -128,7 +128,7 @@ graph TD
 ### 🎯 The Orchestrator
 
 The **Orchestrator** is the conductor of the entire operation. It:
-- **Schedules swarm runs** on a configurable interval (default: every 4 hours)
+- **Schedules swarm runs** on a configurable interval (default: every 1 hour)
 - **Intelligently manages timing** by checking database history to avoid overlapping runs
 - **Fetches market data** from 6+ sources in parallel (CoinGecko, Birdeye, DeFi Llama, CoinMarketCap)
 - **Routes data** to specialized agents based on current objectives
@@ -604,8 +604,6 @@ Rogue: *Searches X* "Sentiment is overwhelmingly bullish.
 - "Find me airdrops" - Latest opportunities
 - "Show me high-yield farms" - DeFi farming options
 
-**Setup Guide**: See [VAPI_SETUP.md](VAPI_SETUP.md) for complete voice assistant configuration.
-
 ---
 
 ### 🤖 "Ask Rogue" Terminal
@@ -643,10 +641,14 @@ An **interactive chat interface** with persistent conversation history.
 
 | Tier | Requirement | Benefits |
 |------|-------------|----------|
-| 💎 **Diamond** | 100,000+ RGE | • Immediate signals via Telegram<br>• Priority support<br>• Exclusive alpha reports<br>• Custom scan requests (unlimited) |
-| 🥇 **Gold** | 50,000 - 99,999 RGE | • Immediate signals via Telegram<br>• Advanced analytics<br>• Custom scan requests (10/day) |
-| 🥈 **Silver** | 10,000 - 49,999 RGE | • Signals (+15min delay)<br>• Basic analytics<br>• Custom scan requests (5/day) |
-| 🌐 **Public** | 0 RGE | • Signals (+30min delay via Twitter)<br>• Public dashboard access |
+| 💎 **Diamond** | 1000+ RGE | • Immediate signals via Telegram<br>• Priority support<br>• Exclusive alpha reports<br>• Custom scan requests (unlimited) |
+| 🥇 **Gold** | 100 - 999 RGE | • Immediate signals via Telegram<br>• Advanced analytics<br>• Custom scan requests (10/day) |
+| 🥈 **Silver** | 10 - 99 RGE | • Signals (+15min delay)<br>• Basic analytics<br>• Custom scan requests (5/day) |
+| 🌐 **Public** | 0 - 9 RGE | • Signals (+30min delay via Twitter)<br>• Public dashboard access |
+
+**How to Get RGE Tokens**:
+- Purchase via IQ.AI: [app.iqai.com/pending/0xe5Ee677388a6393d135bEd00213E150b1F64b032](https://app.iqai.com/pending/0xe5Ee677388a6393d135bEd00213E150b1F64b032)
+- Contract Address: `0xe5Ee677388a6393d135bEd00213E150b1F64b032` (Fraxtal Chain)
 
 **Tier Verification**:
 - Real-time balance checking via Ethers.js
@@ -656,7 +658,6 @@ An **interactive chat interface** with persistent conversation history.
 **Telegram Bot Commands**:
 - `/start` - Link wallet and join tier
 - `/verify` - Check current tier status
-- `/balance` - View RGE holdings
 - `/scan [token]` - Request custom token analysis
 - `/help` - Full command list
 
@@ -761,7 +762,7 @@ Alert Sent: "🚀 SOL limit order activated at $24.95"
 
 ### The Complete Signal Generation Cycle
 
-**Phase 1: Market Surveillance (Every 4 Hours)**
+**Phase 1: Market Surveillance (Every 1 Hour)**
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1060,7 +1061,7 @@ User → Speaks: "What's happening with Solana?"
 **Background Services**:
 ```typescript
 // Swarm Scheduler
-setInterval(() => orchestrator.runSwarm(), 4 * 60 * 60 * 1000); // 4h
+setInterval(() => orchestrator.runSwarm(), 60 * 60 * 1000); // 1h
 
 // Signal Monitor  
 setInterval(() => signalMonitor.checkActiveSignals(), 60 * 1000); // 1min
@@ -1283,7 +1284,7 @@ Create `backend/.env`:
 # Server Configuration
 PORT=3000
 NODE_ENV=development
-RUN_INTERVAL_MINUTES=240  # Swarm runs every 4 hours
+RUN_INTERVAL_MINUTES=60  # Swarm runs every 1 hour
 
 # AI Services
 OPENAI_API_KEY=sk-proj-...  # From platform.openai.com
@@ -1617,29 +1618,6 @@ We welcome contributions from the community! Here's how you can help:
 - **Discord**: [Join our server](#) (coming soon)
 - **Twitter/X**: [@RogueAgent](#)
 - **Telegram**: [Community Group](#)
-
----
-
-## 📊 Performance & Statistics
-
-### Live Metrics (as of November 2025)
-
-- **Total Signals Generated**: 124+
-- **Average Confidence Score**: 86%
-- **Signal Success Rate**: ~94%* 
-- **Average Hold Time**: 18 hours
-- **Best Performing Chain**: Solana
-- **Most Successful Sector**: AI Tokens
-
-*Based on TP hit rate. Past performance does not guarantee future results.
-
-### Data Processing Stats
-
-- **Market Sources Monitored**: 30+
-- **Tokens Scanned per Cycle**: 150-300
-- **Average Swarm Execution Time**: 45-90 seconds
-- **Database Records**: 10,000+
-- **Uptime**: 99.8%
 
 ---
 

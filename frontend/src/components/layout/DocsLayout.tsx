@@ -25,6 +25,14 @@ export function DocsLayout({ children }: DocsLayoutProps) {
       links: [
         { title: 'Agents Reference', href: '/docs/agents' },
         { title: 'Configuration', href: '/docs/configuration' },
+        { title: 'Tier System', href: '/docs/tiers' },
+      ]
+    },
+    {
+      title: 'Integration',
+      links: [
+        { title: 'API Reference', href: '/docs/api' },
+        { title: 'Telegram Bot', href: '/docs/telegram' },
       ]
     }
   ];

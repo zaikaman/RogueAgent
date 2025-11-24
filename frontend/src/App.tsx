@@ -22,6 +22,9 @@ import Quickstart from './pages/docs/Quickstart';
 import Architecture from './pages/docs/Architecture';
 import Agents from './pages/docs/Agents';
 import Configuration from './pages/docs/Configuration';
+import API from './pages/docs/API';
+import Tiers from './pages/docs/Tiers';
+import Telegram from './pages/docs/Telegram';
 import { Toaster } from 'sonner';
 import { CustomCursor } from './components/ui/CustomCursor';
 
@@ -48,6 +51,9 @@ function App() {
               <Route path="/docs/architecture" element={<Architecture />} />
               <Route path="/docs/agents" element={<Agents />} />
               <Route path="/docs/configuration" element={<Configuration />} />
+              <Route path="/docs/api" element={<API />} />
+              <Route path="/docs/tiers" element={<Tiers />} />
+              <Route path="/docs/telegram" element={<Telegram />} />
               <Route path="/app" element={
                 <DashboardLayout>
                   <DashboardHome />
