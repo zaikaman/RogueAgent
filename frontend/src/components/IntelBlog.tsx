@@ -91,7 +91,7 @@ export function IntelBlog({ title = 'Market Intelligence Report', content, date,
   return (
     <div className='bg-black border border-gray-800 rounded-none overflow-hidden flex flex-col shadow-[0_0_30px_rgba(0,255,255,0.05)]'>
       {imageUrl && (
-        <div className='w-full h-80 relative shrink-0 group'>
+        <div className='w-full h-[28rem] md:h-[32rem] relative shrink-0 group'>
             <img src={imageUrl} alt={title} className='w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-700' />
             <div className='absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent' />
             <div className='absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black to-transparent'>
