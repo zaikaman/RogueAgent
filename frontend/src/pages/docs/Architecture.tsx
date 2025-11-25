@@ -172,7 +172,7 @@ export default function Architecture() {
                                 </div>
                                 <div className="bg-white/5 border border-white/10 rounded p-2">
                                     <p className="text-xs text-white font-medium">Public</p>
-                                    <p className="text-xs text-gray-400">+30 minutes</p>
+                                    <p className="text-xs text-gray-400">+30-60 minutes</p>
                                 </div>
                             </div>
                         </div>
