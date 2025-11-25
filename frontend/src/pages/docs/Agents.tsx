@@ -78,8 +78,67 @@ export default function Agents() {
             <h2 className="text-3xl font-bold text-white mb-6">Analyzer Agent</h2>
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                 <p className="text-green-200 text-sm">
-                    <strong>Role:</strong> The Deep Research Engine - Transforms raw candidates into actionable trading signals through multi-dimensional analysis
+                    <strong>Role:</strong> Elite Day Trading Engine - Transforms raw candidates into actionable signals with focus on <strong>day trades</strong> (4-24h) and selective <strong>swing trades</strong> (2-5 days)
                 </p>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Trading Philosophy</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-gradient-to-r from-teal-500/10 to-green-500/10 border border-teal-500/30 rounded-lg p-4">
+                    <h4 className="text-teal-400 font-bold mb-2">🎯 Primary: Day Trades</h4>
+                    <p className="text-sm text-gray-300">4-24 hour holds</p>
+                    <p className="text-xs text-gray-400 mt-1">Clear intraday momentum, volume spikes, news catalysts</p>
+                </div>
+                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <h4 className="text-blue-400 font-bold mb-2">📈 Secondary: Swing Trades</h4>
+                    <p className="text-sm text-gray-300">2-5 day holds</p>
+                    <p className="text-xs text-gray-400 mt-1">Strong multi-day trends, major catalysts, MTF alignment &gt;85%</p>
+                </div>
+                <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-lg p-4">
+                    <h4 className="text-red-400 font-bold mb-2">❌ Avoided: Scalping</h4>
+                    <p className="text-sm text-gray-300">&lt;2 hour holds</p>
+                    <p className="text-xs text-gray-400 mt-1">Too risky, noise-prone, tight stops get hunted</p>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Stop-Loss Rules (Non-Negotiable)</h3>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6 mb-8">
+                <ul className="space-y-3 text-gray-300 list-none">
+                    <li className="flex items-start gap-3">
+                        <span className="text-yellow-400 text-xl">⚠️</span>
+                        <span><strong className="text-white">Minimum:</strong> 4% from entry (NEVER tighter - avoids getting stopped on noise)</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✅</span>
+                        <span><strong className="text-white">Preferred:</strong> 5-8% based on ATR for day trades</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-blue-400 text-xl">📈</span>
+                        <span><strong className="text-white">Swing Trades:</strong> 8-12% stop-loss distance</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-purple-400 text-xl">📍</span>
+                        <span><strong className="text-white">Structural:</strong> Stops placed at order blocks, VAL, swing lows (not arbitrary %)</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-red-400 text-xl">❌</span>
+                        <span><strong className="text-white">Rule:</strong> If structural level requires &lt;4% stop → SKIP THE TRADE</span>
+                    </li>
+                </ul>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Risk/Reward Requirements</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h4 className="text-white font-bold mb-2">🎯 Day Trade R:R</h4>
+                    <p className="text-sm text-gray-300">Minimum: <span className="text-teal-400 font-bold">1:2</span></p>
+                    <p className="text-sm text-gray-300">Preferred: <span className="text-green-400 font-bold">1:2.5 to 1:3</span></p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h4 className="text-white font-bold mb-2">📈 Swing Trade R:R</h4>
+                    <p className="text-sm text-gray-300">Minimum: <span className="text-teal-400 font-bold">1:2.5</span></p>
+                    <p className="text-sm text-gray-300">Preferred: <span className="text-green-400 font-bold">1:3 to 1:4</span></p>
+                </div>
             </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Analysis Framework</h3>
@@ -165,29 +224,30 @@ export default function Agents() {
             <h3 className="text-2xl font-bold text-white mb-4">Signal Tiers</h3>
             <div className="space-y-4 mb-8">
                 <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-4">
-                    <h4 className="text-yellow-400 font-bold mb-2">🔥 TIER 1 SETUPS (Confidence 95-100%)</h4>
-                    <p className="text-gray-300 text-sm mb-2">Requires 5+ advanced confluences such as:</p>
+                    <h4 className="text-yellow-400 font-bold mb-2">🔥 TIER 1 SETUPS (Confidence 92-100%)</h4>
+                    <p className="text-gray-300 text-sm mb-2">Requires 5+ advanced confluences + proper R:R:</p>
                     <ul className="text-xs text-gray-400 space-y-1">
-                        <li>• CVD bullish divergence + MTF alignment (4+ timeframes) + BB Squeeze breakout</li>
-                        <li>• ICT Order Block hit + Volume Profile POC support + SuperTrend bullish</li>
-                        <li>• VW-MACD crossover + Fibonacci 61.8% bounce + positive sentiment</li>
+                        <li>• CVD divergence + MTF alignment (4+ TFs) + BB Squeeze breakout</li>
+                        <li>• Strong catalyst + Volume Profile POC support + SuperTrend bullish</li>
+                        <li>• Structural stop-loss at 5-8% with 1:3+ R:R</li>
                     </ul>
                 </div>
 
                 <div className="bg-gradient-to-r from-green-500/10 to-teal-500/10 border border-green-500/30 rounded-lg p-4">
-                    <h4 className="text-green-400 font-bold mb-2">✅ TIER 2 SETUPS (Confidence 85-94%)</h4>
+                    <h4 className="text-green-400 font-bold mb-2">✅ TIER 2 SETUPS (Confidence 85-91%)</h4>
                     <ul className="text-sm text-gray-300 space-y-1">
-                        <li>• 3-4 advanced confluences (e.g., SuperTrend + Volume Profile + MTF bias)</li>
+                        <li>• 3-4 advanced confluences + proper R:R</li>
                         <li>• Strong narrative + 2 technical confluences</li>
-                        <li>• ICT FVG fill + orderflow confirmation</li>
+                        <li>• Day trade with clear 4-24h catalyst window</li>
                     </ul>
                 </div>
 
                 <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
                     <h4 className="text-blue-400 font-bold mb-2">⚠️ TIER 3 SETUPS (Confidence 80-84%)</h4>
                     <ul className="text-sm text-gray-300 space-y-1">
-                        <li>• 2 advanced confluences + solid fundamentals</li>
-                        <li>• Clear technical breakout + positive sentiment</li>
+                        <li>• 2-3 confluences + solid fundamentals</li>
+                        <li>• Clear structural levels for entry/stop/target</li>
+                        <li>• ONLY taken if R:R is 1:2.5 or better</li>
                     </ul>
                 </div>
 
@@ -195,9 +255,10 @@ export default function Agents() {
                     <h4 className="text-red-400 font-bold mb-2">❌ REJECTED</h4>
                     <ul className="text-sm text-gray-300 space-y-1">
                         <li>• Confidence below 80%</li>
-                        <li>• No advanced confluences (only basic RSI/MACD)</li>
-                        <li>• Weak volume or fundamentals</li>
-                        <li>• Bearish market context without independent catalyst</li>
+                        <li>• Stop-loss would need to be &lt;4% (too tight)</li>
+                        <li>• R:R below 1:2</li>
+                        <li>• No clear structural levels for stop-loss</li>
+                        <li>• Bearish market without independent catalyst</li>
                     </ul>
                 </div>
             </div>
@@ -206,22 +267,35 @@ export default function Agents() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                     <h4 className="text-white font-bold mb-2">Market Order</h4>
-                    <p className="text-sm text-gray-400">Used when immediate action needed:</p>
+                    <p className="text-sm text-gray-400">Only for immediate momentum plays:</p>
                     <ul className="text-xs text-gray-400 mt-2 space-y-1">
-                        <li>• BB squeeze breakout</li>
-                        <li>• CVD divergence + price momentum</li>
-                        <li>• SuperTrend flip</li>
+                        <li>• BB squeeze breakout in progress</li>
+                        <li>• Strong catalyst just dropped</li>
                     </ul>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                     <h4 className="text-white font-bold mb-2">Limit Order (Preferred)</h4>
-                    <p className="text-sm text-gray-400">Better R:R when price is:</p>
+                    <p className="text-sm text-gray-400">Better R:R at support levels:</p>
                     <ul className="text-xs text-gray-400 mt-2 space-y-1">
-                        <li>• Near Volume Profile POC</li>
-                        <li>• At Fibonacci retracement level</li>
-                        <li>• Approaching ICT Order Block</li>
+                        <li>• Volume Profile POC or VAL</li>
+                        <li>• Fib 50% or 61.8% retracement</li>
+                        <li>• ICT Order Block zone</li>
+                        <li>• SuperTrend level</li>
                     </ul>
                 </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Signal Format</h3>
+            <div className="bg-[#0d1117] rounded-lg border border-white/10 p-4 mb-6 font-mono text-xs overflow-x-auto">
+                <pre className="text-gray-300">{`🎯 $ARB day trade
+⏱️ 8-16h hold
+entry: $0.85
+target: $1.02 (+20%)
+stop: $0.80 (-5.9%)
+r:r: 1:3.4
+conf: 89%
+cvd divergence + poc support + upgrade catalyst
+#arbitrum`}</pre>
             </div>
         </section>
 

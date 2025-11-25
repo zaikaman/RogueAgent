@@ -54,6 +54,14 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 
 🧠 **Multi-Agent Intelligence**: Unlike single-model systems, Rogue deploys specialized agents for scanning, analysis, content generation, and distribution—each optimized for its specific task.
 
+📈 **Day Trading Focused**: Rogue specializes in **day trades** (4-24 hour holds) with selective swing trades when conditions are perfect. No scalping, no tight stops, no getting stopped out on noise.
+
+⚠️ **Strict Risk Management**: 
+- Minimum 4% stop-loss distance (never tighter)
+- R:R requirements: 1:2 minimum for day trades, 1:2.5 for swings
+- Structural stop placement at real support levels
+- Signals rejected if proper stops can't be placed
+
 🎚️ **Tiered Distribution**: Signals are distributed strategically:
 - **Diamond/Gold** tier users receive immediate alerts
 - **Silver** tier receives signals after 15 minutes
@@ -164,9 +172,14 @@ The **Orchestrator** is the conductor of the entire operation. It:
 
 ---
 
-#### 🧠 **Analyzer Agent** - The Deep Research Engine
+#### 🧠 **Analyzer Agent** - The Elite Day Trading Engine
 
-**Role**: Transforms raw candidates into actionable trading signals through multi-dimensional analysis.
+**Role**: Transforms raw candidates into actionable trading signals with a focus on **day trading** (4-24 hour holds) and selective **swing trading** (2-5 days).
+
+**Trading Philosophy**:
+- 🎯 **Primary**: Day Trades (4-24 hour holds) - Bread and butter setups
+- 📈 **Secondary**: Swing Trades (2-5 days) - Only when trend + catalyst are extremely strong  
+- ❌ **Avoided**: Scalping (< 2 hour holds) - Too risky, noise-prone, low win rate
 
 **Analysis Framework**:
 
@@ -185,8 +198,8 @@ The **Orchestrator** is the conductor of the entire operation. It:
    - **Volume-Weighted MACD**: Enhanced accuracy on low-liquidity L2 chains
    - **Fibonacci Retracement/Extension**: Precision entry/exit zones
    - **Multi-Timeframe Alignment**: Confluence scoring across timeframes (89-97% accuracy)
+   - **ATR (Average True Range)**: Volatility-based stop-loss calculation
    - Traditional: RSI, MACD, EMAs, SMA
-   - Volume analysis for liquidity validation
 
 4. **Fundamental Analysis**:
    - Market Cap and FDV (Fully Diluted Valuation) ratios
@@ -200,35 +213,53 @@ The **Orchestrator** is the conductor of the entire operation. It:
    - Partnership/integration announcements
    - Social media trending strength
 
-**Decision Engine**:
-- **Minimum confidence threshold**: 80% (strict filtering)
-- **Signal Quality Scoring**: Advanced indicators add 0-100 confidence boost
-- **Risk/Reward calculation**: Targets 1:2 ratio
-- **Order type determination**:
-  - **Market Order**: When price is at ideal entry and momentum is strong
-  - **Limit Order**: When price is extended; sets entry at support level and creates pending signal
+**Stop-Loss Rules** (Non-Negotiable):
+- ⚠️ **Minimum**: 4% from entry (NEVER tighter - avoids getting stopped on noise)
+- ✅ **Preferred**: 5-8% based on ATR for day trades
+- 📈 **Swing Trades**: 8-12% stop-loss distance
+- 📍 Stops placed at **structural levels** (order blocks, VAL, swing lows)
+- ❌ If structural level requires < 4% stop → **SKIP THE TRADE**
+
+**Risk/Reward Requirements**:
+- Day Trade: Minimum **1:2 R:R**, prefer 1:2.5 to 1:3
+- Swing Trade: Minimum **1:2.5 R:R**, prefer 1:3 to 1:4
+- If R:R < 1:2 → **DO NOT TAKE THE TRADE**
+
+**Trading Style Selection**:
+| Choose Day Trade When | Choose Swing Trade When |
+|-----------------------|-------------------------|
+| Clear intraday momentum | Strong multi-day trend (MTF > 85%) |
+| Volume spike in last 4-8h | Major catalyst upcoming |
+| News with 24-48h relevance | Price at major support |
+| BB squeeze breakout | Low volatility consolidation |
+
+**Order Type Determination**:
+- **Market Order**: BB squeeze breakouts or immediate momentum plays
+- **Limit Order** (Preferred): At support levels for better R:R
 
 **Output**: 
 ```json
 {
   "action": "signal",
   "selected_token": {
-    "symbol": "SOL",
-    "name": "Solana",
-    "coingecko_id": "solana",
-    "chain": "solana",
-    "address": "So11111111111111111111111111111111111111112"
+    "symbol": "ARB",
+    "name": "Arbitrum",
+    "coingecko_id": "arbitrum",
+    "chain": "arbitrum",
+    "address": "0x912CE59144191C1204E64559FE8253a0e49E6548"
   },
   "signal_details": {
     "order_type": "limit",
-    "entry_price": 25.00,
-    "target_price": 32.00,
-    "stop_loss": 22.00,
-    "confidence": 87,
-    "analysis": "TIER 1 SETUP: Signal Quality Score 92/100. CVD bullish divergence. Volume Profile POC support. SuperTrend bullish. MTF aligned at 88%...",
+    "trading_style": "day_trade",
+    "expected_duration": "8-16 hours",
+    "entry_price": 0.85,
+    "target_price": 1.02,
+    "stop_loss": 0.80,
+    "confidence": 89,
+    "analysis": "DAY TRADE: CVD divergence + POC support at $0.85 + Network upgrade in 12h. Stop $0.80 (5.9% - below Order Block). Target $1.02 (Fib 1.618). R:R 1:3.4",
     "trigger_event": {
-      "type": "pullback_to_support",
-      "description": "Waiting for retest of $25 support level"
+      "type": "day_trade_setup",
+      "description": "CVD divergence + POC support + catalyst alignment"
     }
   }
 }
@@ -347,6 +378,19 @@ Rogue: *Searches Birdeye + X for Base trending tokens*
 - **Intel Reports**: Narrative-driven market analysis
 - **Yield Opportunities**: Risk-categorized farming guides
 - **Airdrop Alerts**: Task breakdowns and value estimations
+
+**Signal Format**:
+```
+🎯 $ARB day trade
+⏱️ 8-16h hold
+entry: $0.85
+target: $1.02 (+20%)
+stop: $0.80 (-5.9%)
+r:r: 1:3.4
+conf: 89%
+cvd divergence + poc support + network upgrade catalyst
+#arbitrum
+```
 
 **Tone**: Professional, concise, "alpha-focused". No fluff.
 

@@ -154,6 +154,22 @@ export default function Introduction() {
                 </div>
 
                 <div className="flex gap-4">
+                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 border border-green-500/30">
+                        <span className="text-green-400 font-bold">📈</span>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-semibold text-lg mb-2">Day Trading Focused</h3>
+                        <p className="text-gray-400 mb-2">Rogue specializes in <strong className="text-white">day trades</strong> (4-24h holds) with selective swing trades:</p>
+                        <ul className="text-sm text-gray-400 space-y-1">
+                            <li>• Minimum <strong className="text-white">4% stop-loss</strong> distance (never tighter)</li>
+                            <li>• <strong className="text-white">1:2 minimum R:R</strong> for all trades</li>
+                            <li>• Structural stops at real support levels</li>
+                            <li>• No scalping, no tight stops, no noise</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="flex gap-4">
                     <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 border border-blue-500/30">
                         <span className="text-blue-400 font-bold">🎚️</span>
                     </div>
@@ -169,8 +185,8 @@ export default function Introduction() {
                 </div>
 
                 <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 border border-green-500/30">
-                        <span className="text-green-400 font-bold">🔒</span>
+                    <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
+                        <span className="text-orange-400 font-bold">🔒</span>
                     </div>
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Limit Order Intelligence</h3>
