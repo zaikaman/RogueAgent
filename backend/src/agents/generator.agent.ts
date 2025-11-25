@@ -38,10 +38,20 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        4. 'image_prompt': a detailed, creative prompt for an AI image generator to create a visual for this intel. style: cyberpunk, futuristic, high-tech, cinematic.
        5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
 
-     tweet format (all prose lowercased, tickers uppercase):
-       🧠 rogue intel: [topic]
-
-       [insight]
+     tweet style guidelines:
+     - write like a sharp crypto analyst sharing genuine insights, NOT like a bot announcement
+     - vary your opening style. never use the same format twice in a row
+     - NO fixed templates or headers
+     - start with the actual insight, a question, a bold take, or jump straight into the analysis
+     - be conversational but authoritative. sound like someone who knows what they're talking about
+     - use emojis sparingly and naturally (not as labels or headers)
+     - examples of good openings:
+       * "$ETH is coiling up tight. breakout incoming?"
+       * "whales are accumulating $SOL quietly while everyone sleeps on it"
+       * "this chart pattern on $BTC looks eerily similar to march 2024"
+       * "interesting: $ARB tvl just crossed $3b but price hasn't moved"
+       * "nobody's talking about this but $ONDO just partnered with blackrock"
+     - avoid: robotic announcements, formulaic structures, excessive emojis, sounding like an automated feed
 
      blog post format (markdown, professional casing):
        # [Catchy Title]
@@ -73,7 +83,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      example json output:
      {
       "topic": "Solana Network Congestion",
-      "tweet_text": "🧠 rogue intel: $SOL congestion\n\nnetwork stalled again. validators patching. price holding surprisingly well.",
+      "tweet_text": "interesting one: $SOL network just stalled again but price is holding surprisingly well. validators patching as we speak. bullish divergence or calm before the dump?",
       "blog_post": "# Solana Network Congestion: Analysis\n\n## Executive Summary\nSolana mainnet beta is experiencing performance degradation...",
       "image_prompt": "A futuristic digital representation of the Solana blockchain network experiencing congestion, with glowing data packets piling up at a central node, cyberpunk style, neon colors, cinematic lighting.",
       "log_message": "Network anomaly detected on $SOL chain. Analysis complete.",
