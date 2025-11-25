@@ -67,9 +67,9 @@ export class ScheduledPostService {
                     const twitterLink = `https://x.com/Rogue_IQAI/status/${tweetId}`;
                     logContent = `${baseLog} ${twitterLink}`;
                   } else if (run.type === 'intel') {
-                    const topic = run.content.topic || 'Market Intel';
+                    const baseLog = run.content.log_message || `Intel extracted: ${run.content.topic || 'Market analysis'} complete.`;
                     const intelLink = `https://rogue-adk.vercel.app/app/intel/${run.id}`;
-                    logContent = `intel ping: ${topic}. ${intelLink}`;
+                    logContent = `${baseLog} ${intelLink}`;
                   }
 
                   if (logContent) {
@@ -132,13 +132,13 @@ export class ScheduledPostService {
                           let logContent = '';
                           
                           if (run.type === 'signal') {
-                            const baseLog = run.content.log_message || `signal locked: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
+                            const baseLog = run.content.log_message || `SIGNAL LOCKED: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
                             const twitterLink = `https://x.com/Rogue_IQAI/status/${tweetId}`;
                             logContent = `${baseLog} ${twitterLink}`;
                           } else if (run.type === 'intel') {
-                            const topic = run.content.topic || 'Market Intel';
+                            const baseLog = run.content.log_message || `Intel extracted: ${run.content.topic || 'Market analysis'} complete.`;
                             const intelLink = `https://rogue-adk.vercel.app/app/intel/${run.id}`;
-                            logContent = `intel ping: ${topic}. ${intelLink}`;
+                            logContent = `${baseLog} ${intelLink}`;
                           }
 
                           if (logContent) {
