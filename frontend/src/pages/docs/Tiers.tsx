@@ -153,7 +153,7 @@ export default function Tiers() {
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">Follow on X</strong> - @RogueADK for all public updates</span>
+                            <span><strong className="text-white">Follow on X</strong> - @Rogue_IQAI for all public updates</span>
                         </li>
                     </ul>
 

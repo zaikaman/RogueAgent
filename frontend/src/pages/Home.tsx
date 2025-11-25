@@ -697,7 +697,7 @@ export default function Home() {
                         <div>
                             <h4 className="text-white font-bold mb-6">Community</h4>
                             <ul className="space-y-4 text-sm text-gray-500">
-                                <li><a href="https://x.com/RogueADK" target="_blank" rel="noopener noreferrer" className="hover:text-teal-glow transition-colors">X (Twitter)</a></li>
+                                <li><a href="https://x.com/Rogue_IQAI" target="_blank" rel="noopener noreferrer" className="hover:text-teal-glow transition-colors">X (Twitter)</a></li>
                                 <li><a href="https://t.me/rogueadkbot" target="_blank" rel="noopener noreferrer" className="hover:text-teal-glow transition-colors">Telegram</a></li>
                                 <li><a href="https://github.com/zaikaman/RogueAgent" target="_blank" rel="noopener noreferrer" className="hover:text-teal-glow transition-colors">GitHub</a></li>
                             </ul>

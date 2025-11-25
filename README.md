@@ -1616,7 +1616,7 @@ We welcome contributions from the community! Here's how you can help:
 ### Community
 
 - **Discord**: [Join our server](#) (coming soon)
-- **Twitter/X**: [@RogueAgent](#)
+- **Twitter/X**: [@Rogue_IQAI](https://x.com/Rogue_IQAI)
 - **Telegram**: [Community Group](#)
 
 ---
@@ -1713,7 +1713,7 @@ See [LICENSE](LICENSE) for full details.
 
 **Get in Touch**:
 - 📧 **Email**: support@rogue-agent.com
-- 🐦 **Twitter/X**: [@RogueAgent](#)
+- 🐦 **Twitter/X**: [@Rogue_IQAI](https://x.com/Rogue_IQAI)
 - 💬 **Telegram**: [@RogueAlphaBot](#)
 
 ---

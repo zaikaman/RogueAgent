@@ -107,7 +107,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
             <div className="flex gap-6">
                 <a href="https://github.com/zaikaman/RogueAgent" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
                 <a href="https://t.me/rogueadkbot" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Telegram</a>
-                <a href="https://x.com/RogueADK" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Twitter</a>
+                <a href="https://x.com/Rogue_IQAI" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Twitter</a>
             </div>
           </div>
         </main>

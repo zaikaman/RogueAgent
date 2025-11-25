@@ -64,7 +64,7 @@ export class ScheduledPostService {
                   
                   if (run.type === 'signal') {
                     const baseLog = run.content.log_message || `SIGNAL LOCKED: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
-                    const twitterLink = `https://x.com/RogueADK/status/${tweetId}`;
+                    const twitterLink = `https://x.com/Rogue_IQAI/status/${tweetId}`;
                     logContent = `${baseLog} ${twitterLink}`;
                   } else if (run.type === 'intel') {
                     const topic = run.content.topic || 'Market Intel';
@@ -132,8 +132,8 @@ export class ScheduledPostService {
                           let logContent = '';
                           
                           if (run.type === 'signal') {
-                            const baseLog = run.content.log_message || `SIGNAL LOCKED: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
-                            const twitterLink = `https://x.com/RogueADK/status/${tweetId}`;
+                            const baseLog = run.content.log_message || `signal locked: ${run.content.token?.symbol || 'Unknown'} signal detected.`;
+                            const twitterLink = `https://x.com/Rogue_IQAI/status/${tweetId}`;
                             logContent = `${baseLog} ${twitterLink}`;
                           } else if (run.type === 'intel') {
                             const topic = run.content.topic || 'Market Intel';
