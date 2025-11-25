@@ -8,6 +8,20 @@ import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
 import { z } from 'zod';
 
+/**
+ * Generate a random delay in minutes between min and max (inclusive)
+ * Used to add jitter to posting schedules to avoid spam detection
+ */
+export function getRandomDelayMinutes(minMinutes: number, maxMinutes: number): number {
+  return Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+}
+
+// Default delay config for different tiers (in minutes)
+export const POST_DELAY_CONFIG = {
+  SILVER: 15,                         // Fixed 15 minutes after signal (Telegram only, no randomization needed)
+  PUBLIC: { min: 30, max: 60 },       // 30-60 minutes after signal (randomized to avoid Twitter spam detection)
+};
+
 const ShortenerAgent = AgentBuilder.create('shortener_agent')
   .withModel(llm)
   .withDescription('Shortens text to fit Twitter limits')
@@ -162,11 +176,24 @@ export class ScheduledPostService {
     runId: string,
     tier: 'SILVER' | 'GOLD' | 'DIAMOND' | 'PUBLIC',
     content: string,
-    delayMinutes: number
+    delayMinutes?: number
   ) {
-    const scheduledFor = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
+    // Use randomized delay for PUBLIC posts to avoid Twitter spam detection
+    // SILVER uses fixed 15 minutes (Telegram only, no need for randomization)
+    let actualDelay: number;
+    if (delayMinutes !== undefined) {
+      actualDelay = delayMinutes;
+    } else if (tier === 'PUBLIC') {
+      actualDelay = getRandomDelayMinutes(POST_DELAY_CONFIG.PUBLIC.min, POST_DELAY_CONFIG.PUBLIC.max);
+    } else if (tier === 'SILVER') {
+      actualDelay = POST_DELAY_CONFIG.SILVER; // Fixed 15 minutes
+    } else {
+      actualDelay = 0; // Immediate for GOLD/DIAMOND
+    }
     
-    logger.info(`Scheduling ${tier} post for run ${runId} at ${scheduledFor} (+${delayMinutes}m)`);
+    const scheduledFor = new Date(Date.now() + actualDelay * 60 * 1000).toISOString();
+    
+    logger.info(`Scheduling ${tier} post for run ${runId} at ${scheduledFor} (+${actualDelay}m)`);
     
     return await supabaseService.createScheduledPost({
       run_id: runId,

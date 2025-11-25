@@ -4,6 +4,8 @@ import { retry } from '../utils/retry.util';
 
 class TwitterService {
   private baseUrl = 'https://api.twitterapi.io/twitter';
+  private lastPostTime: number = 0;
+  private minPostIntervalMs: number = 5 * 60 * 1000; // Minimum 5 minutes between posts
 
   private get apiKey() {
     return config.TWITTERIO_API_KEY || config.TWITTER_API_KEY;
@@ -13,6 +15,29 @@ class TwitterService {
     if (!this.apiKey) {
       logger.warn('⚠️ TWITTER_API_KEY/TWITTERIO_API_KEY missing. Twitter service will not function.');
     }
+  }
+
+  /**
+   * Add a random delay to make posting less predictable (helps avoid spam detection)
+   */
+  private async addHumanLikeDelay(): Promise<void> {
+    // Random delay between 2-8 seconds to appear more human-like
+    const delay = 2000 + Math.random() * 6000;
+    logger.info(`Adding ${Math.round(delay / 1000)}s delay before posting...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  /**
+   * Check if enough time has passed since last post
+   */
+  private checkRateLimit(): boolean {
+    const now = Date.now();
+    const timeSinceLastPost = now - this.lastPostTime;
+    if (this.lastPostTime > 0 && timeSinceLastPost < this.minPostIntervalMs) {
+      logger.warn(`Only ${Math.round(timeSinceLastPost / 1000)}s since last post. Minimum interval is ${this.minPostIntervalMs / 1000}s.`);
+      return false;
+    }
+    return true;
   }
 
   async postTweet(text: string): Promise<string | null> {
@@ -26,6 +51,25 @@ class TwitterService {
       logger.warn('Skipping tweet: Missing TWITTER_LOGIN_COOKIES or TWITTER_PROXY. These are required for twitterapi.io v2.');
       return null;
     }
+
+    // Check self-imposed rate limiting
+    if (!this.checkRateLimit()) {
+      logger.warn('Self-imposed rate limit active. Skipping post to avoid spam detection.');
+      return null;
+    }
+
+    // Add human-like delay before posting
+    await this.addHumanLikeDelay();
+
+    // Custom retry logic with shouldRetry callback to skip spam detection errors
+    const shouldRetryFn = (error: any) => {
+      const msg = error?.message || '';
+      // Don't retry spam detection or authorization errors
+      if (msg.includes('SPAM_DETECTED') || msg.includes('226') || msg.includes('automated')) {
+        return false;
+      }
+      return true;
+    };
 
     return retry(async () => {
       try {
@@ -57,9 +101,20 @@ class TwitterService {
         }
 
         if (data.status === 'success') {
+          this.lastPostTime = Date.now(); // Track successful post time
           logger.info('Tweet posted successfully', { id: data.tweet_id });
           return data.tweet_id;
         } else {
+          // Check for error 226 specifically (spam/automation detection)
+          const errorMsg = JSON.stringify(data.msg || data.message || '');
+          if (errorMsg.includes('226') || errorMsg.includes('automated') || errorMsg.includes('spam')) {
+            logger.error('SPAM DETECTION ERROR (226): Twitter detected automated behavior. You need to:');
+            logger.error('1. Refresh TWITTER_LOGIN_COOKIES (re-login and export cookies)');
+            logger.error('2. Change TWITTER_PROXY to a new residential IP');
+            logger.error('3. Wait a few hours before retrying');
+            // Don't retry for spam detection - it won't help
+            throw new Error(`SPAM_DETECTED: ${errorMsg}`);
+          }
           logger.warn(`API returned status: ${data.status} msg: ${data.msg || data.message}`);
           throw new Error(data.msg || 'Unknown error from TwitterAPI.io');
         }
@@ -67,7 +122,7 @@ class TwitterService {
         logger.error('Failed to post tweet', error.message);
         throw error;
       }
-    });
+    }, 3, 1000, 2, shouldRetryFn);
   }
 
   async searchTweets(query: string, cursor: string = '', queryType: 'Latest' | 'Top' = 'Latest'): Promise<{ tweets: any[], next_cursor: string, has_next_page: boolean }> {

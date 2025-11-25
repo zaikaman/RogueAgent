@@ -57,7 +57,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 🎚️ **Tiered Distribution**: Signals are distributed strategically:
 - **Diamond/Gold** tier users receive immediate alerts
 - **Silver** tier receives signals after 15 minutes
-- **Public** (Twitter) receives signals after 30 minutes
+- **Public** (Twitter) receives signals after 30-60 minutes (randomized to avoid spam detection)
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
@@ -107,7 +107,7 @@ graph TD
     Publisher -->|Immediate| Diamond[💎 Diamond Tier]
     Publisher -->|Immediate| Gold[🥇 Gold Tier]
     Publisher -->|+15min| Silver[🥈 Silver Tier]
-    Publisher -->|+30min| Public[🌐 Twitter/Public]
+    Publisher -->|+30-60min| Public[🌐 Twitter/Public]
     Publisher --> DB[(🗄️ Supabase DB)]
     
     Monitor[⏰ Signal Monitor] -->|Price Tracking| DB
@@ -363,7 +363,7 @@ Rogue: *Searches Birdeye + X for Base trending tokens*
 | 💎 Diamond | Immediate | Telegram DM |
 | 🥇 Gold | Immediate | Telegram DM |
 | 🥈 Silver | +15 minutes | Telegram DM (via scheduled post service) |
-| 🌐 Public | +30 minutes | Twitter + Dashboard |
+| 🌐 Public | +30-60 minutes | Twitter + Dashboard (randomized) |
 
 **Database Logging**:
 - Every signal stored with full metadata

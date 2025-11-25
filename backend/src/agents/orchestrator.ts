@@ -293,13 +293,13 @@ export class Orchestrator extends EventEmitter {
           .catch(err => logger.error('Error broadcasting to GOLD/DIAMOND', err));
 
         // Delayed 15m: Silver (DB-backed)
-        logger.info(`Scheduling Signal for SILVER (+15m) for run ${runId}...`);
-        await scheduledPostService.schedulePost(runId, 'SILVER', content, 15)
+        logger.info(`Scheduling Signal for SILVER (+15-20m) for run ${runId}...`);
+        await scheduledPostService.schedulePost(runId, 'SILVER', content)
           .catch(err => logger.error('Error scheduling SILVER post', err));
 
-        // Delayed 30m: Public (Twitter, DB-backed)
-        logger.info(`Scheduling Signal for PUBLIC (+30m) for run ${runId}...`);
-        await scheduledPostService.schedulePost(runId, 'PUBLIC', content, 30)
+        // Delayed 60-90m: Public (Twitter, DB-backed) - randomized to avoid spam detection
+        logger.info(`Scheduling Signal for PUBLIC (+60-90m randomized) for run ${runId}...`);
+        await scheduledPostService.schedulePost(runId, 'PUBLIC', content)
           .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
       } else {
@@ -519,17 +519,17 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
              .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
         }
 
-        // Delayed 15m: Silver (Blog Post) - SKIP if it's an exclusive Deep Dive
+        // Delayed 15-20m: Silver (Blog Post) - SKIP if it's an exclusive Deep Dive
         if (blogContent && !shouldGenerateDeepDive) {
-           logger.info(`Scheduling Intel Blog for SILVER (+15m) for run ${runId}...`);
-           await scheduledPostService.schedulePost(runId, 'SILVER', blogContent, 15)
+           logger.info(`Scheduling Intel Blog for SILVER (+15-20m) for run ${runId}...`);
+           await scheduledPostService.schedulePost(runId, 'SILVER', blogContent)
              .catch(err => logger.error('Error scheduling SILVER intel post', err));
         }
 
-        // Delayed 30m: Public (Twitter) - SKIP if it's an exclusive Deep Dive
+        // Delayed 60-90m: Public (Twitter) - SKIP if it's an exclusive Deep Dive - randomized to avoid spam detection
         if (tweetContent && !shouldGenerateDeepDive) {
-           logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
-           await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent, 30)
+           logger.info(`Scheduling Intel Tweet for PUBLIC (+60-90m randomized) for run ${runId}...`);
+           await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent)
              .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
         } else if (shouldGenerateDeepDive) {
            logger.info(`Deep Dive is exclusive - skipping public distribution for run ${runId}`);

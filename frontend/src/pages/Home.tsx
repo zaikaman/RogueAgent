@@ -45,7 +45,7 @@ export default function Home() {
             icon: FlashIcon,
             stats: [
                 { label: 'ACCURACY', value: '94%' },
-                { label: 'RR RATIO', value: '1:3' }
+                { label: 'RR RATIO', value: '1:2' }
             ]
         },
         {

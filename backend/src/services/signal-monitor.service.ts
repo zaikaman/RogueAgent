@@ -174,12 +174,12 @@ export class SignalMonitorService {
                     logger.info(`Distributing Triggered Signal to GOLD/DIAMOND...`);
                     await telegramService.broadcastToTiers(generatorResult.formatted_content, [TIERS.GOLD, TIERS.DIAMOND]);
 
-                    // Delayed 15m: Silver (DB-backed)
-                    await scheduledPostService.schedulePost(run.id, 'SILVER', generatorResult.formatted_content, 15)
+                    // Delayed 15-20m: Silver (DB-backed)
+                    await scheduledPostService.schedulePost(run.id, 'SILVER', generatorResult.formatted_content)
                         .catch(err => logger.error('Error scheduling SILVER post', err));
 
-                    // Delayed 30m: Public (Twitter, DB-backed)
-                    await scheduledPostService.schedulePost(run.id, 'PUBLIC', generatorResult.formatted_content, 30)
+                    // Delayed 60-90m: Public (Twitter, DB-backed) - randomized to avoid spam detection
+                    await scheduledPostService.schedulePost(run.id, 'PUBLIC', generatorResult.formatted_content)
                         .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
                     // Update Run in DB
