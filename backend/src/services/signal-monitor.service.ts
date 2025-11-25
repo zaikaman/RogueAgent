@@ -20,6 +20,63 @@ interface GeneratorResult {
 
 export class SignalMonitorService {
   
+  /**
+   * Recalculate PnL for all historical signals using 1% fixed risk model
+   * Call this once to migrate old data
+   */
+  async recalculateHistoricalPnL() {
+    logger.info('Recalculating historical PnL with 1% risk model...');
+    
+    const { data: runs, error } = await supabaseService.getClient()
+      .from('runs')
+      .select('*')
+      .eq('type', 'signal')
+      .in('content->>status', ['tp_hit', 'sl_hit', 'closed']);
+
+    if (error || !runs) {
+      logger.error('Failed to fetch historical signals:', error);
+      return;
+    }
+
+    logger.info(`Found ${runs.length} closed signals to recalculate`);
+    const RISK_PER_TRADE = 1;
+
+    for (const run of runs) {
+      const content = run.content as SignalContent;
+      
+      // Skip if missing required prices
+      if (!content.entry_price || !content.stop_loss || !content.target_price) {
+        logger.warn(`Signal ${run.id} missing price data, skipping`);
+        continue;
+      }
+
+      const entryPrice = content.entry_price;
+      const risk = entryPrice - content.stop_loss;
+      const reward = content.target_price - entryPrice;
+      const rrRatio = risk > 0 ? reward / risk : 1;
+
+      let newPnL: number;
+      if (content.status === 'tp_hit') {
+        newPnL = RISK_PER_TRADE * rrRatio;
+      } else if (content.status === 'sl_hit') {
+        newPnL = -RISK_PER_TRADE;
+      } else {
+        // closed manually - calculate based on close price if available
+        const closePrice = content.current_price || entryPrice;
+        const currentR = risk > 0 ? (closePrice - entryPrice) / risk : 0;
+        newPnL = currentR * RISK_PER_TRADE;
+      }
+
+      const oldPnL = content.pnl_percent;
+      content.pnl_percent = newPnL;
+
+      await supabaseService.updateRun(run.id, { content });
+      logger.info(`Signal ${run.id} (${content.token.symbol}): ${content.status} - Old PnL: ${oldPnL?.toFixed(2)}%, New PnL: ${newPnL.toFixed(2)}R (R:R ${rrRatio.toFixed(2)})`);
+    }
+
+    logger.info('Historical PnL recalculation complete!');
+  }
+
   async checkActiveSignals() {
     logger.info('Checking active signals...');
     

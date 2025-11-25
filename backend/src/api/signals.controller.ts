@@ -3,6 +3,7 @@ import { supabaseService } from '../services/supabase.service';
 import { logger } from '../utils/logger.util';
 import { SignalContent } from '../../shared/types/signal.types';
 import { TIERS } from '../constants/tiers';
+import { signalMonitorService } from '../services/signal-monitor.service';
 
 export const getSignalHistory = async (req: Request, res: Response) => {
   try {
@@ -72,5 +73,16 @@ export const getSignalHistory = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Failed to fetch signal history:', error);
     res.status(500).json({ error: 'Failed to fetch signal history' });
+  }
+};
+
+export const recalculateHistoricalPnL = async (req: Request, res: Response) => {
+  try {
+    logger.info('Triggering historical PnL recalculation...');
+    await signalMonitorService.recalculateHistoricalPnL();
+    res.json({ success: true, message: 'Historical PnL recalculated with 1% risk model' });
+  } catch (error) {
+    logger.error('Failed to recalculate historical PnL:', error);
+    res.status(500).json({ error: 'Failed to recalculate historical PnL' });
   }
 };

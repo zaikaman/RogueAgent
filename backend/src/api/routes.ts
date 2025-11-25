@@ -43,6 +43,7 @@ router.get('/logs', logsController.getLogs);
 
 // Signals
 router.get('/signals/history', signalsController.getSignalHistory);
+router.post('/signals/recalculate-pnl', signalsController.recalculateHistoricalPnL);
 
 // Intel
 router.get('/intel/history', intelController.getIntelHistory);
