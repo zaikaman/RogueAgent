@@ -211,35 +211,50 @@ export class SignalMonitorService {
           content.status = 'active';
         }
 
-        // Calculate PnL
+        // Fixed 1% risk per trade model
+        // Risk = entry_price - stop_loss
+        // Reward = target_price - entry_price
+        // R:R ratio = reward / risk
+        // On SL hit: -1% (fixed loss)
+        // On TP hit: +1% × R:R ratio
+        // While active: show current R multiple (how many R's we're up/down)
+        const RISK_PER_TRADE = 1; // 1% risk per trade
         const entryPrice = content.entry_price;
-        const pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
+        const risk = entryPrice - content.stop_loss; // Risk in price terms
+        const reward = content.target_price - entryPrice; // Reward in price terms
+        const rrRatio = risk > 0 ? reward / risk : 1; // Risk:Reward ratio
         
         content.current_price = currentPrice;
-        content.pnl_percent = pnlPercent;
 
-        // Check TP/SL
+        // Check TP/SL first to determine final PnL
         let statusChanged = false;
         
         // Assuming Long position logic
         if (currentPrice >= content.target_price) {
             content.status = 'tp_hit';
             content.closed_at = new Date().toISOString();
+            // TP hit: gain = 1% × R:R ratio
+            content.pnl_percent = RISK_PER_TRADE * rrRatio;
             statusChanged = true;
-            logger.info(`Signal ${run.id} hit TP!`);
+            logger.info(`Signal ${run.id} hit TP! PnL: +${content.pnl_percent.toFixed(2)}% (R:R ${rrRatio.toFixed(2)})`);
         } else if (currentPrice <= content.stop_loss) {
             content.status = 'sl_hit';
             content.closed_at = new Date().toISOString();
+            // SL hit: fixed -1% loss
+            content.pnl_percent = -RISK_PER_TRADE;
             statusChanged = true;
-            logger.info(`Signal ${run.id} hit SL!`);
+            logger.info(`Signal ${run.id} hit SL! PnL: ${content.pnl_percent.toFixed(2)}%`);
         } else {
-            // Still active, but we updated price/pnl
+            // Still active: calculate current R multiple
+            // Current R = (currentPrice - entryPrice) / risk
+            const currentR = risk > 0 ? (currentPrice - entryPrice) / risk : 0;
+            content.pnl_percent = currentR * RISK_PER_TRADE;
             statusChanged = true; // Update anyway to show live price/pnl
         }
 
         if (statusChanged) {
             await supabaseService.updateRun(run.id, { content });
-            logger.info(`Updated signal ${run.id} status to ${content.status}, PnL: ${pnlPercent.toFixed(2)}%`);
+            logger.info(`Updated signal ${run.id} status to ${content.status}, PnL: ${content.pnl_percent.toFixed(2)}%`);
         }
     }
   }

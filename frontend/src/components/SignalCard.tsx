@@ -72,7 +72,7 @@ export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
              )}
              {pnl_percent !== undefined && (
                 <div className={`text-sm font-mono ${pnlColor}`}>
-                  {pnl_percent > 0 ? '+' : ''}{pnl_percent.toFixed(2)}%
+                  {pnl_percent > 0 ? '+' : ''}{pnl_percent.toFixed(2)}R
                 </div>
              )}
           </div>

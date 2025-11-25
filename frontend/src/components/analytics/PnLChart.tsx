@@ -34,11 +34,11 @@ export function PnLChart({ signals }: PnLChartProps) {
         <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
           <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-          <YAxis stroke="#9ca3af" fontSize={12} unit="%" />
+          <YAxis stroke="#9ca3af" fontSize={12} unit="R" />
           <Tooltip
             contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff' }}
             cursor={{ fill: '#374151', opacity: 0.2 }}
-            formatter={(value: number) => [`${value.toFixed(2)}%`, 'PnL']}
+            formatter={(value: number) => [`${value > 0 ? '+' : ''}${value.toFixed(2)}R`, 'Return (1% Risk)']}
           />
           <ReferenceLine y={0} stroke="#6b7280" />
           <Bar dataKey="pnl" fill="#8884d8">

@@ -32,20 +32,28 @@ export function PerformanceAnalytics() {
   const wins = closedSignals.filter(s => s.content.status === 'tp_hit').length;
   const winRate = totalClosed > 0 ? ((wins / totalClosed) * 100).toFixed(1) : '0.0';
   
+  // PnL is now calculated based on 1% risk per trade model
+  // SL hit = -1%, TP hit = +1% × R:R ratio
   const totalPnL = closedSignals.reduce((acc, s) => acc + (s.content.pnl_percent || 0), 0);
   const avgPnL = totalClosed > 0 ? (totalPnL / totalClosed).toFixed(2) : '0.00';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4">
           <div className="text-gray-400 text-sm mb-1">Win Rate</div>
           <div className="text-2xl font-bold text-emerald-400">{winRate}%</div>
         </div>
         <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4">
-          <div className="text-gray-400 text-sm mb-1">Avg PnL per Trade</div>
+          <div className="text-gray-400 text-sm mb-1">Total Return (1% Risk)</div>
+          <div className={`text-2xl font-bold ${totalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {totalPnL > 0 ? '+' : ''}{totalPnL.toFixed(2)}%
+          </div>
+        </div>
+        <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4">
+          <div className="text-gray-400 text-sm mb-1">Avg R per Trade</div>
           <div className={`text-2xl font-bold ${Number(avgPnL) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {Number(avgPnL) > 0 ? '+' : ''}{avgPnL}%
+            {Number(avgPnL) > 0 ? '+' : ''}{avgPnL}R
           </div>
         </div>
         <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4">
