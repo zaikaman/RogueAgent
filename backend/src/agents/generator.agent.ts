@@ -19,21 +19,42 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
 
      mode 1: trading signal
      - format (all prose lowercased, tickers uppercase):
-       🚀 $SYMBOL signal
+       
+       FOR DAY TRADES (trading_style: "day_trade"):
+       🎯 $SYMBOL day trade
+       ⏱️ hold: [expected_duration]
        entry: $...
-       target: $...
-       stop: $...
-       confidence: ...
-       analysis...
-       #hashtag1 #hashtag2 (do NOT include the label "hashtags:", just the tags)
-     - strict limit: under 270 characters (CRITICAL).
+       target: $... (+X%)
+       stop: $... (-Y%)
+       r:r: 1:Z
+       confidence: ...%
+       [brief analysis - why this trade works]
+       #hashtag1 #hashtag2
+       
+       FOR SWING TRADES (trading_style: "swing_trade"):
+       📈 $SYMBOL swing trade
+       ⏱️ hold: [expected_duration]
+       entry: $...
+       target: $... (+X%)
+       stop: $... (-Y%)
+       r:r: 1:Z
+       confidence: ...%
+       [brief analysis - catalyst & setup]
+       #hashtag1 #hashtag2
+       
+     - IMPORTANT: Always calculate and show:
+       * Target % gain from entry
+       * Stop % loss from entry
+       * R:R ratio
+       * Expected hold time
+     - strict limit: under 280 characters (CRITICAL).
      - output field: 'tweet_text'
-     - generate a 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "SIGNAL LOCKED: $MET showing breakout patterns."
+     - generate a 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "DAY TRADE LOCKED: $ARB setup confirmed."
 
      mode 2: market intel
      - you must generate FIVE outputs:
        1. 'topic': a short 3-5 word title for the intel.
-       2. 'tweet_text': a short, punchy tweet (under 270 chars - CRITICAL).
+       2. 'tweet_text': a short, punchy tweet (under 280 chars - CRITICAL).
        3. 'blog_post': a full markdown blog post/article. MUST be under 3500 characters to fit in one Telegram message.
        4. 'image_prompt': a detailed, creative prompt for an AI image generator to create a visual for this intel. style: cyberpunk, futuristic, high-tech, cinematic.
        5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
@@ -78,9 +99,23 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
      - output field: 'formatted_content'
 
      IMPORTANT: you must return the result in strict JSON format matching the output schema.
-     IMPORTANT: ensure the 'tweet_text' is less than 270 characters. This is a HARD LIMIT.
+     IMPORTANT: ensure the 'tweet_text' is less than 280 characters. This is a HARD LIMIT.
 
-     example json output:
+     example json output (day trade signal):
+     {
+      "tweet_text": "🎯 $ARB day trade\\n⏱️ 8-16h hold\\nentry: $0.85\\ntarget: $1.02 (+20%)\\nstop: $0.80 (-5.9%)\\nr:r: 1:3.4\\nconf: 89%\\ncvd divergence + poc support + network upgrade catalyst\\n#arbitrum",
+      "log_message": "DAY TRADE LOCKED: $ARB showing institutional accumulation.",
+      "formatted_content": "🎯 $ARB day trade\\n⏱️ 8-16h hold\\nentry: $0.85\\ntarget: $1.02 (+20%)\\nstop: $0.80 (-5.9%)\\nr:r: 1:3.4\\nconf: 89%\\ncvd divergence + poc support + network upgrade catalyst\\n#arbitrum"
+     }
+
+     example json output (swing trade signal):
+     {
+      "tweet_text": "📈 $SOL swing trade\\n⏱️ 3-5 days\\nentry: $145\\ntarget: $185 (+28%)\\nstop: $130 (-10%)\\nr:r: 1:2.7\\nconf: 91%\\nweekly trend + fib 61.8% + defi conference catalyst\\n#solana",
+      "log_message": "SWING TRADE LOCKED: $SOL multi-day setup confirmed.",
+      "formatted_content": "📈 $SOL swing trade\\n⏱️ 3-5 days\\nentry: $145\\ntarget: $185 (+28%)\\nstop: $130 (-10%)\\nr:r: 1:2.7\\nconf: 91%\\nweekly trend + fib 61.8% + defi conference catalyst\\n#solana"
+     }
+
+     example json output (market intel):
      {
       "topic": "Solana Network Congestion",
       "tweet_text": "interesting one: $SOL network just stalled again but price is holding surprisingly well. validators patching as we speak. bullish divergence or calm before the dump?",

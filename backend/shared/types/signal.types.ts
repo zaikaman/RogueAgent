@@ -5,24 +5,28 @@ export interface TokenInfo {
 }
 
 export interface TriggerEvent {
-  type: 'kol_mention' | 'whale_movement' | 'volume_spike' | 'sentiment_surge';
+  type: 'kol_mention' | 'whale_movement' | 'volume_spike' | 'sentiment_surge' | 'day_trade_setup' | 'swing_trade_setup' | 'orderflow_confluence';
   kol_handle?: string;
   tweet_url?: string;
   whale_wallets?: string[];
   description?: string;
 }
 
+export type TradingStyle = 'day_trade' | 'swing_trade';
+
 export interface SignalContent {
   token: TokenInfo;
   entry_price: number;
   target_price: number;
   stop_loss: number;
-  confidence: number; // 1-10
+  confidence: number; // 1-100
   trigger_event: TriggerEvent;
   analysis: string;
   formatted_tweet?: string; // Optional because pending signals don't have it yet
   status?: 'pending' | 'active' | 'tp_hit' | 'sl_hit' | 'closed';
   order_type?: 'market' | 'limit';
+  trading_style?: TradingStyle; // day_trade (4-24h) or swing_trade (2-5 days)
+  expected_duration?: string; // e.g. "8-16 hours" or "2-3 days"
   current_price?: number;
   pnl_percent?: number;
   closed_at?: string;

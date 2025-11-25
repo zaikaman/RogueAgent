@@ -530,6 +530,35 @@ export const getTechnicalAnalysisTool = createTool({
 
     signalQuality = Math.min(confidenceBoost, 100);
 
+    // Calculate ATR for stop-loss recommendations
+    const atr = TechnicalAnalysis.calculateATR(ohlcv, 14);
+    const latestATR = atr[atr.length - 1] || 0;
+    const atrPercent = (latestATR / currentPrice) * 100;
+    
+    // Calculate recommended stop-loss levels based on ATR
+    const recommendedStopLoss = {
+      tight: currentPrice - (latestATR * 1.5), // 1.5x ATR (not recommended for day trading)
+      normal: currentPrice - (latestATR * 2), // 2x ATR (day trade minimum)
+      wide: currentPrice - (latestATR * 3), // 3x ATR (swing trade)
+      tight_percent: ((latestATR * 1.5) / currentPrice) * 100,
+      normal_percent: ((latestATR * 2) / currentPrice) * 100,
+      wide_percent: ((latestATR * 3) / currentPrice) * 100,
+    };
+    
+    // Determine if current volatility supports day trading
+    const volatilityAssessment = atrPercent < 3 
+      ? 'low_volatility' 
+      : atrPercent < 8 
+      ? 'moderate_volatility' 
+      : 'high_volatility';
+    
+    // Trading style recommendation based on volatility
+    const tradingStyleRecommendation = atrPercent < 3 
+      ? 'swing_trade' // Low volatility = need longer timeframe for meaningful moves
+      : atrPercent < 10 
+      ? 'day_trade' // Moderate volatility = ideal for day trading
+      : 'caution'; // High volatility = be careful, use wider stops
+
     return {
       current_price: currentPrice,
       
@@ -544,6 +573,16 @@ export const getTechnicalAnalysisTool = createTool({
       },
       trend: latestMACD > latestSignal ? 'bullish' : 'bearish',
       rsi_condition: latestRSI > 70 ? 'overbought' : latestRSI < 30 ? 'oversold' : 'neutral',
+      
+      // ATR and Stop-Loss Guidance (CRITICAL for day trading)
+      atr: {
+        value: latestATR,
+        percent: atrPercent,
+        recommended_stop_loss: recommendedStopLoss,
+        volatility_assessment: volatilityAssessment,
+        trading_style_recommendation: tradingStyleRecommendation,
+        description: `ATR: $${latestATR.toFixed(4)} (${atrPercent.toFixed(2)}%). Recommended day trade stop: ${recommendedStopLoss.normal_percent.toFixed(1)}% below entry. Swing trade stop: ${recommendedStopLoss.wide_percent.toFixed(1)}% below entry.`
+      },
       
       // Advanced 2025 meta indicators
       advanced: advancedIndicators,
