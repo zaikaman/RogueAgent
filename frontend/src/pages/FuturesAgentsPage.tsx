@@ -12,6 +12,16 @@ import {
   TrendingUp, AlertTriangle, X,
   Shield, Bot, Target, Activity
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FUTURES AGENTS PAGE
@@ -332,6 +342,7 @@ function AgentCard({ agent, address, onUpdate, onEdit }: {
   agent: FuturesAgent; address: string; onUpdate: () => void; onEdit: () => void;
 }) {
   const [isToggling, setIsToggling] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleToggle = async () => {
     setIsToggling(true);
@@ -347,133 +358,203 @@ function AgentCard({ agent, address, onUpdate, onEdit }: {
   };
 
   const handleDelete = async () => {
-    if (confirm('Delete this agent?')) {
-      await futuresService.deleteAgent(address, agent.id);
-      onUpdate();
-      toast.success('Agent deleted');
-    }
+    await futuresService.deleteAgent(address, agent.id);
+    onUpdate();
+    toast.success('Agent deleted');
+    setShowDeleteConfirm(false);
   };
 
   return (
-    <div className={`relative rounded-xl border ${agent.is_active ? 'border-purple-500/50' : 'border-gray-800'} bg-gray-900/50 p-4`}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-white truncate">{agent.name}</h3>
-        <button
-          onClick={handleToggle}
-          disabled={isToggling}
-          className={`p-1.5 rounded-lg ${agent.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-500'}`}
-        >
-          <Power className="w-4 h-4" />
-        </button>
-      </div>
+    <>
+      <div className={`relative rounded-xl border ${agent.is_active ? 'border-purple-500/50' : 'border-gray-800'} bg-gray-900/50 p-4`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-white truncate">{agent.name}</h3>
+          <button
+            onClick={handleToggle}
+            disabled={isToggling}
+            className={`p-1.5 rounded-lg ${agent.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-500'}`}
+          >
+            <Power className="w-4 h-4" />
+          </button>
+        </div>
 
-      <div className="text-xs text-gray-500 mb-3 line-clamp-2 h-8">{agent.custom_prompt || 'No custom rules'}</div>
+        <div className="text-xs text-gray-500 mb-3 line-clamp-2 h-8">{agent.custom_prompt || 'No custom rules'}</div>
 
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-500">{agent.risk_per_trade}% risk • {agent.max_leverage}x max</span>
-        <div className="flex gap-1">
-          <button onClick={onEdit} className="p-1.5 hover:bg-gray-800 rounded"><Settings className="w-3.5 h-3.5 text-gray-500" /></button>
-          <button onClick={handleDuplicate} className="p-1.5 hover:bg-gray-800 rounded"><Copy className="w-3.5 h-3.5 text-gray-500" /></button>
-          <button onClick={handleDelete} className="p-1.5 hover:bg-gray-800 rounded"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-gray-500">{agent.risk_per_trade}% risk • {agent.max_leverage}x max</span>
+          <div className="flex gap-1">
+            <button onClick={onEdit} className="p-1.5 hover:bg-gray-800 rounded"><Settings className="w-3.5 h-3.5 text-gray-500" /></button>
+            <button onClick={handleDuplicate} className="p-1.5 hover:bg-gray-800 rounded"><Copy className="w-3.5 h-3.5 text-gray-500" /></button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="p-1.5 hover:bg-gray-800 rounded"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              Delete Agent
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="text-white font-medium">"{agent.name}"</span>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-500 text-white">
+              Delete Agent
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
 function PositionsPanel({ positions, address, onUpdate }: { 
   positions: FuturesPosition[]; address: string; onUpdate: () => void;
 }) {
+  const [closingSymbol, setClosingSymbol] = useState<string | null>(null);
+
   const handleClose = async (symbol: string) => {
-    if (confirm(`Close ${symbol} position?`)) {
-      await futuresService.closePosition(address, symbol);
-      onUpdate();
-      toast.success(`${symbol} position closed`);
-    }
+    await futuresService.closePosition(address, symbol);
+    onUpdate();
+    toast.success(`${symbol} position closed`);
+    setClosingSymbol(null);
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-white flex items-center gap-2">
-        <Activity className="w-5 h-5 text-green-400" />
-        Live Positions ({positions.length})
-      </h2>
+    <>
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <Activity className="w-5 h-5 text-green-400" />
+          Live Positions ({positions.length})
+        </h2>
 
-      {positions.length === 0 ? (
-        <div className="p-8 text-center border border-gray-800 rounded-xl">
-          <TrendingUp className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-          <p className="text-gray-500">No open positions</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-500 text-xs uppercase">
-                <th className="text-left p-3">Symbol</th>
-                <th className="text-center p-3">Side</th>
-                <th className="text-right p-3">Size</th>
-                <th className="text-right p-3">Entry</th>
-                <th className="text-right p-3">Mark</th>
-                <th className="text-right p-3">PnL</th>
-                <th className="text-right p-3">Liq</th>
-                <th className="text-center p-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map(pos => (
-                <tr key={pos.id} className="border-t border-gray-800 hover:bg-gray-900/50">
-                  <td className="p-3 font-mono font-bold text-white">{pos.symbol}</td>
-                  <td className="p-3 text-center">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${pos.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {pos.direction} {pos.leverage}x
-                    </span>
-                  </td>
-                  <td className="p-3 text-right font-mono">{pos.quantity}</td>
-                  <td className="p-3 text-right font-mono">${pos.entry_price.toFixed(4)}</td>
-                  <td className="p-3 text-right font-mono">${pos.current_price.toFixed(4)}</td>
-                  <td className={`p-3 text-right font-mono font-bold ${pos.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {pos.unrealized_pnl >= 0 ? '+' : ''}{pos.unrealized_pnl.toFixed(2)}
-                    <span className="text-xs ml-1">({pos.unrealized_pnl_percent.toFixed(1)}%)</span>
-                  </td>
-                  <td className="p-3 text-right font-mono text-orange-400">${pos.liquidation_price.toFixed(4)}</td>
-                  <td className="p-3 text-center">
-                    <button onClick={() => handleClose(pos.symbol)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20">
-                      Close
-                    </button>
-                  </td>
+        {positions.length === 0 ? (
+          <div className="p-8 text-center border border-gray-800 rounded-xl">
+            <TrendingUp className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+            <p className="text-gray-500">No open positions</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-500 text-xs uppercase">
+                  <th className="text-left p-3">Symbol</th>
+                  <th className="text-center p-3">Side</th>
+                  <th className="text-right p-3">Size</th>
+                  <th className="text-right p-3">Entry</th>
+                  <th className="text-right p-3">Mark</th>
+                  <th className="text-right p-3">PnL</th>
+                  <th className="text-right p-3">Liq</th>
+                  <th className="text-center p-3">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody>
+                {positions.map(pos => (
+                  <tr key={pos.id} className="border-t border-gray-800 hover:bg-gray-900/50">
+                    <td className="p-3 font-mono font-bold text-white">{pos.symbol}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${pos.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {pos.direction} {pos.leverage}x
+                      </span>
+                    </td>
+                    <td className="p-3 text-right font-mono">{pos.quantity}</td>
+                    <td className="p-3 text-right font-mono">${pos.entry_price.toFixed(4)}</td>
+                    <td className="p-3 text-right font-mono">${pos.current_price.toFixed(4)}</td>
+                    <td className={`p-3 text-right font-mono font-bold ${pos.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {pos.unrealized_pnl >= 0 ? '+' : ''}{pos.unrealized_pnl.toFixed(2)}
+                      <span className="text-xs ml-1">({pos.unrealized_pnl_percent.toFixed(1)}%)</span>
+                    </td>
+                    <td className="p-3 text-right font-mono text-orange-400">${pos.liquidation_price.toFixed(4)}</td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => setClosingSymbol(pos.symbol)} className="px-2 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20">
+                        Close
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <AlertDialog open={!!closingSymbol} onOpenChange={() => setClosingSymbol(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <X className="w-5 h-5 text-orange-400" />
+              Close Position
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to close your <span className="text-white font-medium">{closingSymbol}</span> position? This will execute a market order immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => closingSymbol && handleClose(closingSymbol)} className="bg-orange-600 hover:bg-orange-500 text-white">
+              Close Position
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
 function EmergencyPanel({ address, onUpdate }: { address: string; onUpdate: () => void }) {
   const [isClosing, setIsClosing] = useState(false);
+  const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
 
   const handleEmergency = async () => {
-    if (!confirm('⚠️ EMERGENCY: Close ALL positions and deactivate ALL agents?')) return;
     setIsClosing(true);
     const result = await futuresService.emergencyCloseAll(address);
     onUpdate();
     setIsClosing(false);
+    setShowEmergencyConfirm(false);
     toast.success(`Closed ${result.closed.length} positions`);
   };
 
   return (
-    <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5">
-      <button
-        onClick={handleEmergency}
-        disabled={isClosing}
-        className="w-full py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        <AlertTriangle className="w-5 h-5" />
-        {isClosing ? 'CLOSING ALL...' : 'EMERGENCY: CLOSE ALL POSITIONS'}
-      </button>
-    </div>
+    <>
+      <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5">
+        <button
+          onClick={() => setShowEmergencyConfirm(true)}
+          disabled={isClosing}
+          className="w-full py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <AlertTriangle className="w-5 h-5" />
+          {isClosing ? 'CLOSING ALL...' : 'EMERGENCY: CLOSE ALL POSITIONS'}
+        </button>
+      </div>
+
+      <AlertDialog open={showEmergencyConfirm} onOpenChange={setShowEmergencyConfirm}>
+        <AlertDialogContent className="border-red-500/50">
+          <AlertDialogHeader>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/20">
+              <AlertTriangle className="w-6 h-6 text-red-400" />
+            </div>
+            <AlertDialogTitle className="text-center text-xl">
+              Emergency Close All
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              This will immediately close <span className="text-white font-semibold">ALL</span> open positions and deactivate <span className="text-white font-semibold">ALL</span> trading agents. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleEmergency} className="bg-red-600 hover:bg-red-500 text-white">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Confirm Emergency Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
