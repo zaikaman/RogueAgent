@@ -536,13 +536,18 @@ router.get('/account', async (req: Request, res: Response) => {
     const userState = await hyperliquid.getUserState();
     const equity = parseFloat(userState.marginSummary.accountValue);
     const balance = parseFloat(userState.withdrawable);
+    
+    // Calculate unrealized PnL by summing up all position unrealized PnLs
+    const unrealizedPnl = userState.assetPositions
+      .filter(ap => parseFloat(ap.position.szi) !== 0)
+      .reduce((sum, ap) => sum + parseFloat(ap.position.unrealizedPnl), 0);
 
     res.json({ 
       success: true, 
       data: {
         balance,
         equity,
-        unrealizedPnl: equity - balance,
+        unrealizedPnl,
       },
     });
   } catch (error: any) {
