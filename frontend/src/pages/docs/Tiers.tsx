@@ -145,7 +145,7 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">Public signals</strong> - Posted to X (Twitter) 30-60 minutes after initial broadcast</span>
+                            <span><strong className="text-white">Public signals</strong> - Posted to X 60-90 minutes after initial broadcast</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
@@ -266,7 +266,7 @@ export default function Tiers() {
                                 <span className="text-white font-semibold">20:30:00</span>
                                 <span className="text-gray-400 text-sm">Public</span>
                             </div>
-                            <p className="text-gray-300 text-sm">Signal posted to X (Twitter) +30-60 minutes later</p>
+                            <p className="text-gray-300 text-sm">Signal posted to X +60-90 minutes later</p>
                         </div>
                     </div>
                 </div>

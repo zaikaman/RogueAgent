@@ -65,7 +65,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 🎚️ **Tiered Distribution**: Signals are distributed strategically:
 - **Diamond/Gold** tier users receive immediate alerts
 - **Silver** tier receives signals after 15 minutes
-- **Public** (Twitter) receives signals after 30-60 minutes (randomized to avoid spam detection)
+- **Public** (X) receives signals after 60-90 minutes (randomized to avoid spam detection)
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
@@ -407,7 +407,7 @@ cvd divergence + poc support + network upgrade catalyst
 | 💎 Diamond | Immediate | Telegram DM |
 | 🥇 Gold | Immediate | Telegram DM |
 | 🥈 Silver | +15 minutes | Telegram DM (via scheduled post service) |
-| 🌐 Public | +30-60 minutes | Twitter + Dashboard (randomized) |
+| 🌐 Public | +60-90 minutes | X + Dashboard (randomized) |
 
 **Database Logging**:
 - Every signal stored with full metadata
@@ -688,7 +688,7 @@ An **interactive chat interface** with persistent conversation history.
 | 💎 **Diamond** | 1000+ RGE | • Immediate signals via Telegram<br>• Priority support<br>• Exclusive alpha reports<br>• Custom scan requests (unlimited) |
 | 🥇 **Gold** | 100 - 999 RGE | • Immediate signals via Telegram<br>• Advanced analytics<br>• Custom scan requests (10/day) |
 | 🥈 **Silver** | 10 - 99 RGE | • Signals (+15min delay)<br>• Basic analytics<br>• Custom scan requests (5/day) |
-| 🌐 **Public** | 0 - 9 RGE | • Signals (+30min delay via Twitter)<br>• Public dashboard access |
+| 🌐 **Public** | 0 - 9 RGE | • Signals (+60min delay via X)<br>• Public dashboard access |
 
 **How to Get RGE Tokens**:
 - Purchase via IQ.AI: [app.iqai.com/pending/0xe5Ee677388a6393d135bEd00213E150b1F64b032](https://app.iqai.com/pending/0xe5Ee677388a6393d135bEd00213E150b1F64b032)

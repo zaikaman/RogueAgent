@@ -19,7 +19,7 @@ export function getRandomDelayMinutes(minMinutes: number, maxMinutes: number): n
 // Default delay config for different tiers (in minutes)
 export const POST_DELAY_CONFIG = {
   SILVER: 15,                         // Fixed 15 minutes after signal (Telegram only, no randomization needed)
-  PUBLIC: { min: 30, max: 60 },       // 30-60 minutes after signal (randomized to avoid Twitter spam detection)
+  PUBLIC: { min: 60, max: 90 },       // 60-90 minutes after signal (randomized to avoid X spam detection)
 };
 
 const ShortenerAgent = AgentBuilder.create('shortener_agent')
