@@ -438,6 +438,10 @@ export class HyperliquidService extends EventEmitter {
       orderPrice = currentPrice * slippage;
     }
 
+    // Round price to valid tick size (Hyperliquid uses 5 significant figures)
+    // For prices > 1, round to 2 decimal places; for prices < 1, use more precision
+    orderPrice = this.roundToValidPrice(orderPrice);
+
     try {
       const orderType = params.orderType === 'market' 
         ? { limit: { tif: 'Ioc' as const } } // IOC for market-like execution
@@ -568,6 +572,37 @@ export class HyperliquidService extends EventEmitter {
   // ═══════════════════════════════════════════════════════════════════════════
   // UTILITY METHODS
   // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Round price to valid Hyperliquid tick size
+   * Hyperliquid requires prices to have max 5 significant figures
+   * and specific decimal precision based on price magnitude
+   * ETH/BTC use $0.10 tick size, other assets vary
+   */
+  private roundToValidPrice(price: number): number {
+    if (price >= 1000) {
+      // For prices >= 1000 (like BTC, ETH), round to nearest $0.10
+      return Math.round(price * 10) / 10;
+    } else if (price >= 100) {
+      // For prices >= 100 (like SOL), round to 2 decimals
+      return Math.round(price * 100) / 100;
+    } else if (price >= 10) {
+      // For prices >= 10, round to 3 decimals
+      return Math.round(price * 1000) / 1000;
+    } else if (price >= 1) {
+      // For prices >= 1, round to 4 decimals
+      return Math.round(price * 10000) / 10000;
+    } else if (price >= 0.1) {
+      // For prices >= 0.1, round to 5 decimals
+      return Math.round(price * 100000) / 100000;
+    } else if (price >= 0.01) {
+      // For prices >= 0.01, round to 6 decimals
+      return Math.round(price * 1000000) / 1000000;
+    } else {
+      // For very small prices (meme coins), round to 8 decimals
+      return Math.round(price * 100000000) / 100000000;
+    }
+  }
 
   /**
    * Get list of available perpetual symbols
@@ -731,12 +766,16 @@ export class HyperliquidService extends EventEmitter {
     const szDecimals = assetInfo.szDecimals;
     const roundedSize = Math.floor(params.size * Math.pow(10, szDecimals)) / Math.pow(10, szDecimals);
 
+    // Round trigger price and limit price
+    const roundedTriggerPrice = this.roundToValidPrice(params.triggerPrice);
+    const roundedLimitPrice = params.limitPrice ? this.roundToValidPrice(params.limitPrice) : roundedTriggerPrice;
+
     try {
       // Try to use the SDK's trigger order method
       const orderType = {
         trigger: {
           isMarket: !params.limitPrice,
-          triggerPx: params.triggerPrice.toString(),
+          triggerPx: roundedTriggerPrice.toString(),
           tpsl: params.triggerType || 'sl',
         },
       };
@@ -745,7 +784,7 @@ export class HyperliquidService extends EventEmitter {
         coin: normalizedSymbol,
         is_buy: params.isBuy,
         sz: roundedSize,
-        limit_px: params.limitPrice || params.triggerPrice,
+        limit_px: roundedLimitPrice,
         order_type: orderType as any,
         reduce_only: params.reduceOnly || false,
       });
