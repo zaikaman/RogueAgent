@@ -160,6 +160,9 @@ class SignalExecutorService {
       const takeProfitPrice = signal.target_price;
       const stopLossPrice = signal.stop_loss;
       
+      // Determine order type (market or limit)
+      const orderType = signal.order_type || 'market';
+      
       // Get max leverage for this specific asset from Hyperliquid
       const assetMaxLeverage = await hyperliquid.getMaxLeverage(futuresSymbol);
       
@@ -169,6 +172,7 @@ class SignalExecutorService {
       const leverage = Math.min(agent.max_leverage, maxLeverageFromRisk, assetMaxLeverage);
       
       logger.info(`Leverage for ${futuresSymbol}: ${leverage}x (agent: ${agent.max_leverage}x, risk-based: ${maxLeverageFromRisk}x, asset max: ${assetMaxLeverage}x)`);
+      logger.info(`Order type for ${futuresSymbol}: ${orderType}${orderType === 'limit' ? ` @ $${entryPrice}` : ''}`);
 
       const tradeResult = await hyperliquid.openBracketPosition({
         symbol: futuresSymbol,
@@ -177,6 +181,8 @@ class SignalExecutorService {
         leverage,
         takeProfitPrice,
         stopLossPrice,
+        entryPrice: orderType === 'limit' ? entryPrice : undefined,
+        orderType,
         clientOrderIdPrefix: `ROGUE_${agent.id.slice(0, 8)}`,
       });
 

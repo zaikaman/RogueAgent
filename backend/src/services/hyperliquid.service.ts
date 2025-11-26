@@ -647,6 +647,7 @@ export class HyperliquidService extends EventEmitter {
   /**
    * Open a bracket position (entry + TP + SL)
    * This is a convenience method that places entry, take-profit, and stop-loss orders
+   * Supports both market and limit entry orders
    */
   async openBracketPosition(params: {
     symbol: string;
@@ -655,6 +656,8 @@ export class HyperliquidService extends EventEmitter {
     leverage: number;
     takeProfitPrice: number;
     stopLossPrice: number;
+    entryPrice?: number; // Required for limit orders
+    orderType?: 'market' | 'limit'; // Default: market
     clientOrderIdPrefix?: string;
   }): Promise<{
     entryOrder: OrderResult;
@@ -664,47 +667,112 @@ export class HyperliquidService extends EventEmitter {
   }> {
     await this.ensureConnected();
     
-    const { symbol, side, riskPercent, leverage, takeProfitPrice, stopLossPrice } = params;
+    const { symbol, side, riskPercent, leverage, takeProfitPrice, stopLossPrice, orderType = 'market' } = params;
     const isBuy = side === 'LONG';
     
     // Get account equity and current price
     const equity = await this.getAccountEquity();
     const currentPrice = await this.getPrice(symbol);
     
+    // For limit orders, use the specified entry price for position sizing
+    const referencePrice = params.entryPrice || currentPrice;
+    
     // Calculate position size based on risk
     const riskAmount = equity * (riskPercent / 100);
-    const stopLossDistance = Math.abs(currentPrice - stopLossPrice);
-    const positionValue = (riskAmount / stopLossDistance) * currentPrice;
-    const quantity = positionValue / currentPrice;
+    const stopLossDistance = Math.abs(referencePrice - stopLossPrice);
+    const positionValue = (riskAmount / stopLossDistance) * referencePrice;
+    const quantity = positionValue / referencePrice;
     
     // Set leverage
     await this.setLeverage(symbol, leverage, false);
     
-    // Place entry order (market)
-    const entryOrder = await this.placeMarketOrder({
-      symbol,
-      isBuy,
-      size: quantity,
-    });
+    // Place entry order (market or limit)
+    let entryOrder: OrderResult;
+    if (orderType === 'limit' && params.entryPrice) {
+      // Limit order entry
+      logger.info(`Placing LIMIT entry order for ${symbol} at $${params.entryPrice}`);
+      entryOrder = await this.placeOrder({
+        symbol,
+        isBuy,
+        size: quantity,
+        price: params.entryPrice,
+        orderType: 'limit',
+        timeInForce: 'Gtc', // Good til cancelled
+      });
+      
+      // For limit orders, check if it was placed (resting) or filled immediately
+      const entryResting = entryOrder.response?.data?.statuses?.[0]?.resting;
+      const entryFilled = entryOrder.response?.data?.statuses?.[0]?.filled;
+      
+      if (entryResting) {
+        // Limit order is resting - we'll set up TP/SL when it fills
+        // For now, return the order info without TP/SL (they'll be added when filled)
+        logger.info(`Limit order placed and resting. OID: ${entryResting.oid}`);
+        return {
+          entryOrder,
+          position: { quantity, entryPrice: params.entryPrice },
+        };
+      } else if (entryFilled) {
+        // Order filled immediately (price crossed our limit)
+        const actualQuantity = parseFloat(entryFilled.totalSz);
+        const actualEntryPrice = parseFloat(entryFilled.avgPx);
+        
+        // Continue to place TP/SL orders
+        return await this.placeBracketOrders(symbol, isBuy, actualQuantity, actualEntryPrice, takeProfitPrice, stopLossPrice, entryOrder);
+      } else {
+        // Order failed
+        return {
+          entryOrder,
+          position: { quantity: 0, entryPrice: 0 },
+        };
+      }
+    } else {
+      // Market order entry (original behavior)
+      entryOrder = await this.placeMarketOrder({
+        symbol,
+        isBuy,
+        size: quantity,
+      });
 
-    const entryFilled = entryOrder.response?.data?.statuses?.[0]?.filled;
-    if (!entryFilled) {
-      return {
-        entryOrder,
-        position: { quantity: 0, entryPrice: 0 },
-      };
+      const entryFilled = entryOrder.response?.data?.statuses?.[0]?.filled;
+      if (!entryFilled) {
+        return {
+          entryOrder,
+          position: { quantity: 0, entryPrice: 0 },
+        };
+      }
+
+      const actualQuantity = parseFloat(entryFilled.totalSz);
+      const actualEntryPrice = parseFloat(entryFilled.avgPx);
+
+      return await this.placeBracketOrders(symbol, isBuy, actualQuantity, actualEntryPrice, takeProfitPrice, stopLossPrice, entryOrder);
     }
+  }
 
-    const actualQuantity = parseFloat(entryFilled.totalSz);
-    const entryPrice = parseFloat(entryFilled.avgPx);
-
+  /**
+   * Helper to place TP and SL orders after entry is filled
+   */
+  private async placeBracketOrders(
+    symbol: string,
+    isBuy: boolean,
+    quantity: number,
+    entryPrice: number,
+    takeProfitPrice: number,
+    stopLossPrice: number,
+    entryOrder: OrderResult
+  ): Promise<{
+    entryOrder: OrderResult;
+    tpOrder?: OrderResult;
+    slOrder?: OrderResult;
+    position: { quantity: number; entryPrice: number };
+  }> {
     // Place take-profit order (limit, reduce-only)
     let tpOrder: OrderResult | undefined;
     try {
       tpOrder = await this.placeOrder({
         symbol,
         isBuy: !isBuy, // opposite side
-        size: actualQuantity,
+        size: quantity,
         price: takeProfitPrice,
         reduceOnly: true,
         orderType: 'limit',
@@ -720,7 +788,7 @@ export class HyperliquidService extends EventEmitter {
       slOrder = await this.placeTriggerOrder({
         symbol,
         isBuy: !isBuy, // opposite side
-        size: actualQuantity,
+        size: quantity,
         triggerPrice: stopLossPrice,
         reduceOnly: true,
         triggerType: 'sl',
@@ -733,7 +801,7 @@ export class HyperliquidService extends EventEmitter {
       entryOrder,
       tpOrder,
       slOrder,
-      position: { quantity: actualQuantity, entryPrice },
+      position: { quantity, entryPrice },
     };
   }
 

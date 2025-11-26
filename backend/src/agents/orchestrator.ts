@@ -18,6 +18,7 @@ import { runwareService } from '../services/runware.service';
 import { binanceService } from '../services/binance.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
+import { signalExecutorService } from '../services/signal-executor.service';
 import { EventEmitter } from 'events';
 
 interface ScannerResult {
@@ -302,6 +303,49 @@ export class Orchestrator extends EventEmitter {
         logger.info(`Distributing Signal to GOLD/DIAMOND for run ${runId}...`);
         telegramService.broadcastToTiers(content, [TIERS.GOLD, TIERS.DIAMOND])
           .catch(err => logger.error('Error broadcasting to GOLD/DIAMOND', err));
+
+        // Process signal for Diamond Futures Agents (automated trading)
+        // Only process if signal has required fields for trading AND is not a pending limit order
+        // Pending limit orders will be processed when they trigger (via signal-monitor)
+        const isLimitOrderPending = signalContent.order_type === 'limit' && signalContent.status === 'pending';
+        
+        if (signalContent.token?.symbol && signalContent.entry_price && signalContent.stop_loss && signalContent.target_price && !isLimitOrderPending) {
+          logger.info(`Processing signal for Diamond Futures Agents (${signalContent.order_type || 'market'} order)...`);
+          const direction: 'LONG' | 'SHORT' = signalContent.target_price > signalContent.entry_price ? 'LONG' : 'SHORT';
+          const triggerType: 'long_setup' | 'short_setup' = direction === 'LONG' ? 'long_setup' : 'short_setup';
+          
+          signalExecutorService.processSignal({
+            signalId: runId,
+            signal: {
+              token: {
+                symbol: signalContent.token.symbol,
+                name: signalContent.token.name,
+                contract_address: (signalContent.token as any).address || (signalContent.token as any).contract_address || '',
+              },
+              direction,
+              entry_price: signalContent.entry_price,
+              target_price: signalContent.target_price,
+              stop_loss: signalContent.stop_loss,
+              confidence: signalContent.confidence || 50,
+              trigger_event: signalContent.trigger_event ? {
+                type: signalContent.trigger_event.type as any,
+                description: signalContent.trigger_event.description,
+              } : { type: triggerType, description: 'Signal from swarm' },
+              analysis: signalContent.analysis || '',
+              formatted_tweet: signalContent.formatted_tweet || '',
+              order_type: signalContent.order_type || 'market',
+              status: (signalContent.status as 'active' | 'pending' | 'tp_hit' | 'sl_hit' | 'closed') || 'active',
+            },
+          }).then(result => {
+            if (result.executed > 0) {
+              logger.info(`Futures: ${result.executed}/${result.processed} agents executed trades for signal ${runId}`);
+            }
+          }).catch(err => logger.error('Error processing signal for futures agents', err));
+        } else if (isLimitOrderPending) {
+          logger.info(`Signal ${runId} is a pending limit order - will process when price triggers`);
+        } else {
+          logger.info(`Signal ${runId} missing required fields for futures trading, skipping`);
+        }
 
         // Delayed 15m: Silver (DB-backed)
         logger.info(`Scheduling Signal for SILVER (+15-20m) for run ${runId}...`);

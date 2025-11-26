@@ -22,7 +22,8 @@ export interface SignalContent {
   trigger_event: TriggerEvent;
   analysis: string;
   formatted_tweet: string;
-  status?: 'active' | 'tp_hit' | 'sl_hit' | 'closed';
+  order_type?: 'market' | 'limit'; // Order execution type
+  status?: 'active' | 'pending' | 'tp_hit' | 'sl_hit' | 'closed';
   current_price?: number;
   pnl_percent?: number;
   closed_at?: string;
