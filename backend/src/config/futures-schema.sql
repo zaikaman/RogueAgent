@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.futures_agents (
   is_active boolean NOT NULL DEFAULT false,
   risk_per_trade numeric NOT NULL DEFAULT 1 CHECK (risk_per_trade >= 0.5 AND risk_per_trade <= 5),
   max_concurrent_positions integer NOT NULL DEFAULT 3 CHECK (max_concurrent_positions >= 1 AND max_concurrent_positions <= 10),
-  max_leverage integer NOT NULL DEFAULT 20 CHECK (max_leverage >= 1 AND max_leverage <= 50),
+  max_leverage integer NOT NULL DEFAULT 20 CHECK (max_leverage >= 1 AND max_leverage <= 100), -- Actual max depends on asset
   custom_prompt text,
   stats jsonb NOT NULL DEFAULT '{
     "total_trades": 0,

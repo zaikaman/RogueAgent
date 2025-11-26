@@ -7,7 +7,7 @@ import { EventEmitter } from 'events';
 // ═══════════════════════════════════════════════════════════════════════════════
 // HYPERLIQUID SERVICE
 // Testnet Perpetual Trading API Implementation
-// Supports all Hyperliquid perpetual pairs with up to 50x leverage
+// Supports all Hyperliquid perpetual pairs with dynamic max leverage per asset
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // API URLs
@@ -308,6 +308,19 @@ export class HyperliquidService extends EventEmitter {
   }
 
   /**
+   * Get max leverage for a symbol
+   * Different assets have different max leverage limits on Hyperliquid
+   */
+  async getMaxLeverage(symbol: string): Promise<number> {
+    const info = await this.getSymbolInfo(symbol);
+    if (!info) {
+      logger.warn(`Asset ${symbol} not found, returning default max leverage of 20`);
+      return 20; // Safe default
+    }
+    return info.maxLeverage;
+  }
+
+  /**
    * Get current price for a symbol
    */
   async getPrice(symbol: string): Promise<number> {
@@ -417,18 +430,32 @@ export class HyperliquidService extends EventEmitter {
 
   /**
    * Update leverage for a symbol
+   * Automatically clamps to the asset's max leverage if requested leverage is too high
+   * @returns Object with success status and the actual leverage that was set
    */
-  async setLeverage(symbol: string, leverage: number, isCross: boolean = false): Promise<boolean> {
+  async setLeverage(symbol: string, leverage: number, isCross: boolean = false): Promise<{ success: boolean; actualLeverage: number }> {
     await this.getMeta();
-    const assetIndex = this.assetIndexMap.get(symbol.toUpperCase());
+    const upperSymbol = symbol.toUpperCase();
+    const assetIndex = this.assetIndexMap.get(upperSymbol);
     if (assetIndex === undefined) throw new Error(`Asset ${symbol} not found`);
+
+    // Get max leverage for this asset
+    const assetInfo = this.assetInfoCache.get(upperSymbol);
+    const maxLeverage = assetInfo?.maxLeverage || 20;
+    
+    // Clamp leverage to max
+    const actualLeverage = Math.min(leverage, maxLeverage);
+    
+    if (leverage > maxLeverage) {
+      logger.warn(`Requested leverage ${leverage}x exceeds max ${maxLeverage}x for ${symbol}, using ${actualLeverage}x`);
+    }
 
     const nonce = this.generateNonce();
     const action = {
       type: 'updateLeverage',
       asset: assetIndex,
       isCross,
-      leverage,
+      leverage: actualLeverage,
     };
 
     const signature = await this.signL1Action(action, nonce);
@@ -439,7 +466,12 @@ export class HyperliquidService extends EventEmitter {
       signature,
     });
 
-    return response.data.status === 'ok';
+    const success = response.data.status === 'ok';
+    if (success) {
+      logger.info(`Leverage set to ${actualLeverage}x for ${symbol} (max: ${maxLeverage}x)`);
+    }
+    
+    return { success, actualLeverage };
   }
 
   /**

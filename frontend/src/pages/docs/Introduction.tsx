@@ -89,7 +89,7 @@ export default function Introduction() {
                 </li>
                 <li className="flex items-start gap-3 text-gray-300">
                     <span className="text-teal-glow text-xl">•</span>
-                    <span><strong className="text-white">Autonomous Futures Trading</strong> on Hyperliquid testnet with LONG/SHORT positions, up to 50x leverage, and smart trigger orders for stop-losses</span>
+                    <span><strong className="text-white">Autonomous Futures Trading</strong> on Hyperliquid testnet with LONG/SHORT positions, dynamic leverage per asset (BTC: 50x, memecoins: 3-5x), and smart trigger orders for stop-losses</span>
                 </li>
             </ul>
         </section>
@@ -207,7 +207,7 @@ export default function Introduction() {
                         <p className="text-gray-400 mb-2">Autonomous perpetual futures trading on <strong className="text-white">Hyperliquid testnet</strong>:</p>
                         <ul className="text-sm text-gray-400 space-y-1">
                             <li>• <strong className="text-white">LONG and SHORT</strong> positions supported</li>
-                            <li>• Up to <strong className="text-white">50x leverage</strong></li>
+                            <li>• <strong className="text-white">Dynamic leverage</strong> per asset (BTC: 50x, memecoins: 3-5x)</li>
                             <li>• Market, Limit, and <strong className="text-white">Trigger orders</strong> (stop-loss/take-profit)</li>
                             <li>• EIP-712 signed transactions for security</li>
                         </ul>

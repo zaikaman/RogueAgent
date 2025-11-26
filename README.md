@@ -70,7 +70,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
-📈 **Futures Trading**: Autonomous perpetual futures trading on Hyperliquid testnet with support for both LONG and SHORT positions, up to 50x leverage, and smart order management including trigger orders for stop-losses.
+📈 **Futures Trading**: Autonomous perpetual futures trading on Hyperliquid testnet with support for both LONG and SHORT positions, dynamic leverage limits per asset (e.g., BTC: 50x, memecoins: 3-5x), and smart order management including trigger orders for stop-losses.
 
 🗣️ **Voice AI Interface**: Speak directly to Rogue using natural language. Ask about market conditions, specific tokens, or request custom analysis.
 
@@ -441,7 +441,7 @@ cvd divergence + poc support + network upgrade catalyst
 | **Network** | Hyperliquid Testnet (`api.hyperliquid-testnet.xyz`) |
 | **Authentication** | EIP-712 typed data signing via private key |
 | **Directions** | LONG and SHORT positions |
-| **Max Leverage** | 1x - 50x |
+| **Max Leverage** | Dynamic per asset (BTC: 50x, ETH: 50x, memecoins: 3-5x) |
 | **Order Types** | Market, Limit, Trigger (stop-loss/take-profit) |
 
 **Architecture**:

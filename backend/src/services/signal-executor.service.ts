@@ -160,10 +160,15 @@ class SignalExecutorService {
       const takeProfitPrice = signal.target_price;
       const stopLossPrice = signal.stop_loss;
       
-      // Apply agent's max leverage (cap at 50x for Hyperliquid)
+      // Get max leverage for this specific asset from Hyperliquid
+      const assetMaxLeverage = await hyperliquid.getMaxLeverage(futuresSymbol);
+      
+      // Apply agent's max leverage, capped by the asset's max leverage
       const signalRiskPercent = Math.abs((stopLossPrice - entryPrice) / entryPrice) * 100;
       const maxLeverageFromRisk = Math.floor(100 / signalRiskPercent);
-      const leverage = Math.min(agent.max_leverage, maxLeverageFromRisk, 50); // Hyperliquid max is 50x
+      const leverage = Math.min(agent.max_leverage, maxLeverageFromRisk, assetMaxLeverage);
+      
+      logger.info(`Leverage for ${futuresSymbol}: ${leverage}x (agent: ${agent.max_leverage}x, risk-based: ${maxLeverageFromRisk}x, asset max: ${assetMaxLeverage}x)`);
 
       const tradeResult = await hyperliquid.openBracketPosition({
         symbol: futuresSymbol,

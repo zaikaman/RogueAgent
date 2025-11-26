@@ -559,8 +559,9 @@ function AgentModal({ isOpen, onClose, agent, address, onSave }: {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Max Leverage</label>
-              <input type="number" min={1} max={50} value={maxLeverage} onChange={e => setMaxLeverage(Number(e.target.value))}
+              <input type="number" min={1} max={100} value={maxLeverage} onChange={e => setMaxLeverage(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg bg-black border border-gray-800 text-white" />
+              <p className="text-xs text-gray-600 mt-1">Actual max depends on asset (e.g., BTC: 50x, memecoins: 3-5x)</p>
             </div>
           </div>
 

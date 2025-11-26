@@ -332,7 +332,7 @@ cvd divergence + poc support + upgrade catalyst
                         <ul className="text-sm text-gray-400 space-y-2">
                             <li className="flex items-start gap-2">
                                 <span className="text-cyan-400">→</span>
-                                <span><strong className="text-white">Leverage:</strong> 1x - 50x</span>
+                                <span><strong className="text-white">Leverage:</strong> Dynamic per asset (BTC: 50x, ETH: 50x, memecoins: 3-5x)</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="text-cyan-400">→</span>

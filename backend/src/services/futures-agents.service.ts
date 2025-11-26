@@ -28,7 +28,7 @@ export interface FuturesAgent {
   is_active: boolean;
   risk_per_trade: number; // 0.5 - 5%
   max_concurrent_positions: number; // 1 - 10
-  max_leverage: number; // 10 - 125
+  max_leverage: number; // 1 - 100 (actual max depends on asset)
   custom_prompt: string | null; // Natural language instructions
   stats: FuturesAgentStats;
   created_at: string;
@@ -284,7 +284,7 @@ class FuturesAgentsService {
         is_active: false, // Start inactive
         risk_per_trade: Math.min(5, Math.max(0.5, riskPerTrade)),
         max_concurrent_positions: Math.min(10, Math.max(1, maxConcurrentPositions)),
-        max_leverage: Math.min(125, Math.max(10, maxLeverage)),
+        max_leverage: Math.min(100, Math.max(1, maxLeverage)), // Capped at 100, actual max depends on asset
         custom_prompt: customPrompt,
         stats: defaultStats,
       })
@@ -325,7 +325,7 @@ class FuturesAgentsService {
       updates.max_concurrent_positions = Math.min(10, Math.max(1, updates.max_concurrent_positions));
     }
     if (updates.max_leverage !== undefined) {
-      updates.max_leverage = Math.min(125, Math.max(10, updates.max_leverage));
+      updates.max_leverage = Math.min(100, Math.max(1, updates.max_leverage)); // Capped at 100, actual max depends on asset
     }
 
     const { data, error } = await this.supabase.getClient()
