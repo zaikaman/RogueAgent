@@ -9,6 +9,7 @@ import { telegramService } from './telegram.service';
 import { twitterService } from './twitter.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from './scheduled-post.service';
+import { signalExecutorService } from './signal-executor.service';
 
 interface GeneratorResult {
   formatted_content: string;
@@ -207,6 +208,35 @@ export class SignalMonitorService {
                      content.status = 'active';
                      logger.info(`Limit order filled at ${currentPrice} (Target was ${entryPrice})`);
                      await supabaseService.updateRun(run.id, { content });
+                     
+                     // Process futures agents for the triggered limit order
+                     logger.info(`Processing triggered limit order for Diamond Futures Agents...`);
+                     const direction: 'LONG' | 'SHORT' = content.target_price > content.entry_price ? 'LONG' : 'SHORT';
+                     signalExecutorService.processSignal({
+                       signalId: run.id,
+                       signal: {
+                         token: {
+                           symbol: content.token.symbol,
+                           name: content.token.name,
+                           contract_address: (content.token as any).address || (content.token as any).contract_address || '',
+                         },
+                         direction,
+                         entry_price: content.entry_price,
+                         target_price: content.target_price,
+                         stop_loss: content.stop_loss,
+                         confidence: content.confidence || 50,
+                         trigger_event: content.trigger_event || { type: direction === 'LONG' ? 'long_setup' : 'short_setup', description: 'Limit order triggered' },
+                         analysis: content.analysis || '',
+                         formatted_tweet: content.formatted_tweet || '',
+                         order_type: 'limit',
+                         status: 'active',
+                       },
+                     }).then(result => {
+                       if (result.executed > 0) {
+                         logger.info(`Futures: ${result.executed}/${result.processed} agents executed trades for triggered limit order ${run.id}`);
+                       }
+                     }).catch(err => logger.error('Error processing triggered limit order for futures agents', err));
+                     
                      continue;
                 }
 
@@ -244,6 +274,34 @@ export class SignalMonitorService {
                         content,
                         telegram_delivered_at: new Date().toISOString()
                     });
+                    
+                    // Process futures agents for the triggered limit order
+                    logger.info(`Processing triggered limit order for Diamond Futures Agents...`);
+                    const direction: 'LONG' | 'SHORT' = content.target_price > content.entry_price ? 'LONG' : 'SHORT';
+                    signalExecutorService.processSignal({
+                      signalId: run.id,
+                      signal: {
+                        token: {
+                          symbol: content.token.symbol,
+                          name: content.token.name,
+                          contract_address: (content.token as any).address || (content.token as any).contract_address || '',
+                        },
+                        direction,
+                        entry_price: content.entry_price,
+                        target_price: content.target_price,
+                        stop_loss: content.stop_loss,
+                        confidence: content.confidence || 50,
+                        trigger_event: content.trigger_event || { type: direction === 'LONG' ? 'long_setup' : 'short_setup', description: 'Limit order triggered' },
+                        analysis: content.analysis || '',
+                        formatted_tweet: generatorResult.formatted_content || '',
+                        order_type: 'limit',
+                        status: 'active',
+                      },
+                    }).then(result => {
+                      if (result.executed > 0) {
+                        logger.info(`Futures: ${result.executed}/${result.processed} agents executed trades for triggered limit order ${run.id}`);
+                      }
+                    }).catch(err => logger.error('Error processing triggered limit order for futures agents', err));
                     
                     continue; // Move to next signal, don't process PnL yet for this tick
 
