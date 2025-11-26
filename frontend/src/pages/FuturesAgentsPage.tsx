@@ -312,7 +312,7 @@ function ClassicAgentCard({ agent, address, onUpdate, onCreate }: {
         <div>
           <div className="text-xs text-gray-500 uppercase">Total P&L</div>
           <div className={`text-lg font-bold ${agent.stats.total_pnl_usd >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            ${agent.stats.total_pnl_usd.toFixed(0)}
+            ${agent.stats.total_pnl_usd.toFixed(2)}
           </div>
         </div>
         <div>
