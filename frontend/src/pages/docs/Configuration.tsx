@@ -220,33 +220,18 @@ export default function Configuration() {
 
                     <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden mb-4">
                         <div className="p-4 border-b border-white/10 bg-white/5">
-                            <code className="text-teal-glow font-mono text-sm">TWITTERIO_API_KEY</code>
+                            <code className="text-teal-glow font-mono text-sm">X API OAuth 1.0a Credentials</code>
                             <span className="ml-3 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">Optional</span>
                         </div>
                         <div className="p-4">
-                            <p className="text-gray-300 mb-2 text-sm">TwitterIO API key for posting signals to X (Twitter).</p>
-                            <p className="text-gray-400 text-xs mb-3">Alternative to official Twitter API for more reliable posting.</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden mb-4">
-                        <div className="p-4 border-b border-white/10 bg-white/5">
-                            <code className="text-teal-glow font-mono text-sm">TWITTER_LOGIN_COOKIES</code>
-                            <span className="ml-3 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">Optional</span>
-                        </div>
-                        <div className="p-4">
-                            <p className="text-gray-300 mb-2 text-sm">Twitter login cookies for authenticated posting.</p>
-                            <p className="text-gray-400 text-xs">Export from browser after logging into Twitter.</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden mb-4">
-                        <div className="p-4 border-b border-white/10 bg-white/5">
-                            <code className="text-teal-glow font-mono text-sm">TWITTER_PROXY</code>
-                            <span className="ml-3 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">Optional</span>
-                        </div>
-                        <div className="p-4">
-                            <p className="text-gray-300 mb-2 text-sm">Proxy URL for Twitter API requests (if needed for rate limits).</p>
+                            <p className="text-gray-300 mb-2 text-sm">X API v2 OAuth 1.0a credentials for posting signals to X (Twitter).</p>
+                            <p className="text-gray-400 text-xs mb-3">Get from: <a href="https://developer.x.com/en/portal/dashboard" target="_blank" rel="noopener noreferrer" className="text-teal-glow hover:underline">X Developer Portal</a></p>
+                            <div className="bg-[#0d1117] rounded p-2 font-mono text-xs space-y-1">
+                                <div><span className="text-blue-400">X_API_KEY</span>=<span className="text-green-400">your-api-key</span></div>
+                                <div><span className="text-blue-400">X_API_KEY_SECRET</span>=<span className="text-green-400">your-api-key-secret</span></div>
+                                <div><span className="text-blue-400">X_ACCESS_TOKEN</span>=<span className="text-green-400">your-access-token</span></div>
+                                <div><span className="text-blue-400">X_ACCESS_TOKEN_SECRET</span>=<span className="text-green-400">your-access-token-secret</span></div>
+                            </div>
                         </div>
                     </div>
 

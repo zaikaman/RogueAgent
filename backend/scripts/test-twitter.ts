@@ -1,5 +1,5 @@
 /**
- * Test script to verify Twitter posting with current cookies.
+ * Test script to verify X API v2 posting with OAuth 1.0a User Context.
  * 
  * Usage:
  *   cd backend
@@ -10,80 +10,125 @@
 
 import 'dotenv/config';
 import { config } from '../src/config/env.config';
+import crypto from 'crypto';
 
 const TEST_MESSAGE = `🧪 RogueAgent test tweet - ${new Date().toISOString().slice(0, 19)}Z`;
 
+/**
+ * Percent encode a string according to RFC 3986
+ */
+function percentEncode(str: string): string {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21')
+    .replace(/\*/g, '%2A')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29');
+}
+
+/**
+ * Generate OAuth 1.0a signature
+ */
+function generateOAuthSignature(
+  method: string,
+  url: string,
+  oauthParams: Record<string, string>,
+  consumerSecret: string,
+  tokenSecret: string
+): string {
+  const sortedParams = Object.keys(oauthParams)
+    .sort()
+    .map(key => `${percentEncode(key)}=${percentEncode(oauthParams[key])}`)
+    .join('&');
+
+  const signatureBaseString = [
+    method.toUpperCase(),
+    percentEncode(url),
+    percentEncode(sortedParams)
+  ].join('&');
+
+  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
+
+  return crypto
+    .createHmac('sha1', signingKey)
+    .update(signatureBaseString)
+    .digest('base64');
+}
+
+/**
+ * Generate OAuth 1.0a Authorization header
+ */
+function generateOAuthHeader(method: string, url: string): string {
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: config.X_API_KEY!,
+    oauth_nonce: crypto.randomBytes(16).toString('hex'),
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_token: config.X_ACCESS_TOKEN!,
+    oauth_version: '1.0'
+  };
+
+  const signature = generateOAuthSignature(
+    method,
+    url,
+    oauthParams,
+    config.X_API_KEY_SECRET!,
+    config.X_ACCESS_TOKEN_SECRET!
+  );
+
+  oauthParams.oauth_signature = signature;
+
+  return 'OAuth ' + Object.keys(oauthParams)
+    .sort()
+    .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
+    .join(', ');
+}
+
 async function testTwitterPost() {
-  console.log('=== Twitter Posting Test ===\n');
+  console.log('=== X API v2 Posting Test (OAuth 1.0a) ===\n');
 
   // 1. Check env vars
   console.log('1. Checking environment variables...');
   
-  const apiKey = config.TWITTERIO_API_KEY || (config as any).TWITTER_API_KEY;
-  if (!apiKey) {
-    console.error('❌ Missing TWITTERIO_API_KEY or TWITTER_API_KEY');
+  if (!config.X_API_KEY) {
+    console.error('❌ Missing X_API_KEY');
     process.exit(1);
   }
-  console.log('   ✅ API key present');
+  console.log('   ✅ X_API_KEY present');
 
-  if (!config.TWITTER_LOGIN_COOKIES) {
-    console.error('❌ Missing TWITTER_LOGIN_COOKIES');
+  if (!config.X_API_KEY_SECRET) {
+    console.error('❌ Missing X_API_KEY_SECRET');
     process.exit(1);
   }
-  console.log('   ✅ TWITTER_LOGIN_COOKIES present');
+  console.log('   ✅ X_API_KEY_SECRET present');
 
-  if (!config.TWITTER_PROXY) {
-    console.warn('   ⚠️  TWITTER_PROXY not set (may still work)');
-  } else {
-    console.log('   ✅ TWITTER_PROXY present');
-  }
-
-  // 2. Decode and inspect cookies
-  console.log('\n2. Decoding cookies...');
-  try {
-    const decoded = Buffer.from(config.TWITTER_LOGIN_COOKIES, 'base64').toString('utf8');
-    const cookies = JSON.parse(decoded);
-    const keys = Object.keys(cookies);
-    console.log(`   ✅ Decoded ${keys.length} cookies: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? '...' : ''}`);
-    
-    if (!cookies.auth_token) {
-      console.error('   ❌ Missing auth_token in cookies!');
-      process.exit(1);
-    }
-    if (!cookies.ct0) {
-      console.error('   ❌ Missing ct0 in cookies!');
-      process.exit(1);
-    }
-    console.log('   ✅ auth_token and ct0 present');
-  } catch (e) {
-    console.error('   ❌ Failed to decode cookies:', e);
+  if (!config.X_ACCESS_TOKEN) {
+    console.error('❌ Missing X_ACCESS_TOKEN');
     process.exit(1);
   }
+  console.log('   ✅ X_ACCESS_TOKEN present');
 
-  // 3. Attempt to post
-  console.log('\n3. Attempting to post test tweet...');
+  if (!config.X_ACCESS_TOKEN_SECRET) {
+    console.error('❌ Missing X_ACCESS_TOKEN_SECRET');
+    process.exit(1);
+  }
+  console.log('   ✅ X_ACCESS_TOKEN_SECRET present');
+
+  // 2. Attempt to post using X API v2 with OAuth 1.0a
+  console.log('\n2. Attempting to post test tweet via X API v2 (OAuth 1.0a)...');
   console.log(`   Message: "${TEST_MESSAGE}"`);
   
-  const baseUrl = 'https://api.twitterapi.io/twitter';
-  const url = `${baseUrl}/create_tweet_v2`;
-
-  // The API expects the base64-encoded JSON string directly (containing only auth_token and ct0)
-  const body = {
-    login_cookies: config.TWITTER_LOGIN_COOKIES,
-    tweet_text: TEST_MESSAGE,
-    proxy: config.TWITTER_PROXY || undefined
-  };
-
-  console.log('\n   Sending base64 cookie string directly...');
+  const url = 'https://api.x.com/2/tweets';
+  const authHeader = generateOAuthHeader('POST', url);
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'X-API-Key': apiKey,
+        'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ text: TEST_MESSAGE })
     });
 
     const data = await response.json().catch(() => ({}));
@@ -94,30 +139,24 @@ async function testTwitterPost() {
     if (!response.ok) {
       console.error(`\n❌ Request failed with status ${response.status}`);
       
-      if (response.status === 429) {
+      if (response.status === 401) {
+        console.error('   → Unauthorized. Check your OAuth credentials.');
+      } else if (response.status === 403) {
+        console.error('   → Forbidden. Your app may not have write permissions.');
+        console.error('   → Make sure your app has "Read and Write" permissions in the X Developer Portal.');
+      } else if (response.status === 429) {
         console.error('   → Rate limit hit. Wait and try again.');
       }
       
       process.exit(1);
     }
 
-    if (data.status === 'success') {
-      console.log(`\n✅ SUCCESS! Tweet posted with ID: ${data.tweet_id}`);
-      console.log(`   View at: https://x.com/i/status/${data.tweet_id}`);
+    if (data.data && data.data.id) {
+      console.log(`\n✅ SUCCESS! Tweet posted with ID: ${data.data.id}`);
+      console.log(`   View at: https://x.com/i/status/${data.data.id}`);
       process.exit(0);
     } else {
-      const errorMsg = JSON.stringify(data.msg || data.message || data);
-      
-      if (errorMsg.includes('226') || errorMsg.includes('automated') || errorMsg.includes('spam')) {
-        console.error('\n❌ SPAM DETECTION (Error 226)');
-        console.error('   Twitter flagged this as automated. You need to:');
-        console.error('   1. Get fresh cookies (re-login to Twitter)');
-        console.error('   2. Use a different/better residential proxy');
-        console.error('   3. Wait a few hours before retrying');
-      } else {
-        console.error(`\n❌ API returned error: ${errorMsg}`);
-      }
-      
+      console.error(`\n❌ Unexpected response format:`, data);
       process.exit(1);
     }
   } catch (error: any) {

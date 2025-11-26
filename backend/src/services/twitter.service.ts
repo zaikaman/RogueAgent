@@ -1,20 +1,110 @@
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
+import crypto from 'crypto';
 
+/**
+ * X API v2 Service
+ * Uses official X API with OAuth 1.0a User Context authentication
+ * Endpoint: POST https://api.x.com/2/tweets
+ */
 class TwitterService {
-  private baseUrl = 'https://api.twitterapi.io/twitter';
+  private readonly baseUrl = 'https://api.x.com/2/tweets';
   private lastPostTime: number = 0;
   private minPostIntervalMs: number = 5 * 60 * 1000; // Minimum 5 minutes between posts
 
-  private get apiKey() {
-    return config.TWITTERIO_API_KEY || config.TWITTER_API_KEY;
+  private get hasCredentials(): boolean {
+    return !!(config.X_API_KEY && config.X_API_KEY_SECRET && 
+              config.X_ACCESS_TOKEN && config.X_ACCESS_TOKEN_SECRET);
   }
 
   constructor() {
-    if (!this.apiKey) {
-      logger.warn('⚠️ TWITTER_API_KEY/TWITTERIO_API_KEY missing. Twitter service will not function.');
+    if (!this.hasCredentials) {
+      logger.warn('⚠️ X API OAuth 1.0a credentials missing. X/Twitter posting will not function.');
+      logger.warn('   Required: X_API_KEY, X_API_KEY_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET');
+    } else {
+      logger.info('✅ X API v2 initialized with OAuth 1.0a User Context');
     }
+  }
+
+  /**
+   * Percent encode a string according to RFC 3986
+   */
+  private percentEncode(str: string): string {
+    return encodeURIComponent(str)
+      .replace(/!/g, '%21')
+      .replace(/\*/g, '%2A')
+      .replace(/'/g, '%27')
+      .replace(/\(/g, '%28')
+      .replace(/\)/g, '%29');
+  }
+
+  /**
+   * Generate OAuth 1.0a signature for the request
+   */
+  private generateOAuthSignature(
+    method: string,
+    url: string,
+    oauthParams: Record<string, string>,
+    consumerSecret: string,
+    tokenSecret: string
+  ): string {
+    // Sort and encode parameters
+    const sortedParams = Object.keys(oauthParams)
+      .sort()
+      .map(key => `${this.percentEncode(key)}=${this.percentEncode(oauthParams[key])}`)
+      .join('&');
+
+    // Create signature base string
+    const signatureBaseString = [
+      method.toUpperCase(),
+      this.percentEncode(url),
+      this.percentEncode(sortedParams)
+    ].join('&');
+
+    // Create signing key
+    const signingKey = `${this.percentEncode(consumerSecret)}&${this.percentEncode(tokenSecret)}`;
+
+    // Generate HMAC-SHA1 signature
+    const signature = crypto
+      .createHmac('sha1', signingKey)
+      .update(signatureBaseString)
+      .digest('base64');
+
+    return signature;
+  }
+
+  /**
+   * Generate OAuth 1.0a Authorization header
+   */
+  private generateOAuthHeader(method: string, url: string): string {
+    const oauthParams: Record<string, string> = {
+      oauth_consumer_key: config.X_API_KEY!,
+      oauth_nonce: crypto.randomBytes(16).toString('hex'),
+      oauth_signature_method: 'HMAC-SHA1',
+      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+      oauth_token: config.X_ACCESS_TOKEN!,
+      oauth_version: '1.0'
+    };
+
+    // Generate signature
+    const signature = this.generateOAuthSignature(
+      method,
+      url,
+      oauthParams,
+      config.X_API_KEY_SECRET!,
+      config.X_ACCESS_TOKEN_SECRET!
+    );
+
+    oauthParams.oauth_signature = signature;
+
+    // Build Authorization header
+    const authHeader = 'OAuth ' + Object.keys(oauthParams)
+      .sort()
+      .map(key => `${this.percentEncode(key)}="${this.percentEncode(oauthParams[key])}"`)
+      .join(', ');
+
+    return authHeader;
   }
 
   /**
@@ -40,15 +130,14 @@ class TwitterService {
     return true;
   }
 
+  /**
+   * Post a tweet using the official X API v2 with OAuth 1.0a
+   * @param text The tweet text content
+   * @returns The tweet ID if successful, null otherwise
+   */
   async postTweet(text: string): Promise<string | null> {
-    const apiKey = this.apiKey;
-    if (!apiKey) {
-      logger.warn('Skipping tweet: No API key');
-      return null;
-    }
-
-    if (!config.TWITTER_LOGIN_COOKIES || !config.TWITTER_PROXY) {
-      logger.warn('Skipping tweet: Missing TWITTER_LOGIN_COOKIES or TWITTER_PROXY. These are required for twitterapi.io v2.');
+    if (!this.hasCredentials) {
+      logger.warn('Skipping tweet: X API OAuth 1.0a credentials not configured');
       return null;
     }
 
@@ -61,11 +150,10 @@ class TwitterService {
     // Add human-like delay before posting
     await this.addHumanLikeDelay();
 
-    // Custom retry logic with shouldRetry callback to skip spam detection errors
+    // Custom retry logic - don't retry on auth errors
     const shouldRetryFn = (error: any) => {
       const msg = error?.message || '';
-      // Don't retry spam detection or authorization errors
-      if (msg.includes('SPAM_DETECTED') || msg.includes('226') || msg.includes('automated')) {
+      if (msg.includes('401') || msg.includes('403') || msg.includes('Unauthorized') || msg.includes('Forbidden')) {
         return false;
       }
       return true;
@@ -73,103 +161,52 @@ class TwitterService {
 
     return retry(async () => {
       try {
-        const url = `${this.baseUrl}/create_tweet_v2`;
-        const body = {
-          login_cookies: config.TWITTER_LOGIN_COOKIES,
-          tweet_text: text,
-          proxy: config.TWITTER_PROXY
-        };
+        const authHeader = this.generateOAuthHeader('POST', this.baseUrl);
 
-        const response = await fetch(url, {
+        const response = await fetch(this.baseUrl, {
           method: 'POST',
           headers: {
-            'X-API-Key': apiKey,
+            'Authorization': authHeader,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(body)
+          body: JSON.stringify({ text })
         });
 
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
           if (response.status === 429) {
-            logger.warn('Twitter rate limit hit');
+            logger.warn('X API rate limit hit (429)');
             throw new Error('Rate limit hit');
           }
-          logger.error('Failed to post tweet', data);
-          throw new Error(data.msg || data.message || 'Unknown error from TwitterAPI.io');
+          if (response.status === 401) {
+            logger.error('X API authentication failed (401). Check your OAuth credentials.');
+            throw new Error('Unauthorized: Invalid OAuth credentials');
+          }
+          if (response.status === 403) {
+            logger.error('X API forbidden (403). Your app may not have write permissions.');
+            throw new Error('Forbidden: Check app permissions');
+          }
+          
+          const errorDetail = data.detail || data.title || JSON.stringify(data.errors || data);
+          logger.error('Failed to post tweet', { status: response.status, error: errorDetail });
+          throw new Error(`X API Error (${response.status}): ${errorDetail}`);
         }
 
-        if (data.status === 'success') {
-          this.lastPostTime = Date.now(); // Track successful post time
-          logger.info('Tweet posted successfully', { id: data.tweet_id });
-          return data.tweet_id;
+        // Success response from X API v2
+        if (data.data && data.data.id) {
+          this.lastPostTime = Date.now();
+          logger.info('Tweet posted successfully via X API v2', { id: data.data.id, text: data.data.text?.substring(0, 50) });
+          return data.data.id;
         } else {
-          // Check for error 226 specifically (spam/automation detection)
-          const errorMsg = JSON.stringify(data.msg || data.message || '');
-          if (errorMsg.includes('226') || errorMsg.includes('automated') || errorMsg.includes('spam')) {
-            logger.error('SPAM DETECTION ERROR (226): Twitter detected automated behavior. You need to:');
-            logger.error('1. Refresh TWITTER_LOGIN_COOKIES (re-login and export cookies)');
-            logger.error('2. Change TWITTER_PROXY to a new residential IP');
-            logger.error('3. Wait a few hours before retrying');
-            // Don't retry for spam detection - it won't help
-            throw new Error(`SPAM_DETECTED: ${errorMsg}`);
-          }
-          logger.warn(`API returned status: ${data.status} msg: ${data.msg || data.message}`);
-          throw new Error(data.msg || 'Unknown error from TwitterAPI.io');
+          logger.warn('Unexpected response format from X API', data);
+          throw new Error('Unexpected response format from X API');
         }
       } catch (error: any) {
         logger.error('Failed to post tweet', error.message);
         throw error;
       }
     }, 3, 1000, 2, shouldRetryFn);
-  }
-
-  async searchTweets(query: string, cursor: string = '', queryType: 'Latest' | 'Top' = 'Latest'): Promise<{ tweets: any[], next_cursor: string, has_next_page: boolean }> {
-    const apiKey = this.apiKey;
-    if (!apiKey) {
-      logger.warn('Skipping search: No API key');
-      return { tweets: [], next_cursor: '', has_next_page: false };
-    }
-
-    return retry(async () => {
-      try {
-        const url = new URL(`${this.baseUrl}/tweet/advanced_search`);
-        url.searchParams.append('query', query);
-        url.searchParams.append('queryType', queryType);
-        if (cursor) {
-          url.searchParams.append('cursor', cursor);
-        }
-
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'X-API-Key': apiKey
-          }
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-           if (response.status === 429) {
-            logger.warn('Twitter rate limit hit');
-            throw new Error('Rate limit hit');
-          }
-          logger.error('Failed to search tweets', data);
-          throw new Error(data.msg || data.message || 'Unknown error from TwitterAPI.io');
-        }
-
-        return {
-          tweets: data.tweets || [],
-          next_cursor: data.next_cursor || '',
-          has_next_page: data.has_next_page || false
-        };
-
-      } catch (error: any) {
-        logger.error('Failed to search tweets', error.message);
-        throw error;
-      }
-    });
   }
 }
 

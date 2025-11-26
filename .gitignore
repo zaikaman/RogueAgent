@@ -41,3 +41,4 @@ secrets/
 *.key
 *.crt
 convert-cookies-to-b64.md
+x-documentation

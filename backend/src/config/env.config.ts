@@ -7,6 +7,14 @@ const envSchema = z.object({
   PORT: z.string().default('3000'),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_KEY: z.string().min(1),
+  // Official X API OAuth 1.0a User Context credentials
+  X_API_KEY: z.string().optional(),
+  X_API_KEY_SECRET: z.string().optional(),
+  X_ACCESS_TOKEN: z.string().optional(),
+  X_ACCESS_TOKEN_SECRET: z.string().optional(),
+  // OAuth 2.0 Bearer Token (App-Only - for read operations)
+  X_BEARER_TOKEN: z.string().optional(),
+  // Legacy TwitterIO credentials (deprecated)
   TWITTER_API_KEY: z.string().optional(),
   TWITTERIO_API_KEY: z.string().optional(),
   TWITTER_LOGIN_COOKIES: z.string().optional(),
@@ -69,6 +77,14 @@ const processEnv = {
   PORT: process.env.PORT,
   SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
+  // Official X API OAuth 1.0a User Context credentials
+  X_API_KEY: process.env.X_API_KEY,
+  X_API_KEY_SECRET: process.env.X_API_KEY_SECRET,
+  X_ACCESS_TOKEN: process.env.X_ACCESS_TOKEN,
+  X_ACCESS_TOKEN_SECRET: process.env.X_ACCESS_TOKEN_SECRET,
+  // OAuth 2.0 Bearer Token (App-Only - for read operations)
+  X_BEARER_TOKEN: process.env.X_BEARER_TOKEN,
+  // Legacy TwitterIO credentials (deprecated)
   TWITTER_API_KEY: process.env.TWITTER_API_KEY,
   TWITTERIO_API_KEY: process.env.TWITTERIO_API_KEY,
   TWITTER_LOGIN_COOKIES: process.env.TWITTER_LOGIN_COOKIES,
