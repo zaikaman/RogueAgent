@@ -15,6 +15,7 @@ import { coinMarketCapService } from '../services/coinmarketcap.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { runwareService } from '../services/runware.service';
+import { binanceService } from '../services/binance.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
 import { EventEmitter } from 'events';
@@ -190,27 +191,37 @@ export class Orchestrator extends EventEmitter {
         this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success', scannerResult);
 
         if (scannerResult.candidates && scannerResult.candidates.length > 0) {
-          // 2. Analyzer
-          logger.info('Running Analyzer Agent...');
-          this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
-          const { runner: analyzer } = await AnalyzerAgent.build();
-          const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}
-          
-          Global Market Context: ${JSON.stringify(marketData.global_market_context)}`;
-          
-          analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
-            analyzer,
-            analyzerPrompt,
-            'Analyzer Agent'
-          );
-          logger.info('Analyzer result:', analyzerResult);
+          // Filter candidates to only include tokens available on Binance Futures
+          this.broadcast('Filtering candidates for Binance Futures availability...', 'info');
+          const futuresFilteredCandidates = await binanceService.filterFuturesAvailable(scannerResult.candidates);
+          this.broadcast(`${futuresFilteredCandidates.length}/${scannerResult.candidates.length} candidates available on Binance Futures.`, 'success');
 
-          if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
-            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
-            signalGenerated = true;
+          if (futuresFilteredCandidates.length === 0) {
+            this.broadcast('No candidates available on Binance Futures. Skipping signal generation.', 'warning');
+            logger.info('All candidates filtered out - not available on Binance Futures.');
           } else {
-            this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
-            logger.info('Analyzer decided to skip signal generation.');
+            // 2. Analyzer
+            logger.info('Running Analyzer Agent...');
+            this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
+            const { runner: analyzer } = await AnalyzerAgent.build();
+            const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(futuresFilteredCandidates)}
+          
+            Global Market Context: ${JSON.stringify(marketData.global_market_context)}`;
+          
+            analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
+              analyzer,
+              analyzerPrompt,
+              'Analyzer Agent'
+            );
+            logger.info('Analyzer result:', analyzerResult);
+
+            if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
+              this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
+              signalGenerated = true;
+            } else {
+              this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
+              logger.info('Analyzer decided to skip signal generation.');
+            }
           }
         } else {
           this.broadcast('No significant anomalies found by Scanner Agent.', 'warning');
