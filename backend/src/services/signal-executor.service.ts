@@ -356,18 +356,40 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
         const position = await hyperliquid.getPosition(trade.symbol);
         
         if (!position || parseFloat(position.szi) === 0) {
-          // Position is closed - determine if TP or SL hit
-          const fills = await hyperliquid.getFills(10);
-          const relevantFill = fills.find((f: any) => f.coin === trade.symbol);
-          const closePrice = relevantFill ? parseFloat(relevantFill.px) : trade.entry_price;
+          // Position is closed - get the actual close price from recent fills
+          const fills = await hyperliquid.getFills(50);
+          // Find fills for this symbol that happened after the trade opened
+          const relevantFills = fills.filter((f: any) => 
+            f.coin === trade.symbol && 
+            new Date(f.time).getTime() > new Date(trade.opened_at).getTime()
+          );
           
+          // Use the most recent fill, or fallback to entry price
+          const closePrice = relevantFills.length > 0 
+            ? parseFloat(relevantFills[relevantFills.length - 1].px) 
+            : trade.entry_price;
+          
+          // Calculate PnL
           const pnlPercent = trade.direction === 'LONG'
             ? ((closePrice - trade.entry_price) / trade.entry_price) * 100 * trade.leverage
             : ((trade.entry_price - closePrice) / trade.entry_price) * 100 * trade.leverage;
           
-          const status = pnlPercent > 0 ? 'tp_hit' : 'sl_hit';
+          // Calculate USD PnL based on position size
+          const positionValue = trade.entry_price * trade.quantity;
+          const pnlUsd = (pnlPercent / 100) * positionValue;
           
-          logger.info(`Trade ${trade.id} closed: ${status} at ${closePrice}`);
+          const status: 'tp_hit' | 'sl_hit' = pnlPercent > 0 ? 'tp_hit' : 'sl_hit';
+          
+          // Update the trade in database
+          await futuresAgentsService.updateTrade(trade.id, {
+            exit_price: closePrice,
+            pnl_usd: pnlUsd,
+            pnl_percent: pnlPercent,
+            status,
+            closed_at: new Date().toISOString(),
+          });
+          
+          logger.info(`Trade ${trade.id} closed: ${status} at ${closePrice}, PnL: ${pnlPercent.toFixed(2)}% ($${pnlUsd.toFixed(2)})`);
         }
       } catch (error) {
         logger.error(`Error updating trade ${trade.id}`, error);

@@ -575,6 +575,30 @@ class FuturesAgentsService {
     return data;
   }
 
+  async updateTrade(
+    tradeId: string,
+    updates: Partial<Pick<FuturesTrade, 'exit_price' | 'pnl_usd' | 'pnl_percent' | 'status' | 'closed_at' | 'error_message'>>
+  ): Promise<FuturesTrade | null> {
+    const { data, error } = await this.supabase.getClient()
+      .from('futures_trades')
+      .update(updates)
+      .eq('id', tradeId)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Error updating trade', error);
+      return null;
+    }
+
+    // Update agent stats if trade was closed
+    if (data && (updates.status === 'tp_hit' || updates.status === 'sl_hit' || updates.status === 'closed')) {
+      await this.updateAgentStats(data.agent_id);
+    }
+
+    return data;
+  }
+
   async updateAgentStats(agentId: string): Promise<void> {
     const trades = await this.getAgentTrades(agentId, 1000);
     

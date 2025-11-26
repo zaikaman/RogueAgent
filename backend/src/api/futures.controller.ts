@@ -388,6 +388,11 @@ router.get('/trades', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Wallet address required' });
     }
 
+    // Update trade statuses first (syncs PnL for any closed trades)
+    await signalExecutorService.updateTradeStatuses(walletAddress).catch(err => 
+      logger.warn('Failed to update trade statuses:', err.message)
+    );
+
     const trades = await futuresAgentsService.getUserTrades(walletAddress, limit);
     
     res.json({ success: true, data: trades });
@@ -419,6 +424,9 @@ router.post('/positions/:symbol/close', requireDiamondTier, async (req: Request,
 
     // Sync positions after close
     await futuresAgentsService.syncPositions(walletAddress);
+    
+    // Update trade statuses (calculates and saves PnL)
+    await signalExecutorService.updateTradeStatuses(walletAddress);
 
     res.json({ success: true, data: result });
   } catch (error: any) {
@@ -444,6 +452,9 @@ router.post('/emergency/close-all', requireDiamondTier, async (req: Request, res
     
     // Close all positions
     const result = await futuresAgentsService.emergencyCloseAll(walletAddress);
+    
+    // Update trade statuses (calculates and saves PnL for closed trades)
+    await signalExecutorService.updateTradeStatuses(walletAddress);
     
     res.json({ 
       success: result.closed.length > 0 || result.errors.length === 0,
