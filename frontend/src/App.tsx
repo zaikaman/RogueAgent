@@ -17,6 +17,7 @@ import { PerformanceAnalytics } from './pages/analytics/PerformanceAnalytics';
 import { MarketAnalytics } from './pages/analytics/MarketAnalytics';
 import { SignalAnalytics } from './pages/analytics/SignalAnalytics';
 import { AskRogue } from './pages/AskRogue';
+import { FuturesAgentsPage } from './pages/FuturesAgentsPage';
 import Introduction from './pages/docs/Introduction';
 import Quickstart from './pages/docs/Quickstart';
 import Architecture from './pages/docs/Architecture';
@@ -99,6 +100,11 @@ function App() {
                 <Route path="market" element={<MarketAnalytics />} />
                 <Route path="signals" element={<SignalAnalytics />} />
               </Route>
+              <Route path="/app/futures" element={
+                <DashboardLayout>
+                  <FuturesAgentsPage />
+                </DashboardLayout>
+              } />
             </Routes>
           </BrowserRouter>
         </RainbowKitProvider>

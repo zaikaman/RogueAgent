@@ -87,6 +87,10 @@ export default function Introduction() {
                     <span className="text-teal-glow text-xl">•</span>
                     <span><strong className="text-white">Advanced Technical Analysis</strong> using 2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, SuperTrend, BB Squeeze, VW-MACD, Fibonacci, and MTF alignment</span>
                 </li>
+                <li className="flex items-start gap-3 text-gray-300">
+                    <span className="text-teal-glow text-xl">•</span>
+                    <span><strong className="text-white">Autonomous Futures Trading</strong> on Hyperliquid testnet with LONG/SHORT positions, up to 50x leverage, and smart trigger orders for stop-losses</span>
+                </li>
             </ul>
         </section>
 
@@ -191,6 +195,22 @@ export default function Introduction() {
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Limit Order Intelligence</h3>
                         <p className="text-gray-400">Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market.</p>
+                    </div>
+                </div>
+
+                <div className="flex gap-4">
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center flex-shrink-0 border border-cyan-500/30">
+                        <span className="text-cyan-400 font-bold">📈</span>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-semibold text-lg mb-2">Futures Trading</h3>
+                        <p className="text-gray-400 mb-2">Autonomous perpetual futures trading on <strong className="text-white">Hyperliquid testnet</strong>:</p>
+                        <ul className="text-sm text-gray-400 space-y-1">
+                            <li>• <strong className="text-white">LONG and SHORT</strong> positions supported</li>
+                            <li>• Up to <strong className="text-white">50x leverage</strong></li>
+                            <li>• Market, Limit, and <strong className="text-white">Trigger orders</strong> (stop-loss/take-profit)</li>
+                            <li>• EIP-712 signed transactions for security</li>
+                        </ul>
                     </div>
                 </div>
             </div>

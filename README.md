@@ -23,6 +23,7 @@
 - [What is Rogue?](#-what-is-rogue)
 - [The Problem We Solve](#-the-problem-we-solve)
 - [Core Architecture](#-the-swarm-architecture)
+- [Futures Agents](#-futures-agents---autonomous-perpetual-trading)
 - [Key Features](#-key-features)
 - [How It Works](#-how-it-works)
 - [Tech Stack](#️-tech-stack)
@@ -69,6 +70,8 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
+📈 **Futures Trading**: Autonomous perpetual futures trading on Hyperliquid testnet with support for both LONG and SHORT positions, up to 50x leverage, and smart order management including trigger orders for stop-losses.
+
 🗣️ **Voice AI Interface**: Speak directly to Rogue using natural language. Ask about market conditions, specific tokens, or request custom analysis.
 
 ---
@@ -106,10 +109,15 @@ graph TD
     Orchestrator --> Intel[📊 Intel Agent]
     Orchestrator --> Yield[🌾 Yield Agent]
     Orchestrator --> Airdrop[🎁 Airdrop Agent]
+    Orchestrator --> FuturesScanner[📈 Futures Scanner]
     
     Scanner -->|Trending Tokens| Analyzer[🧠 Analyzer Agent]
     Analyzer -->|High-Conviction Signals| Writer[✍️ Writer Agent]
     Intel -->|Market Narratives| Writer
+    
+    FuturesScanner -->|LONG/SHORT Candidates| FuturesAnalyzer[📉 Futures Analyzer]
+    FuturesAnalyzer -->|Direction + Levels| FuturesExecutor[⚡ Signal Executor]
+    FuturesExecutor -->|Orders| Hyperliquid[🔗 Hyperliquid Testnet]
     
     Writer -->|Formatted Content| Publisher[📡 Publisher Agent]
     Publisher -->|Immediate| Diamond[💎 Diamond Tier]
@@ -131,6 +139,10 @@ graph TD
     style Intel fill:#96ceb4,stroke:#2d6a4f,stroke-width:2px
     style ChatAgent fill:#ffd93d,stroke:#f77f00,stroke-width:2px
     style Publisher fill:#a8dadc,stroke:#457b9d,stroke-width:2px
+    style FuturesScanner fill:#9d4edd,stroke:#5a189a,stroke-width:2px
+    style FuturesAnalyzer fill:#7b2cbf,stroke:#3c096c,stroke-width:2px
+    style FuturesExecutor fill:#c77dff,stroke:#9d4edd,stroke-width:2px
+    style Hyperliquid fill:#00d4ff,stroke:#0096c7,stroke-width:2px
 ```
 
 ### 🎯 The Orchestrator
@@ -413,6 +425,91 @@ cvd divergence + poc support + network upgrade catalyst
 - Every signal stored with full metadata
 - Tracks publication timestamps per tier
 - Maintains analytics for performance tracking
+
+---
+
+### 📈 Futures Agents - Autonomous Perpetual Trading
+
+**Role**: Autonomous AI-powered perpetual futures trading on Hyperliquid testnet.
+
+**Exchange**: [Hyperliquid](https://app.hyperliquid.xyz/) - A fully on-chain perpetual futures DEX
+
+**Key Features**:
+
+| Feature | Details |
+|---------|---------|
+| **Network** | Hyperliquid Testnet (`api.hyperliquid-testnet.xyz`) |
+| **Authentication** | EIP-712 typed data signing via private key |
+| **Directions** | LONG and SHORT positions |
+| **Max Leverage** | 1x - 50x |
+| **Order Types** | Market, Limit, Trigger (stop-loss/take-profit) |
+
+**Architecture**:
+```
+┌─────────────────────────────────────────────────────┐
+│ Futures Scanner Agent                               │
+│    - Scans for LONG opportunities (breakouts,      │
+│      accumulation, oversold bounces)               │
+│    - Scans for SHORT opportunities (rejections,    │
+│      distribution, overbought reversals)           │
+│    - Validates with sentiment + volume analysis    │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Futures Analyzer Agent                              │
+│    - Deep technical analysis with direction logic  │
+│    - LONG: Stop below support, TP at resistance    │
+│    - SHORT: Stop above resistance, TP at support   │
+│    - Outputs: direction, entry, SL, TP, leverage   │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ Signal Executor                                     │
+│    - Places market/limit orders via Hyperliquid    │
+│    - Sets trigger orders for stop-loss (stop-market│
+│      orders that execute when price crosses)       │
+│    - Manages position lifecycle                    │
+└─────────────────────────────────────────────────────┘
+```
+
+**Order Types Explained**:
+
+1. **Market Orders**: Immediate execution at best available price
+2. **Limit Orders**: Execute only at specified price or better
+3. **Trigger Orders** (Stop-Loss/Take-Profit): 
+   - Stop-Market orders that remain dormant until oracle price crosses trigger
+   - Prevents immediate execution of stop-loss that limit orders would cause
+   - Executes as market order when triggered
+
+**LONG vs SHORT Logic**:
+
+| Direction | Entry Signal | Stop-Loss Placement | Take-Profit Placement |
+|-----------|-------------|---------------------|----------------------|
+| **LONG** | Breakouts, accumulation patterns, oversold bounces | Below key support (swing low, order block) | At resistance levels (Fib extensions, order blocks) |
+| **SHORT** | Rejections, distribution patterns, overbought reversals | Above key resistance (swing high, supply zone) | At support levels (demand zones, prior lows) |
+
+**Security**:
+- Private keys encrypted with AES-256-GCM
+- Keys stored in database, never logged
+- Wallet address used for identification
+- Testnet-only for development/testing
+
+**Signal Output** (Futures):
+```json
+{
+  "action": "signal",
+  "signal_details": {
+    "direction": "LONG",
+    "order_type": "market",
+    "entry_price": 2450.00,
+    "target_price": 2550.00,
+    "stop_loss": 2400.00,
+    "leverage": 10,
+    "confidence": 87,
+    "analysis": "LONG: CVD accumulation + POC support at $2450 + bullish divergence. Stop $2400 (2% below entry). Target $2550 (1:2 R:R)"
+  }
+}
+```
 
 ---
 
@@ -1072,6 +1169,7 @@ User → Speaks: "What's happening with Solana?"
 | **Birdeye** | Real-time DEX data, Solana trending | `/defi/trending`, `/defi/price`, `/defi/ohlcv` |
 | **DeFi Llama** | TVL tracking, yield pools, protocol stats | `/protocols`, `/pools`, `/chains` |
 | **CoinMarketCap** | Alternative price source, global metrics | `/v1/cryptocurrency/quotes/latest` |
+| **Hyperliquid** | Perpetual futures trading (testnet) | `/info`, `/exchange` (EIP-712 signed) |
 | **Tavily** | News aggregation, sentiment analysis | `/search` |
 | **X API v2** | Social posting (OAuth 1.0a) | `POST /2/tweets` |
 | **VAPI** | Voice conversation platform | `/call`, `/assistant` |
@@ -1087,14 +1185,15 @@ User → Speaks: "What's happening with Solana?"
 **Database Schema**:
 ```sql
 -- Core Tables
-├── users               -- Wallet addresses, tiers, Telegram IDs
-├── runs                -- Swarm execution history (signals, intel)
-├── scheduled_posts     -- Tiered content delivery queue
-├── tier_snapshots      -- Distribution tracking per tier
-├── custom_requests     -- User-initiated scan requests
-├── yield_opportunities -- DeFi farming pools
-├── airdrops           -- Points farming opportunities
-└── iqai_logs          -- Activity logs for IQ.AI platform
+├── users                  -- Wallet addresses, tiers, Telegram IDs
+├── runs                   -- Swarm execution history (signals, intel)
+├── scheduled_posts        -- Tiered content delivery queue
+├── tier_snapshots         -- Distribution tracking per tier
+├── custom_requests        -- User-initiated scan requests
+├── yield_opportunities    -- DeFi farming pools
+├── airdrops              -- Points farming opportunities
+├── iqai_logs             -- Activity logs for IQ.AI platform
+└── futures_agent_config  -- Hyperliquid API keys (encrypted), settings
 ```
 
 **Authentication & Web3**:

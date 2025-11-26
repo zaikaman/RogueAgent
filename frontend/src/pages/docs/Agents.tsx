@@ -299,6 +299,163 @@ cvd divergence + poc support + upgrade catalyst
             </div>
         </section>
 
+        <section className="mb-16" id="futures-agents">
+            <h2 className="text-3xl font-bold text-white mb-6">Futures Agents</h2>
+            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4 mb-6">
+                <p className="text-cyan-200 text-sm">
+                    <strong>Role:</strong> Autonomous Perpetual Trading - AI-powered futures trading on Hyperliquid testnet with LONG and SHORT positions
+                </p>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Exchange Integration</h3>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 className="text-white font-semibold mb-2">Hyperliquid Testnet</h4>
+                        <ul className="text-sm text-gray-400 space-y-2">
+                            <li className="flex items-start gap-2">
+                                <span className="text-cyan-400">→</span>
+                                <span>Fully on-chain perpetual futures DEX</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-cyan-400">→</span>
+                                <span>API: <code className="text-cyan-300">api.hyperliquid-testnet.xyz</code></span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-cyan-400">→</span>
+                                <span>EIP-712 typed data signing for authentication</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="text-white font-semibold mb-2">Supported Features</h4>
+                        <ul className="text-sm text-gray-400 space-y-2">
+                            <li className="flex items-start gap-2">
+                                <span className="text-cyan-400">→</span>
+                                <span><strong className="text-white">Leverage:</strong> 1x - 50x</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-cyan-400">→</span>
+                                <span><strong className="text-white">Directions:</strong> LONG and SHORT</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-cyan-400">→</span>
+                                <span><strong className="text-white">Order Types:</strong> Market, Limit, Trigger</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Futures Scanner Agent</h3>
+            <p className="text-gray-300 mb-4">Extends the base Scanner with directional analysis:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-gradient-to-r from-green-500/10 to-teal-500/10 border border-green-500/30 rounded-lg p-4">
+                    <h4 className="text-green-400 font-bold mb-2">📈 LONG Opportunities</h4>
+                    <ul className="text-sm text-gray-300 space-y-1">
+                        <li>• Breakout patterns with volume confirmation</li>
+                        <li>• Accumulation phases (CVD rising, price flat)</li>
+                        <li>• Oversold bounces at key support</li>
+                        <li>• Bullish divergences on RSI/MACD</li>
+                    </ul>
+                </div>
+                <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-lg p-4">
+                    <h4 className="text-red-400 font-bold mb-2">📉 SHORT Opportunities</h4>
+                    <ul className="text-sm text-gray-300 space-y-1">
+                        <li>• Rejection patterns at resistance</li>
+                        <li>• Distribution phases (CVD falling, price flat)</li>
+                        <li>• Overbought reversals at key levels</li>
+                        <li>• Bearish divergences on RSI/MACD</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Futures Analyzer Agent</h3>
+            <p className="text-gray-300 mb-4">Direction-aware analysis with separate logic for LONG vs SHORT:</p>
+            <div className="space-y-4 mb-6">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h4 className="text-white font-bold mb-2">LONG Position Logic</h4>
+                    <ul className="text-sm text-gray-400 space-y-1">
+                        <li>• <strong className="text-green-400">Entry:</strong> At support levels (POC, order blocks, Fib retracements)</li>
+                        <li>• <strong className="text-red-400">Stop-Loss:</strong> Below key support (swing low, demand zone)</li>
+                        <li>• <strong className="text-cyan-400">Take-Profit:</strong> At resistance (Fib extensions, supply zones)</li>
+                    </ul>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h4 className="text-white font-bold mb-2">SHORT Position Logic</h4>
+                    <ul className="text-sm text-gray-400 space-y-1">
+                        <li>• <strong className="text-red-400">Entry:</strong> At resistance levels (supply zones, Fib extensions)</li>
+                        <li>• <strong className="text-green-400">Stop-Loss:</strong> Above key resistance (swing high, supply zone)</li>
+                        <li>• <strong className="text-cyan-400">Take-Profit:</strong> At support (demand zones, prior lows)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Order Types</h3>
+            <div className="space-y-4 mb-6">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h4 className="text-white font-bold mb-2">Market Orders</h4>
+                    <p className="text-sm text-gray-400">Immediate execution at best available price. Used for momentum breakouts.</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h4 className="text-white font-bold mb-2">Limit Orders</h4>
+                    <p className="text-sm text-gray-400">Execute only at specified price or better. Preferred for better R:R at key levels.</p>
+                </div>
+                <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-4">
+                    <h4 className="text-cyan-400 font-bold mb-2">⚡ Trigger Orders (Stop-Loss/Take-Profit)</h4>
+                    <p className="text-sm text-gray-300 mb-2">Stop-market orders that remain dormant until the oracle price crosses the trigger price.</p>
+                    <ul className="text-xs text-gray-400 space-y-1">
+                        <li>• <strong>Why not limit orders for stops?</strong> Limit orders execute immediately if price has crossed - causing instant fills</li>
+                        <li>• <strong>Trigger orders wait</strong> for price to cross, then execute as market order</li>
+                        <li>• <strong>Time-in-Force:</strong> GTC (Good-Till-Canceled) for persistent orders</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Signal Executor</h3>
+            <p className="text-gray-300 mb-4">Executes analyzed signals on Hyperliquid:</p>
+            <div className="bg-[#0d1117] rounded-lg border border-white/10 p-4 mb-6 font-mono text-xs overflow-x-auto">
+                <pre className="text-gray-300">{`// Position Flow
+1. Receive signal with direction (LONG/SHORT)
+2. Set leverage for the asset
+3. Place entry order (market or limit)
+4. Set trigger order for stop-loss
+5. Monitor position until TP or SL hit
+
+// Example LONG Signal
+{
+  "direction": "LONG",
+  "symbol": "ETH",
+  "entry": 2450.00,
+  "stopLoss": 2400.00,
+  "takeProfit": 2550.00,
+  "leverage": 10
+}`}</pre>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Security</h3>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                <ul className="text-sm text-gray-300 space-y-2">
+                    <li className="flex items-start gap-2">
+                        <span className="text-yellow-400">🔒</span>
+                        <span>Private keys encrypted with <strong className="text-white">AES-256-GCM</strong></span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-yellow-400">🔒</span>
+                        <span>Keys stored in database, never logged or exposed in responses</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-yellow-400">🔒</span>
+                        <span>Wallet address used for identification (never private key)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-yellow-400">🔒</span>
+                        <span><strong className="text-white">Testnet only</strong> for development and testing</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
         <section className="mb-16" id="intel">
             <h2 className="text-3xl font-bold text-white mb-6">Intel Agent</h2>
             <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-6">

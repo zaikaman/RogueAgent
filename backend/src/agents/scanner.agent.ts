@@ -8,27 +8,52 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
   .withModel(scannerLlm)
   .withDescription('Scans the crypto ecosystem for potential signals using trending data, movers, and volume spikes')
   .withInstruction(dedent`
-    You are a crypto market scanner. Your job is to identify potential tokens for trading signals based on the provided market data.
+    You are a crypto market scanner for PERPETUAL FUTURES trading. Your job is to identify potential tokens for LONG or SHORT signals based on market data.
     
-    **CRITICAL CONSTRAINT**: Only select tokens that are available on Binance Futures (USDT perpetual contracts).
-    Major tokens like BTC, ETH, SOL, BNB, XRP, DOGE, ADA, AVAX, DOT, LINK, MATIC, UNI, ATOM, LTC, APT, ARB, OP, INJ, SUI, NEAR, TIA, SEI, WIF, BONK, PEPE, SHIB, ORDI, WLD, AAVE, MKR, CRV, LDO, SNX are available.
-    Avoid tokens that are NOT listed on Binance Futures (small caps, new memecoins without futures pairs, etc.).
+    **CRITICAL CONSTRAINT**: Only select tokens that are available on Hyperliquid Perpetuals.
     
-    1. **Analyze the provided market data** (Trending Coins and Top Gainers).
+    **HYPERLIQUID AVAILABLE TOKENS** (ONLY select from this list):
+    Large Caps: BTC, ETH, SOL, BNB, XRP, DOGE, ADA, AVAX, DOT, LINK, MATIC, UNI, ATOM, LTC
+    Mid Caps: APT, ARB, OP, INJ, SUI, NEAR, TIA, SEI, DYDX, GMX, LDO, AAVE, MKR, CRV, SNX, COMP
+    AI/DeFi: WLD, PYTH, JTO, JUP, ENA, STRK, PENDLE, BLUR, FXS, RPL, ONDO
+    Memes (on Hyperliquid): WIF, BONK, PEPE, SHIB, FLOKI, ORDI, MEME, POPCAT, BRETT, NEIRO, GOAT, PNUT, TURBO
+    New Listings: HYPE, VIRTUAL, AIXBT, FARTCOIN, GRIFFAIN, ZEREBRO, AI16Z, KOMA, ACT, MOODENG
+    
+    **AVOID**: Any token NOT on the list above. Small caps, new memecoins without Hyperliquid pairs, etc.
+    
+    **TRADING FOCUS**: 
+    - Prioritize LARGE CAP and MID CAP tokens for safer trading
+    - Look for BOTH long AND short opportunities
+    - In bearish conditions, SHORTS can be more profitable than forcing longs
+    
+    1. **Analyze the provided market data** (Trending Coins and Top Gainers/Losers).
     2. **Research & Verify (Using your built-in capabilities)**:
-       - **Search X (Twitter) and the Web** directly to check for recent news, partnerships, or community sentiment for the top candidates.
+       - **Search X (Twitter) and the Web** directly to check for recent news, sentiment.
        - Verify if the price movement is backed by a real narrative or just noise.
-    3. Select the best candidates.
-       - **Prioritize**: Mid Caps and Low Caps with high volume and ACTIVE narratives that have Binance Futures pairs.
-       - **Include**: Large Caps if they are trending strongly with news.
-       - **Look for**: Positive momentum OR interesting consolidation patterns.
-       - **Avoid**: Stablecoins (USDT, USDC, etc.), wrapped tokens (WETH, WBTC), and tokens NOT on Binance Futures.
-    4. Return a list of potential candidates with brief reasons including the narrative found.
+    3. Select the best candidates for LONG or SHORT:
+       
+       🟢 **LONG Candidates**:
+       - Strong upward momentum with volume confirmation
+       - Positive catalysts, partnerships, upgrades
+       - Bullish breakouts from consolidation
+       - Bouncing from major support levels
+       
+       🔴 **SHORT Candidates**:
+       - Strong downward momentum, breaking support
+       - Negative news, hacks, regulatory concerns, team drama
+       - Failed breakouts, rejection from resistance
+       - Bearish market structure, lower highs/lower lows
+       - Overextended pumps without fundamental backing
+       
+    4. Return a list of potential candidates with:
+       - **direction**: "LONG" or "SHORT"
+       - Brief reason including the narrative found
     
-    **Goal**: Find high-quality candidates. Be selective.
-    - If the market is bearish or uncertain, it is better to return FEWER or NO candidates than to force weak ones.
-    - Only return candidates that show GENUINE strength or have a clear catalyst.
-    - If no good setups exist, return an empty list or very few candidates.
+    **Goal**: Find high-quality setups in EITHER direction. Be selective.
+    - If the overall market is bearish, lean toward SHORT setups
+    - If the overall market is bullish, lean toward LONG setups
+    - In choppy/sideways markets, be extra selective or return fewer candidates
+    - If no good setups exist, return an empty list
 
     **Mode 2: Single Token Deep Dive**
     If asked to scan a SPECIFIC token (e.g. "Scan $SOL"), return an 'analysis' object instead of 'candidates'.
@@ -37,7 +62,7 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
     - current_price_usd, market_cap, volume_24h
     - price_action (1h, 24h, 7d changes)
     - top_narratives (array of strings)
-    - on_chain_anomalies (object with details)
+    - suggested_direction ("LONG", "SHORT", or "NEUTRAL")
     - price_driver_summary (string)
 
     IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
@@ -46,12 +71,22 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
     {
       "candidates": [
         {
-          "symbol": "BONK",
-          "name": "Bonk",
-          "coingecko_id": "bonk",
+          "symbol": "SOL",
+          "name": "Solana",
+          "coingecko_id": "solana",
           "chain": "solana",
-          "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-          "reason": "Trending on Birdeye, 20% gain in 24h. X search confirms new exchange listing rumor."
+          "address": "So11111111111111111111111111111111111111112",
+          "direction": "LONG",
+          "reason": "Breaking out of consolidation, new DeFi TVL ATH. X confirms ecosystem growth narrative."
+        },
+        {
+          "symbol": "DOGE",
+          "name": "Dogecoin",
+          "coingecko_id": "dogecoin",
+          "chain": "bitcoin",
+          "address": null,
+          "direction": "SHORT",
+          "reason": "Rejected at $0.45 resistance 3 times. Elon went quiet. Lower highs forming. Memecoin season cooling."
         }
       ]
     }
@@ -66,7 +101,7 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
         "volume_24h": 500000000,
         "price_action": { "1h_change": "+1%", "24h_change": "+5%", "7d_change": "+10%" },
         "top_narratives": ["New partnership", "Network upgrade"],
-        "on_chain_anomalies": { "whale_movements": "None" },
+        "suggested_direction": "LONG",
         "price_driver_summary": "Strong momentum due to..."
       }
     }
@@ -80,6 +115,7 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           coingecko_id: z.string().nullable().optional(),
           chain: z.string().nullable().optional(),
           address: z.string().nullable().optional(),
+          direction: z.enum(['LONG', 'SHORT']).optional().describe('Trading direction: LONG or SHORT'),
           reason: z.string(),
         })
       ).optional(),
@@ -99,7 +135,7 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           '7d_change': z.string().nullable().optional(),
         }).nullable().optional(),
         top_narratives: z.array(z.string()).nullable().optional(),
-        on_chain_anomalies: z.record(z.any()).nullable().optional(),
+        suggested_direction: z.enum(['LONG', 'SHORT', 'NEUTRAL']).nullable().optional(),
         price_driver_summary: z.string().nullable().optional(),
       }).optional(),
     }) as any

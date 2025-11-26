@@ -33,6 +33,83 @@ CREATE TABLE public.custom_requests (
   CONSTRAINT custom_requests_pkey PRIMARY KEY (id),
   CONSTRAINT custom_requests_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
 );
+CREATE TABLE public.futures_agents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_wallet_address text NOT NULL,
+  name text NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['classic'::text, 'custom'::text])),
+  is_active boolean NOT NULL DEFAULT false,
+  risk_per_trade numeric NOT NULL DEFAULT 1 CHECK (risk_per_trade >= 0.5 AND risk_per_trade <= 5::numeric),
+  max_concurrent_positions integer NOT NULL DEFAULT 3 CHECK (max_concurrent_positions >= 1 AND max_concurrent_positions <= 10),
+  max_leverage integer NOT NULL DEFAULT 20 CHECK (max_leverage >= 10 AND max_leverage <= 125),
+  custom_prompt text,
+  stats jsonb NOT NULL DEFAULT '{"total_trades": 0, "trades_today": 0, "last_trade_at": null, "losing_trades": 0, "total_pnl_usd": 0, "winning_trades": 0, "total_pnl_percent": 0, "max_drawdown_percent": 0}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT futures_agents_pkey PRIMARY KEY (id),
+  CONSTRAINT futures_agents_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
+);
+CREATE TABLE public.futures_api_keys (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_wallet_address text NOT NULL UNIQUE,
+  encrypted_api_key text NOT NULL,
+  encrypted_api_secret text NOT NULL,
+  is_active boolean NOT NULL DEFAULT true,
+  last_tested_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT futures_api_keys_pkey PRIMARY KEY (id),
+  CONSTRAINT futures_api_keys_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
+);
+CREATE TABLE public.futures_positions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_wallet_address text NOT NULL,
+  agent_id uuid,
+  symbol text NOT NULL,
+  direction text NOT NULL CHECK (direction = ANY (ARRAY['LONG'::text, 'SHORT'::text])),
+  entry_price numeric NOT NULL,
+  current_price numeric NOT NULL,
+  quantity numeric NOT NULL,
+  leverage integer NOT NULL,
+  unrealized_pnl numeric NOT NULL DEFAULT 0,
+  unrealized_pnl_percent numeric NOT NULL DEFAULT 0,
+  liquidation_price numeric NOT NULL,
+  tp_price numeric,
+  sl_price numeric,
+  tp_order_id text,
+  sl_order_id text,
+  margin_type text NOT NULL DEFAULT 'isolated'::text CHECK (margin_type = ANY (ARRAY['isolated'::text, 'cross'::text])),
+  opened_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT futures_positions_pkey PRIMARY KEY (id),
+  CONSTRAINT futures_positions_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address),
+  CONSTRAINT futures_positions_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.futures_agents(id)
+);
+CREATE TABLE public.futures_trades (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL,
+  user_wallet_address text NOT NULL,
+  signal_id text NOT NULL,
+  symbol text NOT NULL,
+  direction text NOT NULL CHECK (direction = ANY (ARRAY['LONG'::text, 'SHORT'::text])),
+  entry_price numeric NOT NULL,
+  exit_price numeric,
+  quantity numeric NOT NULL,
+  leverage integer NOT NULL,
+  risk_percent numeric NOT NULL,
+  pnl_usd numeric,
+  pnl_percent numeric,
+  status text NOT NULL DEFAULT 'open'::text CHECK (status = ANY (ARRAY['open'::text, 'tp_hit'::text, 'sl_hit'::text, 'closed'::text, 'error'::text])),
+  entry_order_id text NOT NULL,
+  tp_order_id text,
+  sl_order_id text,
+  error_message text,
+  opened_at timestamp with time zone NOT NULL DEFAULT now(),
+  closed_at timestamp with time zone,
+  CONSTRAINT futures_trades_pkey PRIMARY KEY (id),
+  CONSTRAINT futures_trades_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.futures_agents(id),
+  CONSTRAINT futures_trades_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
+);
 CREATE TABLE public.iqai_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   content text NOT NULL,

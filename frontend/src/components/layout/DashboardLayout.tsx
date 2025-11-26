@@ -12,7 +12,7 @@ import {
   Rocket01Icon,
   Message01Icon
 } from '@hugeicons/core-free-icons';
-import { Send, Terminal, DollarSign } from 'lucide-react';
+import { Send, Terminal, DollarSign, Bot } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
 import { Countdown } from '../Countdown';
 import { ChainOfThoughtModal } from '../ChainOfThoughtModal';
@@ -170,6 +170,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: Coins01Icon, label: 'Yield', path: '/app/yield' },
     { icon: Rocket01Icon, label: 'Airdrops', path: '/app/airdrops' },
     { icon: ChartHistogramIcon, label: 'Analytics', path: '/app/analytics' },
+    { icon: null, label: 'Futures Agents', path: '/app/futures', lucideIcon: Bot },
   ];
 
   const pageTitles: Record<string, string> = {
@@ -178,6 +179,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     '/app/signals': 'SIGNAL INTERCEPT',
     '/app/intel': 'INTELLIGENCE FEED',
     '/app/yield': 'YIELD PROTOCOLS',
+    '/app/futures': 'FUTURES TERMINAL',
     '/app/airdrops': 'AIRDROP TRACKER',
     '/app/analytics': 'DATA ANALYTICS',
   };
@@ -218,6 +220,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const LucideIcon = (item as any).lucideIcon;
             return (
               <Link
                 key={item.path}
@@ -229,7 +232,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     : 'text-gray-400 hover:text-white hover:bg-gray-900'
                 }`}
               >
-                <HugeiconsIcon icon={item.icon} className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-white'}`} />
+                {LucideIcon ? (
+                  <LucideIcon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-white'}`} />
+                ) : item.icon ? (
+                  <HugeiconsIcon icon={item.icon} className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-white'}`} />
+                ) : null}
                 <span className="font-medium text-sm">{item.label}</span>
               </Link>
             );

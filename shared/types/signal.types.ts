@@ -5,7 +5,7 @@ export interface TokenInfo {
 }
 
 export interface TriggerEvent {
-  type: 'kol_mention' | 'whale_movement' | 'volume_spike' | 'sentiment_surge';
+  type: 'kol_mention' | 'whale_movement' | 'volume_spike' | 'sentiment_surge' | 'long_setup' | 'short_setup' | 'day_trade_setup' | 'swing_trade_setup';
   kol_handle?: string;
   tweet_url?: string;
   whale_wallets?: string[];
@@ -14,10 +14,11 @@ export interface TriggerEvent {
 
 export interface SignalContent {
   token: TokenInfo;
+  direction: 'LONG' | 'SHORT'; // Trading direction for perpetuals
   entry_price: number;
   target_price: number;
   stop_loss: number;
-  confidence: number; // 1-10
+  confidence: number; // 1-100
   trigger_event: TriggerEvent;
   analysis: string;
   formatted_tweet: string;
