@@ -141,7 +141,10 @@ export default function Quickstart() {
                     <div><span className="text-blue-400">TAVILY_API_KEY</span>=<span className="text-green-400">your_tavily_key</span></div>
                     <div className="mt-3"><span className="text-gray-500"># Distribution (Optional)</span></div>
                     <div><span className="text-blue-400">TELEGRAM_BOT_TOKEN</span>=<span className="text-green-400">your_telegram_token</span></div>
-                    <div><span className="text-blue-400">TWITTER_API_KEY</span>=<span className="text-green-400">your_twitter_key</span></div>
+                    <div><span className="text-blue-400">X_API_KEY</span>=<span className="text-green-400">your_x_api_key</span></div>
+                    <div><span className="text-blue-400">X_API_KEY_SECRET</span>=<span className="text-green-400">your_x_api_secret</span></div>
+                    <div><span className="text-blue-400">X_ACCESS_TOKEN</span>=<span className="text-green-400">your_x_access_token</span></div>
+                    <div><span className="text-blue-400">X_ACCESS_TOKEN_SECRET</span>=<span className="text-green-400">your_x_access_token_secret</span></div>
                     <div className="mt-3"><span className="text-gray-500"># Image Generation (Optional)</span></div>
                     <div><span className="text-blue-400">RUNWARE_API_KEY</span>=<span className="text-green-400">your_runware_key</span></div>
                 </div>
@@ -207,7 +210,7 @@ export default function Quickstart() {
                 </li>
                 <li className="flex items-start gap-3">
                     <span className="text-teal-glow">→</span>
-                    <span>Schedules the next run based on <code className="text-teal-glow bg-white/5 px-2 py-0.5 rounded">RUN_INTERVAL_MINUTES</code> (default: 240 minutes / 4 hours)</span>
+                    <span>Schedules the next run based on <code className="text-teal-glow bg-white/5 px-2 py-0.5 rounded">RUN_INTERVAL_MINUTES</code> (default: 60 minutes / 1 hour)</span>
                 </li>
                 <li className="flex items-start gap-3">
                     <span className="text-teal-glow">→</span>

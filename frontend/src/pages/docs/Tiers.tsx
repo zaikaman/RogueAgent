@@ -53,7 +53,7 @@ export default function Tiers() {
 
                         <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                             <p className="text-blue-200 text-sm">
-                                <strong>30-minute edge</strong> over public signals. Custom scans allow you to stay ahead of trends.
+                                <strong>60-90 minute edge</strong> over public signals. Custom scans allow you to stay ahead of trends.
                             </p>
                         </div>
                     </div>
@@ -89,7 +89,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
                         <p className="text-yellow-200 text-sm">
-                            <strong>30-minute edge</strong> over public. Perfect for active traders.
+                            <strong>60-90 minute edge</strong> over public. Perfect for active traders.
                         </p>
                     </div>
                 </div>
@@ -124,7 +124,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-gray-400/10 border border-gray-400/30 rounded-lg p-3">
                         <p className="text-gray-200 text-sm">
-                            <strong>15-minute edge</strong> over public. Great for swing traders.
+                            <strong>45-75 minute edge</strong> over public. Great for swing traders.
                         </p>
                     </div>
                 </div>
@@ -263,7 +263,7 @@ export default function Tiers() {
                         </div>
                         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-white font-semibold">20:30:00</span>
+                                <span className="text-white font-semibold">21:00:00 - 21:30:00</span>
                                 <span className="text-gray-400 text-sm">Public</span>
                             </div>
                             <p className="text-gray-300 text-sm">Signal posted to X +60-90 minutes later</p>

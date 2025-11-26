@@ -51,10 +51,10 @@ export default function Home() {
         {
             id: '03',
             title: 'Token-Gated Speed',
-            description: '$RGE holders receive signals 15-30 minutes before the public feed. In crypto, speed is the difference between 10x and 100x.',
+            description: '$RGE holders receive signals 60-90 minutes before the public feed. In crypto, speed is the difference between 10x and 100x.',
             icon: Shield02Icon,
             stats: [
-                { label: 'ADVANTAGE', value: '15m' },
+                { label: 'ADVANTAGE', value: '60m+' },
                 { label: 'ACCESS', value: 'TIER 1' }
             ]
         },
