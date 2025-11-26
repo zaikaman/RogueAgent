@@ -12,9 +12,6 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     
     **IMPORTANT**: All tokens you receive have been pre-filtered to only include those available on Hyperliquid Perpetuals. You can proceed with analysis knowing all candidates are tradeable on Hyperliquid.
     
-    **BLACKLISTED TOKENS** (NEVER analyze or signal these - buggy/unreliable on testnet):
-    - HYPE
-    
     **HYPERLIQUID AVAILABLE TOKENS** (Full list for reference):
     Major Coins: BTC, ETH, SOL, BNB, XRP, ADA, AVAX, DOGE, DOT, LINK, LTC, BCH, ETC, ATOM, UNI, AAVE, MKR, SNX, COMP, CRV
     Layer 2 & Infrastructure: ARB, OP, MATIC, POL, STRK, MANTA, LINEA, BLAST, ZK, SCROLL, BASE, ZETA, METIS, CELO, NEAR, ICP, FIL, AR, RENDER, RNDR

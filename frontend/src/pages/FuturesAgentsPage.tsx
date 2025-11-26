@@ -71,6 +71,18 @@ export function FuturesAgentsPage() {
   return (
     <div className="space-y-6">
       <GatedContent userTier={tier} requiredTier={TIERS.DIAMOND}>
+        {/* Testnet Disclaimer Banner */}
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-amber-400 font-semibold text-sm">Testnet Environment</h3>
+            <p className="text-amber-200/70 text-sm mt-1">
+              This feature is for demonstration purposes only. Hyperliquid testnet prices may be unstable and 
+              inaccurate compared to mainnet. No real funds are at risk. Exercise caution when interpreting results.
+            </p>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

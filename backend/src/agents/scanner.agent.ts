@@ -12,9 +12,6 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
     
     **CRITICAL CONSTRAINT**: Only select tokens that are available on Hyperliquid Perpetuals.
     
-    **BLACKLISTED TOKENS** (NEVER select these - buggy/unreliable on testnet):
-    - HYPE
-    
     **HYPERLIQUID AVAILABLE TOKENS** (ONLY select from this list):
     Major Coins: BTC, ETH, SOL, BNB, XRP, ADA, AVAX, DOGE, DOT, LINK, LTC, BCH, ETC, ATOM, UNI, AAVE, MKR, SNX, COMP, CRV
     Layer 2 & Infrastructure: ARB, OP, MATIC, POL, STRK, MANTA, LINEA, BLAST, ZK, SCROLL, BASE, ZETA, METIS, CELO, NEAR, ICP, FIL, AR, RENDER, RNDR
