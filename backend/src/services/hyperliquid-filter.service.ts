@@ -14,6 +14,11 @@ interface MetaResponse {
   universe: AssetInfo[];
 }
 
+// Tokens to exclude from signal generation (buggy on testnet, unreliable pricing, etc.)
+const BLACKLISTED_TOKENS = new Set([
+  'HYPE', // Buggy pricing on Hyperliquid testnet
+]);
+
 /**
  * Hyperliquid Futures Filter Service
  * Used to check if tokens are available on Hyperliquid perpetual futures
@@ -79,8 +84,16 @@ class HyperliquidFuturesFilterService {
    * Check if a token is available on Hyperliquid Futures
    */
   async isAvailableOnFutures(symbol: string): Promise<boolean> {
+    const upperSymbol = symbol.toUpperCase();
+    
+    // Check blacklist first
+    if (BLACKLISTED_TOKENS.has(upperSymbol)) {
+      logger.info(`Hyperliquid Futures: ${upperSymbol} is blacklisted`);
+      return false;
+    }
+    
     const symbols = await this.getFuturesSymbols();
-    return symbols.has(symbol.toUpperCase());
+    return symbols.has(upperSymbol);
   }
 
   /**
@@ -88,7 +101,15 @@ class HyperliquidFuturesFilterService {
    */
   async filterFuturesAvailable<T extends { symbol: string }>(candidates: T[]): Promise<T[]> {
     const symbols = await this.getFuturesSymbols();
-    const filtered = candidates.filter(c => symbols.has(c.symbol.toUpperCase()));
+    const filtered = candidates.filter(c => {
+      const upperSymbol = c.symbol.toUpperCase();
+      // Exclude blacklisted tokens
+      if (BLACKLISTED_TOKENS.has(upperSymbol)) {
+        logger.info(`Hyperliquid Futures Filter: Excluding blacklisted token ${upperSymbol}`);
+        return false;
+      }
+      return symbols.has(upperSymbol);
+    });
     
     logger.info(`Hyperliquid Futures Filter: ${filtered.length}/${candidates.length} candidates available on futures`);
     
