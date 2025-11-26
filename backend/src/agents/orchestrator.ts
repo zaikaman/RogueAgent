@@ -305,11 +305,9 @@ export class Orchestrator extends EventEmitter {
           .catch(err => logger.error('Error broadcasting to GOLD/DIAMOND', err));
 
         // Process signal for Diamond Futures Agents (automated trading)
-        // Only process if signal has required fields for trading AND is not a pending limit order
-        // Pending limit orders will be processed when they trigger (via signal-monitor)
-        const isLimitOrderPending = signalContent.order_type === 'limit' && signalContent.status === 'pending';
-        
-        if (signalContent.token?.symbol && signalContent.entry_price && signalContent.stop_loss && signalContent.target_price && !isLimitOrderPending) {
+        // Limit orders are placed immediately on Hyperliquid and sit on the order book until filled
+        // The "pending" status just tracks whether the limit order has filled yet
+        if (signalContent.token?.symbol && signalContent.entry_price && signalContent.stop_loss && signalContent.target_price) {
           logger.info(`Processing signal for Diamond Futures Agents (${signalContent.order_type || 'market'} order)...`);
           const direction: 'LONG' | 'SHORT' = signalContent.target_price > signalContent.entry_price ? 'LONG' : 'SHORT';
           const triggerType: 'long_setup' | 'short_setup' = direction === 'LONG' ? 'long_setup' : 'short_setup';
@@ -341,8 +339,6 @@ export class Orchestrator extends EventEmitter {
               logger.info(`Futures: ${result.executed}/${result.processed} agents executed trades for signal ${runId}`);
             }
           }).catch(err => logger.error('Error processing signal for futures agents', err));
-        } else if (isLimitOrderPending) {
-          logger.info(`Signal ${runId} is a pending limit order - will process when price triggers`);
         } else {
           logger.info(`Signal ${runId} missing required fields for futures trading, skipping`);
         }
