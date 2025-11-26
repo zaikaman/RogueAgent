@@ -10,6 +10,7 @@ import { telegramService } from './telegram.service';
 import { twitterService } from './twitter.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from './scheduled-post.service';
+import { getCoingeckoId, hasCoingeckoMapping } from '../constants/coingecko-ids.constant';
 
 interface GeneratorResult {
   formatted_content: string;
@@ -117,9 +118,15 @@ export class SignalMonitorService {
       const content = run.content as SignalContent;
       const token = content.token;
       
-      if ((token as any).coingecko_id) {
-        coingeckoIds.push((token as any).coingecko_id);
-        tokenMap.set((token as any).coingecko_id, { runId: run.id, content });
+      // Use mapping to get correct CoinGecko ID, falling back to stored value
+      let coingeckoId = (token as any).coingecko_id;
+      if (token.symbol && hasCoingeckoMapping(token.symbol)) {
+        coingeckoId = getCoingeckoId(token.symbol);
+      }
+      
+      if (coingeckoId) {
+        coingeckoIds.push(coingeckoId);
+        tokenMap.set(coingeckoId, { runId: run.id, content });
       }
     }
 
@@ -144,10 +151,16 @@ export class SignalMonitorService {
         // Get current price - use batch-fetched price if available
         let currentPrice: number | null = null;
         
+        // Determine the correct CoinGecko ID using our mapping
+        let coingeckoId = (content.token as any).coingecko_id;
+        if (content.token.symbol && hasCoingeckoMapping(content.token.symbol)) {
+          coingeckoId = getCoingeckoId(content.token.symbol);
+        }
+        
         try {
-            // Priority 1: Use batch-fetched CoinGecko price
-            if ((content.token as any).coingecko_id) {
-                currentPrice = batchPrices.get((content.token as any).coingecko_id) || null;
+            // Priority 1: Use batch-fetched CoinGecko price (with corrected ID)
+            if (coingeckoId) {
+                currentPrice = batchPrices.get(coingeckoId) || null;
             }
 
             // Priority 2: Try address-based lookup (only if not in batch)
@@ -173,8 +186,8 @@ export class SignalMonitorService {
             }
 
             // Priority 4: Fallback to individual CoinGecko fetch by ID (if batch failed)
-            if (!currentPrice && (content.token as any).coingecko_id && !batchPrices.has((content.token as any).coingecko_id)) {
-                currentPrice = await coingeckoService.getPrice((content.token as any).coingecko_id);
+            if (!currentPrice && coingeckoId && !batchPrices.has(coingeckoId)) {
+                currentPrice = await coingeckoService.getPrice(coingeckoId);
             }
         } catch (err) {
             logger.error(`Error fetching price for ${content.token.symbol}:`, err);
@@ -182,7 +195,7 @@ export class SignalMonitorService {
         }
 
         if (!currentPrice) {
-            logger.warn(`Could not fetch price for signal ${run.id} (${content.token.symbol})`);
+            logger.warn(`Could not fetch price for signal ${run.id} (${content.token.symbol}). Tried coingeckoId: ${coingeckoId}`);
             continue;
         }
 
