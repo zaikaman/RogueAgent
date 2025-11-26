@@ -6,6 +6,7 @@ import { IntelAgent } from './intel.agent';
 import { YieldAgent } from './yield.agent';
 import { AirdropAgent } from './airdrop.agent';
 import { logger } from '../utils/logger.util';
+import { cleanSignalText } from '../utils/text.util';
 import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
 import { twitterService } from '../services/twitter.service';
@@ -263,7 +264,9 @@ export class Orchestrator extends EventEmitter {
         logger.info('Generator result:', generatorResult);
         this.broadcast('Content generated successfully.', 'success', generatorResult);
 
-        const content = generatorResult.formatted_content || generatorResult.tweet_text;
+        // Clean the content to remove errant backslashes from tweet formats
+        const rawContent = generatorResult.formatted_content || generatorResult.tweet_text;
+        const content = rawContent ? cleanSignalText(rawContent) : null;
 
         if (!content) {
             logger.error('Generator failed to produce content', generatorResult);
@@ -531,7 +534,9 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         // 3. Publisher (Tiered)
         logger.info(`Publishing Intel for run ${runId}...`);
         this.broadcast(`Publishing Intel for run ${runId}...`, 'info');
-        const tweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
+        // Clean content to remove errant backslashes from tweet formats
+        const rawTweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
+        const tweetContent = rawTweetContent ? cleanSignalText(rawTweetContent) : null;
         const blogContent = generatorResult.blog_post || generatorResult.formatted_content;
         
         // Save run first to ensure ID exists for scheduled posts
