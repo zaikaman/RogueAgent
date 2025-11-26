@@ -41,7 +41,7 @@ CREATE TABLE public.futures_agents (
   is_active boolean NOT NULL DEFAULT false,
   risk_per_trade numeric NOT NULL DEFAULT 1 CHECK (risk_per_trade >= 0.5 AND risk_per_trade <= 5::numeric),
   max_concurrent_positions integer NOT NULL DEFAULT 3 CHECK (max_concurrent_positions >= 1 AND max_concurrent_positions <= 10),
-  max_leverage integer NOT NULL DEFAULT 20 CHECK (max_leverage >= 10 AND max_leverage <= 125),
+  max_leverage integer NOT NULL DEFAULT 20 CHECK (max_leverage >= 1 AND max_leverage <= 100),
   custom_prompt text,
   stats jsonb NOT NULL DEFAULT '{"total_trades": 0, "trades_today": 0, "last_trade_at": null, "losing_trades": 0, "total_pnl_usd": 0, "winning_trades": 0, "total_pnl_percent": 0, "max_drawdown_percent": 0}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -58,6 +58,7 @@ CREATE TABLE public.futures_api_keys (
   last_tested_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  hyperliquid_wallet_address text NOT NULL,
   CONSTRAINT futures_api_keys_pkey PRIMARY KEY (id),
   CONSTRAINT futures_api_keys_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
 );

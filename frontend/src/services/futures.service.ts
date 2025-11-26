@@ -18,11 +18,12 @@ export const futuresService = {
   // API KEY MANAGEMENT (Uses private key for Hyperliquid)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async saveApiKeys(walletAddress: string, privateKey: string, _unused?: string): Promise<{ success: boolean; error?: string }> {
+  async saveApiKeys(connectedWallet: string, hyperliquidWallet: string, privateKey: string): Promise<{ success: boolean; error?: string }> {
     try {
       await api.post('/futures/api-keys', {
-        walletAddress,
-        privateKey, // Send as privateKey
+        walletAddress: connectedWallet,           // Connected wallet (for DB lookup)
+        hyperliquidWalletAddress: hyperliquidWallet, // Hyperliquid wallet address
+        privateKey,                               // Hyperliquid private key
       });
       return { success: true };
     } catch (error: any) {

@@ -18,8 +18,9 @@ const walletSchema = z.object({
 });
 
 const apiKeysSchema = z.object({
-  walletAddress: z.string().min(1),
-  privateKey: z.string().min(1),
+  walletAddress: z.string().min(1), // Connected wallet (for DB lookup)
+  hyperliquidWalletAddress: z.string().min(1), // Hyperliquid wallet address
+  privateKey: z.string().min(1), // Hyperliquid private key
 });
 
 const createAgentSchema = z.object({
@@ -105,9 +106,9 @@ async function requireDiamondTier(req: Request, res: Response, next: Function) {
  */
 router.post('/api-keys', requireDiamondTier, async (req: Request, res: Response) => {
   try {
-    const { walletAddress, privateKey } = apiKeysSchema.parse(req.body);
+    const { walletAddress, hyperliquidWalletAddress, privateKey } = apiKeysSchema.parse(req.body);
     
-    const result = await futuresAgentsService.saveApiKeys(walletAddress, privateKey);
+    const result = await futuresAgentsService.saveApiKeys(walletAddress, hyperliquidWalletAddress, privateKey);
     
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });

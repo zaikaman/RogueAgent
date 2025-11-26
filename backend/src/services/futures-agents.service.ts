@@ -12,7 +12,8 @@ import crypto from 'crypto';
 export interface FuturesApiKeys {
   id: string;
   user_wallet_address: string;
-  encrypted_api_key: string;
+  hyperliquid_wallet_address: string; // The Hyperliquid wallet address
+  encrypted_api_key: string; // Encrypted private key
   encrypted_api_secret: string;
   is_active: boolean;
   last_tested_at: string | null;
@@ -130,16 +131,16 @@ class FuturesAgentsService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async saveApiKeys(
-    walletAddress: string,
-    privateKey: string,
-    _unused?: string // For backwards compatibility
+    walletAddress: string,          // Connected wallet (for DB lookup)
+    hyperliquidWalletAddress: string, // Hyperliquid wallet address
+    privateKey: string              // Hyperliquid private key
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Encrypt the private key
       const encryptedPrivateKey = this.encrypt(privateKey);
 
-      // Test the connection first
-      const hyperliquid = createHyperliquidService(privateKey, walletAddress, true); // true = testnet
+      // Test the connection first with the correct Hyperliquid wallet address
+      const hyperliquid = createHyperliquidService(privateKey, hyperliquidWalletAddress, true); // true = testnet
       const testResult = await hyperliquid.testConnection();
       
       if (!testResult.success) {
@@ -151,6 +152,7 @@ class FuturesAgentsService {
         .from('futures_api_keys')
         .upsert({
           user_wallet_address: walletAddress,
+          hyperliquid_wallet_address: hyperliquidWalletAddress, // Store the HL wallet
           encrypted_api_key: encryptedPrivateKey,
           encrypted_api_secret: encryptedPrivateKey, // Same value for compat
           is_active: true,
@@ -173,7 +175,7 @@ class FuturesAgentsService {
     }
   }
 
-  async getApiKeys(walletAddress: string): Promise<{ privateKey: string } | null> {
+  async getApiKeys(walletAddress: string): Promise<{ privateKey: string; hyperliquidWalletAddress: string } | null> {
     const { data, error } = await this.supabase.getClient()
       .from('futures_api_keys')
       .select('*')
@@ -185,6 +187,7 @@ class FuturesAgentsService {
 
     return {
       privateKey: this.decrypt(data.encrypted_api_key),
+      hyperliquidWalletAddress: data.hyperliquid_wallet_address,
     };
   }
 
@@ -209,7 +212,8 @@ class FuturesAgentsService {
       return { success: false, error: 'No private key found' };
     }
 
-    const hyperliquid = createHyperliquidService(keys.privateKey, walletAddress, true);
+    // Use the Hyperliquid wallet address, not the connected wallet
+    const hyperliquid = createHyperliquidService(keys.privateKey, keys.hyperliquidWalletAddress, true);
     return hyperliquid.testConnection();
   }
 
@@ -227,7 +231,8 @@ class FuturesAgentsService {
     const keys = await this.getApiKeys(walletAddress);
     if (!keys) return null;
 
-    const service = createHyperliquidService(keys.privateKey, walletAddress, true); // true = testnet
+    // Use the Hyperliquid wallet address, not the connected wallet
+    const service = createHyperliquidService(keys.privateKey, keys.hyperliquidWalletAddress, true); // true = testnet
     this.hyperliquidServices.set(walletAddress, service);
     return service;
   }

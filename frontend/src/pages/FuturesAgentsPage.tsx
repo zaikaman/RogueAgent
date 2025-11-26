@@ -154,17 +154,20 @@ export function FuturesAgentsPage() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () => void }) {
-  const [apiKey, setApiKey] = useState('');
-  const [apiSecret, setApiSecret] = useState('');
+  const [hyperliquidWallet, setHyperliquidWallet] = useState('');
+  const [privateKey, setPrivateKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
-    if (!apiKey || !apiSecret) return;
+    if (!hyperliquidWallet || !privateKey) return;
     setIsLoading(true);
     setError('');
     
-    const result = await futuresService.saveApiKeys(address, apiKey, apiSecret);
+    // address = connected wallet (for DB lookup)
+    // hyperliquidWallet = the Hyperliquid wallet address user entered
+    // privateKey = the private key for the Hyperliquid wallet
+    const result = await futuresService.saveApiKeys(address, hyperliquidWallet, privateKey);
     
     if (result.success) {
       toast.success('API keys connected successfully!');
@@ -193,12 +196,12 @@ function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () 
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-2">Wallet Address</label>
+            <label className="text-xs text-gray-500 uppercase tracking-wider block mb-2">Hyperliquid Wallet Address</label>
             <input
               type="text"
               placeholder="0x..."
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
+              value={hyperliquidWallet}
+              onChange={e => setHyperliquidWallet(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-black/50 border border-gray-800 text-white placeholder-gray-600 focus:border-cyan-500/50 focus:outline-none font-mono text-sm"
             />
           </div>
@@ -206,16 +209,16 @@ function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () 
             <label className="text-xs text-gray-500 uppercase tracking-wider block mb-2">Private Key</label>
             <input
               type="password"
-              placeholder="Enter private key"
-              value={apiSecret}
-              onChange={e => setApiSecret(e.target.value)}
+              placeholder="Enter private key for the wallet above"
+              value={privateKey}
+              onChange={e => setPrivateKey(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-black/50 border border-gray-800 text-white placeholder-gray-600 focus:border-cyan-500/50 focus:outline-none font-mono text-sm"
             />
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !apiKey || !apiSecret}
+            disabled={isLoading || !hyperliquidWallet || !privateKey}
             className="w-full py-3 rounded-lg bg-cyan-500 text-black font-bold hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {isLoading ? 'Connecting...' : 'Connect & Test'}
