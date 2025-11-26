@@ -350,24 +350,47 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
     const trades = await futuresAgentsService.getUserTrades(walletAddress, 100);
     const openTrades = trades.filter(t => t.status === 'open');
 
+    if (openTrades.length === 0) return;
+
+    // Get all fills once (more efficient)
+    const fills = await hyperliquid.getFills(100);
+    
     for (const trade of openTrades) {
       try {
         // Check if position is still open
         const position = await hyperliquid.getPosition(trade.symbol);
         
         if (!position || parseFloat(position.szi) === 0) {
-          // Position is closed - get the actual close price from recent fills
-          const fills = await hyperliquid.getFills(50);
-          // Find fills for this symbol that happened after the trade opened
-          const relevantFills = fills.filter((f: any) => 
-            f.coin === trade.symbol && 
-            new Date(f.time).getTime() > new Date(trade.opened_at).getTime()
-          );
+          // Position is closed - get the actual close price from fills
+          // Normalize symbol for comparison (fills may use ETH-PERP or just ETH)
+          const tradeSymbol = trade.symbol.toUpperCase().replace(/-PERP$/, '');
           
-          // Use the most recent fill, or fallback to entry price
-          const closePrice = relevantFills.length > 0 
-            ? parseFloat(relevantFills[relevantFills.length - 1].px) 
-            : trade.entry_price;
+          // Find fills for this symbol that happened after the trade opened
+          const relevantFills = fills.filter((f: any) => {
+            const fillSymbol = (f.coin || '').toUpperCase().replace(/-PERP$/, '');
+            const fillTime = f.time ? new Date(f.time).getTime() : 0;
+            const tradeTime = new Date(trade.opened_at).getTime();
+            return fillSymbol === tradeSymbol && fillTime > tradeTime;
+          });
+          
+          logger.info(`Trade ${trade.id} (${trade.symbol}): Found ${relevantFills.length} relevant fills after ${trade.opened_at}`);
+          
+          let closePrice: number;
+          if (relevantFills.length > 0) {
+            // Sort by time and get the latest fill
+            relevantFills.sort((a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime());
+            closePrice = parseFloat(relevantFills[0].px);
+            logger.info(`Using fill price: ${closePrice} from ${relevantFills[0].time}`);
+          } else {
+            // No fills found - try to get current price as fallback
+            try {
+              closePrice = await hyperliquid.getPrice(trade.symbol);
+              logger.warn(`No fills found for ${trade.symbol}, using current price: ${closePrice}`);
+            } catch {
+              closePrice = trade.entry_price;
+              logger.warn(`No fills and no price for ${trade.symbol}, using entry price: ${closePrice}`);
+            }
+          }
           
           // Calculate PnL
           const pnlPercent = trade.direction === 'LONG'
@@ -395,6 +418,85 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
         logger.error(`Error updating trade ${trade.id}`, error);
       }
     }
+  }
+
+  /**
+   * Recalculate PnL for closed trades that have 0 PnL (repair function)
+   * This is useful for trades that were closed before the PnL calculation was fixed
+   */
+  async recalculateClosedTradePnL(walletAddress: string): Promise<{ updated: number; errors: string[] }> {
+    const hyperliquid = await futuresAgentsService.getHyperliquidService(walletAddress);
+    if (!hyperliquid) return { updated: 0, errors: ['No Hyperliquid service available'] };
+
+    const trades = await futuresAgentsService.getUserTrades(walletAddress, 100);
+    // Find closed trades with 0 PnL
+    const zeroPlTrades = trades.filter(t => 
+      (t.status === 'tp_hit' || t.status === 'sl_hit' || t.status === 'closed') && 
+      (t.pnl_usd === 0 || t.pnl_usd === null)
+    );
+
+    if (zeroPlTrades.length === 0) {
+      logger.info('No closed trades with 0 PnL found');
+      return { updated: 0, errors: [] };
+    }
+
+    logger.info(`Found ${zeroPlTrades.length} closed trades with 0 PnL to recalculate`);
+
+    // Get all fills
+    const fills = await hyperliquid.getFills(500);
+    let updated = 0;
+    const errors: string[] = [];
+
+    for (const trade of zeroPlTrades) {
+      try {
+        const tradeSymbol = trade.symbol.toUpperCase().replace(/-PERP$/, '');
+        
+        // Find fills for this symbol around the trade time
+        const relevantFills = fills.filter((f: any) => {
+          const fillSymbol = (f.coin || '').toUpperCase().replace(/-PERP$/, '');
+          const fillTime = f.time ? new Date(f.time).getTime() : 0;
+          const tradeOpenTime = new Date(trade.opened_at).getTime();
+          // Look for fills within 24 hours of trade opening
+          return fillSymbol === tradeSymbol && fillTime > tradeOpenTime;
+        });
+
+        let closePrice: number;
+        if (relevantFills.length > 0) {
+          // Sort by time and get the latest fill (closing fill)
+          relevantFills.sort((a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime());
+          closePrice = parseFloat(relevantFills[0].px);
+        } else if (trade.exit_price && trade.exit_price !== trade.entry_price) {
+          // Use existing exit price if available
+          closePrice = trade.exit_price;
+        } else {
+          // Can't determine close price
+          errors.push(`Trade ${trade.id}: No fills found and no exit price`);
+          continue;
+        }
+
+        // Calculate PnL
+        const pnlPercent = trade.direction === 'LONG'
+          ? ((closePrice - trade.entry_price) / trade.entry_price) * 100 * trade.leverage
+          : ((trade.entry_price - closePrice) / trade.entry_price) * 100 * trade.leverage;
+        
+        const positionValue = trade.entry_price * trade.quantity;
+        const pnlUsd = (pnlPercent / 100) * positionValue;
+
+        // Update the trade
+        await futuresAgentsService.updateTrade(trade.id, {
+          exit_price: closePrice,
+          pnl_usd: pnlUsd,
+          pnl_percent: pnlPercent,
+        });
+
+        logger.info(`Recalculated trade ${trade.id}: exit=${closePrice}, PnL=${pnlPercent.toFixed(2)}% ($${pnlUsd.toFixed(2)})`);
+        updated++;
+      } catch (error: any) {
+        errors.push(`Trade ${trade.id}: ${error.message}`);
+      }
+    }
+
+    return { updated, errors };
   }
 }
 

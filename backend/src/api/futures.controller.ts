@@ -484,6 +484,27 @@ router.post('/emergency/deactivate-all', requireDiamondTier, async (req: Request
   }
 });
 
+/**
+ * POST /futures/trades/recalculate-pnl
+ * Recalculate PnL for closed trades that have 0 PnL (repair function)
+ */
+router.post('/trades/recalculate-pnl', requireDiamondTier, async (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = walletSchema.parse(req.body);
+    
+    const result = await signalExecutorService.recalculateClosedTradePnL(walletAddress);
+    
+    res.json({ 
+      success: true, 
+      updated: result.updated,
+      errors: result.errors,
+    });
+  } catch (error: any) {
+    logger.error('Error recalculating PnL', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL WEBHOOK (For signal processing)
 // ═══════════════════════════════════════════════════════════════════════════
