@@ -80,16 +80,46 @@ interface TradePosition {
   marginType: 'isolated' | 'cross';
 }
 
-// Hyperliquid available perpetual pairs (fallback list)
+// Hyperliquid available perpetual pairs (complete list as of Nov 2025)
 const HYPERLIQUID_PERPS = [
-  'BTC', 'ETH', 'SOL', 'AVAX', 'ARB', 'OP', 'MATIC', 'DOGE', 'LTC', 'LINK',
-  'UNI', 'AAVE', 'CRV', 'MKR', 'SNX', 'COMP', 'SUSHI', 'YFI', 'ATOM', 'DOT',
-  'ADA', 'XRP', 'BNB', 'TRX', 'APT', 'SUI', 'SEI', 'TIA', 'INJ', 'FTM',
-  'NEAR', 'RUNE', 'DYDX', 'GMX', 'LDO', 'RPL', 'FXS', 'PENDLE', 'BLUR',
-  'WLD', 'PYTH', 'JTO', 'JUP', 'W', 'ENA', 'STRK', 'MANTA', 'DYM', 'ONDO',
-  'WIF', 'BONK', 'PEPE', 'SHIB', 'FLOKI', 'ORDI', 'MEME', 'PEOPLE', 'TURBO',
-  'POPCAT', 'BRETT', 'NEIRO', 'GOAT', 'PNUT', 'ACT', 'MOODENG', 'AI16Z',
-  'HYPE', 'VIRTUAL', 'AIXBT', 'FARTCOIN', 'GRIFFAIN', 'ZEREBRO', 'KOMA'
+  // Major coins
+  'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'LINK',
+  'LTC', 'BCH', 'ETC', 'ATOM', 'UNI', 'AAVE', 'MKR', 'SNX', 'COMP', 'CRV',
+  // Layer 2 & Infrastructure
+  'ARB', 'OP', 'MATIC', 'POL', 'STRK', 'MANTA', 'LINEA', 'BLAST', 'ZK', 'SCROLL',
+  'BASE', 'ZETA', 'METIS', 'CELO', 'NEAR', 'ICP', 'FIL', 'AR', 'RENDER', 'RNDR',
+  // DeFi
+  'DYDX', 'GMX', 'LDO', 'FXS', 'PENDLE', 'EIGEN', 'ETHFI', 'ENA', 'ONDO', 'MORPHO',
+  'USUAL', 'RESOLV', 'LISTA', 'AERO', 'CAKE', 'SUSHI', 'BADGER', 'RSR', 'RDNT',
+  // Gaming & Metaverse
+  'IMX', 'GALA', 'SAND', 'APE', 'ILV', 'YGG', 'BIGTIME', 'PIXEL', 'SUPER', 'NFTI',
+  'MAVIA', 'PRIME', 'XAI', 'BEAM', 'PORTAL', 'ACE', 'RON',
+  // AI & Data
+  'FET', 'TAO', 'RENDER', 'IO', 'GRASS', 'AI16Z', 'AIXBT', 'VIRTUAL', 'GRIFFAIN',
+  'AI', 'PROMPT', 'KAITO',
+  // Meme coins
+  'DOGE', 'SHIB', 'PEPE', 'BONK', 'FLOKI', 'WIF', 'POPCAT', 'BRETT', 'NEIRO',
+  'GOAT', 'PNUT', 'MOODENG', 'FARTCOIN', 'ZEREBRO', 'TURBO', 'MEME', 'MYRO',
+  'MEW', 'BOME', 'CHILLGUY', 'DOOD', 'SPX', 'HPOS', 'PURR', 'NEIROETH',
+  'kBONK', 'kDOGS', 'kFLOKI', 'kLUNC', 'kNEIRO', 'kPEPE', 'kSHIB',
+  // Political & Social
+  'TRUMP', 'MELANIA', 'PEOPLE', 'FRIEND', 'VINE', 'WLFI',
+  // New ecosystems
+  'SUI', 'SEI', 'TIA', 'APT', 'INJ', 'PYTH', 'JTO', 'JUP', 'W', 'DYM',
+  'MANTA', 'STRK', 'ALT', 'BERA', 'INIT', 'HYPE', 'HYPER', 'IP', 'MOVE',
+  'LAYER', 'S', 'ANIME', 'MON', 'BABY', 'KAITO', 'LAUNCHCOIN', 'PUMP',
+  // Infrastructure & Utilities
+  'STX', 'KAS', 'TON', 'TRX', 'XLM', 'ALGO', 'HBAR', 'NEO', 'ZEC', 'BSV',
+  'ORDI', 'WLD', 'BLUR', 'ENS', 'GAS', 'BLZ', 'OGN', 'APEX', 'CYBER',
+  // Others
+  'FTM', 'RUNE', 'NOT', 'HMSTR', 'CATI', 'DOGS', 'OM', 'OMNI', 'SAGA',
+  'TNSR', 'REZ', 'MERL', 'BIO', 'PENGU', 'ME', 'PAXG', 'RLB', 'UNIBOT',
+  'GMT', 'BANANA', 'MAV', 'TRB', 'STG', 'UMA', 'BNT', 'ARK', 'NTRN',
+  'IOTA', 'MINA', 'CFX', 'CANTO', 'MNT', 'LOOM', 'REQ', 'USTC', 'FTT',
+  'ZEN', 'ORBS', 'POLYX', 'STRAX', 'PANDORA', 'OX', 'CC', 'MEGA', 'SHIA',
+  '0G', '2Z', 'ASTER', 'AVNT', 'HEMI', 'JELLY', 'MET', 'NIL', 'NXPC',
+  'PROVE', 'SCR', 'SKY', 'SOPH', 'STBL', 'SYRUP', 'TST', 'VVV', 'WCT',
+  'XPL', 'YZY', 'ZORA', 'ZRO'
 ];
 
 export class HyperliquidService extends EventEmitter {

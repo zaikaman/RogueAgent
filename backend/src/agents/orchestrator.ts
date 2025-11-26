@@ -15,7 +15,7 @@ import { coinMarketCapService } from '../services/coinmarketcap.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { runwareService } from '../services/runware.service';
-import { binanceService } from '../services/binance.service';
+import { hyperliquidFuturesFilterService } from '../services/hyperliquid-filter.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
 import { signalExecutorService } from '../services/signal-executor.service';
@@ -192,14 +192,14 @@ export class Orchestrator extends EventEmitter {
         this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success', scannerResult);
 
         if (scannerResult.candidates && scannerResult.candidates.length > 0) {
-          // Filter candidates to only include tokens available on Binance Futures
-          this.broadcast('Filtering candidates for Binance Futures availability...', 'info');
-          const futuresFilteredCandidates = await binanceService.filterFuturesAvailable(scannerResult.candidates);
-          this.broadcast(`${futuresFilteredCandidates.length}/${scannerResult.candidates.length} candidates available on Binance Futures.`, 'success');
+          // Filter candidates to only include tokens available on Hyperliquid Futures
+          this.broadcast('Filtering candidates for Hyperliquid Futures availability...', 'info');
+          const futuresFilteredCandidates = await hyperliquidFuturesFilterService.filterFuturesAvailable(scannerResult.candidates);
+          this.broadcast(`${futuresFilteredCandidates.length}/${scannerResult.candidates.length} candidates available on Hyperliquid Futures.`, 'success');
 
           if (futuresFilteredCandidates.length === 0) {
-            this.broadcast('No candidates available on Binance Futures. Skipping signal generation.', 'warning');
-            logger.info('All candidates filtered out - not available on Binance Futures.');
+            this.broadcast('No candidates available on Hyperliquid Futures. Skipping signal generation.', 'warning');
+            logger.info('All candidates filtered out - not available on Hyperliquid Futures.');
           } else {
             // 2. Analyzer
             logger.info('Running Analyzer Agent...');
