@@ -250,28 +250,6 @@ export const sendTelegramTool = createTool({
   },
 });
 
-export const searchTweetsTool = createTool({
-  name: 'search_tweets',
-  description: 'Search for tweets on Twitter (X) to gauge sentiment and find news',
-  schema: z.object({
-    query: z.string().describe('The search query (e.g. "Solana", "$SOL", "crypto AI")'),
-    cursor: z.string().optional().describe('Pagination cursor'),
-  }) as any,
-  fn: async ({ query, cursor }) => {
-    const result = await twitterService.searchTweets(query, cursor);
-    // Simplify output to save tokens
-    const tweets = result.tweets.map((t: any) => ({
-      text: t.text,
-      username: t.user?.username,
-      likes: t.favorite_count,
-      retweets: t.retweet_count,
-      created_at: t.created_at
-    })).slice(0, 10); // Limit to 10 tweets
-    
-    return { tweets, next_cursor: result.next_cursor };
-  },
-});
-
 export const getTechnicalAnalysisTool = createTool({
   name: 'get_technical_analysis',
   description: 'Advanced technical analysis with 2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, Heikin-Ashi, SuperTrend, BB Squeeze, Fibonacci, VW-MACD, and MTF alignment. Works multi-chain.',

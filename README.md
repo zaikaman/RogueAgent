@@ -1073,7 +1073,7 @@ User → Speaks: "What's happening with Solana?"
 | **DeFi Llama** | TVL tracking, yield pools, protocol stats | `/protocols`, `/pools`, `/chains` |
 | **CoinMarketCap** | Alternative price source, global metrics | `/v1/cryptocurrency/quotes/latest` |
 | **Tavily** | News aggregation, sentiment analysis | `/search` |
-| **Twitter API** | Social posting (via Apify) | N/A (using service wrapper) |
+| **X API v2** | Social posting (OAuth 1.0a) | `POST /2/tweets` |
 | **VAPI** | Voice conversation platform | `/call`, `/assistant` |
 | **IQ.AI** | On-chain activity logging | `/api/logs` |
 
