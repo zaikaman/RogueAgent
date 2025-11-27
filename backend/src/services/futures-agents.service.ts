@@ -65,10 +65,12 @@ export interface FuturesTrade {
   risk_percent: number;
   pnl_usd: number | null;
   pnl_percent: number | null;
-  status: 'open' | 'tp_hit' | 'sl_hit' | 'closed' | 'error';
+  status: 'pending' | 'open' | 'tp_hit' | 'sl_hit' | 'closed' | 'error';
   entry_order_id: string;
   tp_order_id: string | null;
   sl_order_id: string | null;
+  pending_tp_price: number | null;
+  pending_sl_price: number | null;
   error_message: string | null;
   opened_at: string;
   closed_at: string | null;
@@ -588,7 +590,7 @@ class FuturesAgentsService {
 
   async updateTrade(
     tradeId: string,
-    updates: Partial<Pick<FuturesTrade, 'exit_price' | 'pnl_usd' | 'pnl_percent' | 'status' | 'closed_at' | 'error_message'>>
+    updates: Partial<Pick<FuturesTrade, 'exit_price' | 'pnl_usd' | 'pnl_percent' | 'status' | 'closed_at' | 'error_message' | 'tp_order_id' | 'sl_order_id' | 'pending_tp_price' | 'pending_sl_price'>>
   ): Promise<FuturesTrade | null> {
     const { data, error } = await this.supabase.getClient()
       .from('futures_trades')

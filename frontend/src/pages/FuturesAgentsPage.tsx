@@ -247,6 +247,9 @@ export function FuturesAgentsPage() {
             {/* Live Positions */}
             <PositionsPanel positions={positions} address={address!} onUpdate={loadData} />
 
+            {/* Pending Limit Orders */}
+            <PendingOrdersPanel trades={trades} address={address!} onUpdate={loadData} />
+
             {/* Trade History & Analysis */}
             <TradeHistoryPanel trades={trades} agents={agents} />
 
@@ -688,6 +691,117 @@ function PositionsPanel({ positions, address, onUpdate }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PENDING LIMIT ORDERS
+// Shows limit orders waiting to be filled
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function PendingOrdersPanel({ trades, address, onUpdate }: { 
+  trades: FuturesTrade[]; address: string; onUpdate: () => void;
+}) {
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  
+  // Filter for pending trades only
+  const pendingTrades = trades.filter(t => t.status === 'pending');
+  
+  if (pendingTrades.length === 0) {
+    return null; // Don't show section if no pending orders
+  }
+
+  const handleCancel = async (tradeId: string, symbol: string) => {
+    try {
+      await futuresService.cancelOrder(address, tradeId);
+      toast.success(`${symbol} limit order cancelled`);
+      onUpdate();
+    } catch (e) {
+      toast.error('Failed to cancel order');
+    }
+    setCancellingId(null);
+  };
+
+  return (
+    <>
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <Clock className="w-5 h-5 text-amber-400" />
+          Pending Limit Orders ({pendingTrades.length})
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-500 text-xs uppercase">
+                <th className="text-left p-3">Symbol</th>
+                <th className="text-center p-3">Side</th>
+                <th className="text-right p-3">Entry</th>
+                <th className="text-right p-3">TP</th>
+                <th className="text-right p-3">SL</th>
+                <th className="text-center p-3">Status</th>
+                <th className="text-center p-3">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingTrades.map(trade => (
+                <tr key={trade.id} className="border-t border-gray-800 hover:bg-gray-900/50">
+                  <td className="p-3 font-mono font-bold text-white">{trade.symbol}</td>
+                  <td className="p-3 text-center">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${trade.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {trade.direction} {trade.leverage}x
+                    </span>
+                  </td>
+                  <td className="p-3 text-right font-mono text-amber-400">${trade.entry_price.toFixed(4)}</td>
+                  <td className="p-3 text-right font-mono text-emerald-400">${(trade.pending_tp_price || 0).toFixed(4)}</td>
+                  <td className="p-3 text-right font-mono text-red-400">${(trade.pending_sl_price || 0).toFixed(4)}</td>
+                  <td className="p-3 text-center">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-500/20 text-amber-400 border-amber-500/30">
+                      <Clock className="w-3 h-3" />
+                      Waiting for fill
+                    </span>
+                  </td>
+                  <td className="p-3 text-center">
+                    <button 
+                      onClick={() => setCancellingId(trade.id)} 
+                      className="px-2 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20"
+                    >
+                      Cancel
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <AlertDialog open={!!cancellingId} onOpenChange={() => setCancellingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <X className="w-5 h-5 text-orange-400" />
+              Cancel Limit Order
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this limit order? The order will be removed from Hyperliquid.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Order</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                const trade = pendingTrades.find(t => t.id === cancellingId);
+                if (trade && cancellingId) handleCancel(cancellingId, trade.symbol);
+              }} 
+              className="bg-orange-600 hover:bg-orange-500 text-white"
+            >
+              Cancel Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // TRADE HISTORY & ANALYSIS
 // Detailed breakdown of all trades with performance metrics
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -705,16 +819,16 @@ function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents:
   // Filter trades
   const filteredTrades = trades.filter(trade => {
     switch (filter) {
-      case 'open': return trade.status === 'open';
-      case 'closed': return trade.status !== 'open';
+      case 'open': return trade.status === 'open' || trade.status === 'pending';
+      case 'closed': return trade.status !== 'open' && trade.status !== 'pending';
       case 'winners': return (trade.pnl_usd || 0) > 0;
       case 'losers': return (trade.pnl_usd || 0) < 0;
       default: return true;
     }
   });
 
-  // Calculate summary stats
-  const closedTrades = trades.filter(t => t.status !== 'open');
+  // Calculate summary stats (exclude pending trades from stats)
+  const closedTrades = trades.filter(t => t.status !== 'open' && t.status !== 'pending');
   const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
   const winningTrades = closedTrades.filter(t => (t.pnl_usd || 0) > 0);
   const losingTrades = closedTrades.filter(t => (t.pnl_usd || 0) < 0);
@@ -728,6 +842,7 @@ function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents:
   // Status badge component
   const StatusBadge = ({ status }: { status: FuturesTrade['status'] }) => {
     const configs: Record<FuturesTrade['status'], { icon: React.ReactNode; text: string; class: string }> = {
+      'pending': { icon: <Clock className="w-3 h-3" />, text: 'Pending', class: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
       'open': { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Open', class: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
       'tp_hit': { icon: <CheckCircle2 className="w-3 h-3" />, text: 'TP Hit', class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
       'sl_hit': { icon: <XCircle className="w-3 h-3" />, text: 'SL Hit', class: 'bg-red-500/20 text-red-400 border-red-500/30' },

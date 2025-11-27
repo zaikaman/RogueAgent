@@ -441,6 +441,54 @@ router.post('/positions/:symbol/close', requireDiamondTier, async (req: Request,
   }
 });
 
+/**
+ * POST /futures/orders/:tradeId/cancel
+ * Cancel a pending limit order
+ */
+router.post('/orders/:tradeId/cancel', requireDiamondTier, async (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = walletSchema.parse(req.body);
+    const { tradeId } = req.params;
+    
+    const hyperliquid = await futuresAgentsService.getHyperliquidService(walletAddress);
+    if (!hyperliquid) {
+      return res.status(400).json({ success: false, error: 'No Hyperliquid service available' });
+    }
+
+    // Get the trade to find the entry order ID and symbol
+    const trades = await futuresAgentsService.getUserTrades(walletAddress, 100);
+    const trade = trades.find(t => t.id === tradeId);
+    
+    if (!trade) {
+      return res.status(404).json({ success: false, error: 'Trade not found' });
+    }
+    
+    if (trade.status !== 'pending') {
+      return res.status(400).json({ success: false, error: 'Trade is not in pending status' });
+    }
+
+    // Cancel the entry order on Hyperliquid
+    const entryOrderId = parseInt(trade.entry_order_id);
+    if (entryOrderId > 0) {
+      await hyperliquid.cancelOrder(trade.symbol, entryOrderId);
+    }
+
+    // Update trade status to 'closed' (cancelled)
+    await futuresAgentsService.updateTrade(tradeId, {
+      status: 'closed',
+      error_message: 'Limit order cancelled by user',
+      pending_tp_price: null,
+      pending_sl_price: null,
+      closed_at: new Date().toISOString(),
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    logger.error('Error cancelling order', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // EMERGENCY OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════

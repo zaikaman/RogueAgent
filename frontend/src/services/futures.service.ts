@@ -160,6 +160,15 @@ export const futuresService = {
     }
   },
 
+  async cancelOrder(walletAddress: string, tradeId: string): Promise<boolean> {
+    try {
+      await api.post(`/futures/orders/${tradeId}/cancel`, { walletAddress });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   // ═══════════════════════════════════════════════════════════════════════════
   // ACCOUNT INFO
   // ═══════════════════════════════════════════════════════════════════════════

@@ -227,6 +227,12 @@ class SignalExecutorService {
                        tradeResult.entryOrder?.response?.data?.statuses?.[0]?.resting?.oid || 0;
       const tpOid = tradeResult.tpOrder?.response?.data?.statuses?.[0]?.resting?.oid || null;
       const slOid = tradeResult.slOrder?.response?.data?.statuses?.[0]?.resting?.oid || null;
+      
+      // For limit orders that are resting (not filled immediately), store pending TP/SL prices
+      // These will be used to place TP/SL orders when the limit entry fills
+      const isLimitOrderPending = orderType === 'limit' && 
+                                   tradeResult.entryOrder?.response?.data?.statuses?.[0]?.resting && 
+                                   !tradeResult.tpOrder && !tradeResult.slOrder;
 
       // Record the trade
       const trade = await futuresAgentsService.recordTrade({
@@ -242,14 +248,20 @@ class SignalExecutorService {
         risk_percent: agent.risk_per_trade,
         pnl_usd: null,
         pnl_percent: null,
-        status: 'open',
+        status: isLimitOrderPending ? 'pending' : 'open',
         entry_order_id: entryOid.toString(),
         tp_order_id: tpOid?.toString() || null,
         sl_order_id: slOid?.toString() || null,
+        pending_tp_price: isLimitOrderPending ? takeProfitPrice : null,
+        pending_sl_price: isLimitOrderPending ? stopLossPrice : null,
         error_message: null,
         opened_at: new Date().toISOString(),
         closed_at: null,
       });
+      
+      if (isLimitOrderPending) {
+        logger.info(`Limit order pending for ${futuresSymbol}. TP/SL will be placed when entry fills. Entry OID: ${entryOid}`);
+      }
 
       result.success = true;
       result.trade = trade || undefined;
@@ -369,6 +381,9 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
     for (const user of diamondUsers) {
       try {
         await futuresAgentsService.syncPositions(user.walletAddress);
+        
+        // Also monitor pending limit orders and place TP/SL when they fill
+        await this.monitorPendingLimitOrders(user.walletAddress);
       } catch (error) {
         logger.error(`Error syncing positions for ${user.walletAddress}`, error);
       }
@@ -384,7 +399,11 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
 
     // Get open trades from database
     const trades = await futuresAgentsService.getUserTrades(walletAddress, 100);
-    const openTrades = trades.filter(t => t.status === 'open');
+    // Filter for open trades that are NOT pending limit orders (those are handled by monitorPendingLimitOrders)
+    const openTrades = trades.filter(t => 
+      t.status === 'open' && 
+      !(t.pending_tp_price !== null && t.pending_sl_price !== null)
+    );
 
     if (openTrades.length === 0) return;
 
@@ -460,6 +479,170 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
         logger.error(`Error updating trade ${trade.id}`, error);
       }
     }
+  }
+
+  /**
+   * Monitor pending limit orders and place TP/SL when they fill
+   * This handles the case where a limit entry order is placed but hasn't filled yet
+   * When the limit order fills, we need to place the TP and SL orders
+   */
+  async monitorPendingLimitOrders(walletAddress: string): Promise<{ processed: number; bracketPlaced: number; errors: string[] }> {
+    const hyperliquid = await futuresAgentsService.getHyperliquidService(walletAddress);
+    if (!hyperliquid) return { processed: 0, bracketPlaced: 0, errors: ['No Hyperliquid service available'] };
+
+    // Get open trades that have pending TP/SL prices (limit orders waiting for fill)
+    const trades = await futuresAgentsService.getUserTrades(walletAddress, 100);
+    const pendingLimitTrades = trades.filter(t => 
+      t.status === 'pending' && 
+      t.pending_tp_price !== null && 
+      t.pending_sl_price !== null &&
+      t.tp_order_id === null && 
+      t.sl_order_id === null
+    );
+
+    if (pendingLimitTrades.length === 0) {
+      return { processed: 0, bracketPlaced: 0, errors: [] };
+    }
+
+    logger.info(`Monitoring ${pendingLimitTrades.length} pending limit orders for ${walletAddress}`);
+
+    // Get all open orders and positions
+    const openOrders = await hyperliquid.getOpenOrders();
+    const fills = await hyperliquid.getFills(100);
+    
+    let processed = 0;
+    let bracketPlaced = 0;
+    const errors: string[] = [];
+
+    for (const trade of pendingLimitTrades) {
+      processed++;
+      try {
+        const tradeSymbol = trade.symbol.toUpperCase().replace(/-PERP$/, '');
+        const entryOrderId = parseInt(trade.entry_order_id);
+        
+        // Check if the entry order is still resting (not filled)
+        const isOrderStillOpen = openOrders.some((order: any) => {
+          const orderSymbol = (order.coin || '').toUpperCase().replace(/-PERP$/, '');
+          return orderSymbol === tradeSymbol && order.oid === entryOrderId;
+        });
+
+        if (isOrderStillOpen) {
+          // Entry order still pending, skip for now
+          logger.debug(`Trade ${trade.id} (${trade.symbol}): Limit order ${entryOrderId} still pending`);
+          continue;
+        }
+
+        // Entry order is no longer in open orders - check if it was filled or cancelled
+        // Look for fills for this symbol after the trade was opened
+        const relevantFills = fills.filter((f: any) => {
+          const fillSymbol = (f.coin || '').toUpperCase().replace(/-PERP$/, '');
+          const fillTime = f.time ? new Date(f.time).getTime() : 0;
+          const tradeTime = new Date(trade.opened_at).getTime();
+          return fillSymbol === tradeSymbol && fillTime >= tradeTime;
+        });
+
+        // Check if we have an entry fill
+        const entryFill = relevantFills.find((f: any) => {
+          // Entry fill should be buy for LONG, sell for SHORT
+          const isBuyFill = f.side === 'B' || f.side === 'buy';
+          const isLong = trade.direction === 'LONG';
+          return (isLong && isBuyFill) || (!isLong && !isBuyFill);
+        });
+
+        if (!entryFill) {
+          // Order was cancelled or not filled - mark trade as error
+          logger.warn(`Trade ${trade.id}: Limit order ${entryOrderId} not found and no fill detected. May have been cancelled.`);
+          await futuresAgentsService.updateTrade(trade.id, {
+            status: 'error',
+            error_message: 'Limit order cancelled or expired without fill',
+            pending_tp_price: null,
+            pending_sl_price: null,
+          });
+          errors.push(`Trade ${trade.id}: Limit order cancelled or expired`);
+          continue;
+        }
+
+        // Entry order was filled! Now place TP and SL orders
+        logger.info(`Trade ${trade.id} (${trade.symbol}): Limit order filled! Placing TP/SL brackets...`);
+
+        // Verify position actually exists before placing brackets
+        const position = await hyperliquid.getPosition(trade.symbol);
+        if (!position || parseFloat(position.szi) === 0) {
+          logger.warn(`Trade ${trade.id}: Entry filled but no position found. Position may have been closed.`);
+          await futuresAgentsService.updateTrade(trade.id, {
+            pending_tp_price: null,
+            pending_sl_price: null,
+          });
+          continue;
+        }
+
+        const actualQuantity = Math.abs(parseFloat(position.szi)) || parseFloat(entryFill.sz) || trade.quantity;
+        const actualEntryPrice = parseFloat(position.entryPx) || parseFloat(entryFill.px) || trade.entry_price;
+        const isBuy = trade.direction === 'LONG';
+
+        // Place Take Profit order (limit, reduce-only)
+        let tpOid: string | null = null;
+        try {
+          const tpOrder = await hyperliquid.placeOrder({
+            symbol: trade.symbol,
+            isBuy: !isBuy, // Opposite side
+            size: actualQuantity,
+            price: trade.pending_tp_price!,
+            reduceOnly: true,
+            orderType: 'limit',
+            timeInForce: 'Gtc',
+          });
+          tpOid = tpOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
+          logger.info(`TP order placed for ${trade.symbol} at $${trade.pending_tp_price}, OID: ${tpOid}`);
+        } catch (tpError: any) {
+          logger.error(`Failed to place TP order for trade ${trade.id}`, tpError);
+          errors.push(`Trade ${trade.id}: TP order failed - ${tpError.message}`);
+        }
+
+        // Place Stop Loss order (trigger order, reduce-only)
+        let slOid: string | null = null;
+        try {
+          const slOrder = await hyperliquid.placeTriggerOrder({
+            symbol: trade.symbol,
+            isBuy: !isBuy, // Opposite side
+            size: actualQuantity,
+            triggerPrice: trade.pending_sl_price!,
+            reduceOnly: true,
+            triggerType: 'sl',
+          });
+          slOid = slOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
+          logger.info(`SL trigger order placed for ${trade.symbol} at $${trade.pending_sl_price}, OID: ${slOid}`);
+        } catch (slError: any) {
+          logger.error(`Failed to place SL order for trade ${trade.id}`, slError);
+          errors.push(`Trade ${trade.id}: SL order failed - ${slError.message}`);
+        }
+
+        // Update the trade with the new order IDs and clear pending prices
+        // Also change status from 'pending' to 'open' since the entry has filled
+        await futuresAgentsService.updateTrade(trade.id, {
+          status: 'open',
+          tp_order_id: tpOid,
+          sl_order_id: slOid,
+          pending_tp_price: null,
+          pending_sl_price: null,
+        });
+
+        if (tpOid || slOid) {
+          bracketPlaced++;
+          logger.info(`Trade ${trade.id}: Bracket orders placed successfully (TP: ${tpOid}, SL: ${slOid})`);
+        }
+
+      } catch (error: any) {
+        logger.error(`Error processing pending limit order for trade ${trade.id}`, error);
+        errors.push(`Trade ${trade.id}: ${error.message}`);
+      }
+    }
+
+    if (bracketPlaced > 0) {
+      logger.info(`Limit order monitoring complete: ${bracketPlaced}/${processed} trades had brackets placed`);
+    }
+
+    return { processed, bracketPlaced, errors };
   }
 
   /**
