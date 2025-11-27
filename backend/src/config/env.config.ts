@@ -27,7 +27,7 @@ const envSchema = z.object({
   TAVILY_API_KEY: z.string().optional(),
   BIRDEYE_API_KEY: z.string().optional(),
   CMC_API_KEY: z.string().optional(),
-  RUNWARE_API_KEY: z.string().optional(),
+  HF_TOKEN: z.string().optional(),
   IQAI_API_KEY: z.string().optional(),
   AGENT_TOKEN_CONTRACT: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),

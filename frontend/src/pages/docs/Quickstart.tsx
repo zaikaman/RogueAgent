@@ -145,8 +145,8 @@ export default function Quickstart() {
                     <div><span className="text-blue-400">X_API_KEY_SECRET</span>=<span className="text-green-400">your_x_api_secret</span></div>
                     <div><span className="text-blue-400">X_ACCESS_TOKEN</span>=<span className="text-green-400">your_x_access_token</span></div>
                     <div><span className="text-blue-400">X_ACCESS_TOKEN_SECRET</span>=<span className="text-green-400">your_x_access_token_secret</span></div>
-                    <div className="mt-3"><span className="text-gray-500"># Image Generation (Optional)</span></div>
-                    <div><span className="text-blue-400">RUNWARE_API_KEY</span>=<span className="text-green-400">your_runware_key</span></div>
+                    <div className="mt-3"><span className="text-gray-500"># Image Generation (Optional - uses public quota if not set)</span></div>
+                    <div><span className="text-blue-400">HF_TOKEN</span>=<span className="text-green-400">your_huggingface_token</span></div>
                 </div>
             </div>
 

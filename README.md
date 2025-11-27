@@ -70,7 +70,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
-📈 **Futures Trading**: Autonomous perpetual futures trading on Hyperliquid testnet with support for both LONG and SHORT positions, dynamic leverage limits per asset (e.g., BTC: 50x, memecoins: 3-5x), and smart order management including trigger orders for stop-losses.
+📈 **Futures Trading**: Autonomous perpetual futures trading on Hyperliquid with support for both **Mainnet** (real funds) and **Testnet** (paper trading). Features LONG and SHORT positions, dynamic leverage limits per asset (e.g., BTC: 50x, memecoins: 3-5x), and smart order management including trigger orders for stop-losses.
 
 🗣️ **Voice AI Interface**: Speak directly to Rogue using natural language. Ask about market conditions, specific tokens, or request custom analysis.
 
@@ -117,7 +117,7 @@ graph TD
     
     FuturesScanner -->|LONG/SHORT Candidates| FuturesAnalyzer[📉 Futures Analyzer]
     FuturesAnalyzer -->|Direction + Levels| FuturesExecutor[⚡ Signal Executor]
-    FuturesExecutor -->|Orders| Hyperliquid[🔗 Hyperliquid Testnet]
+    FuturesExecutor -->|Orders| Hyperliquid[🔗 Hyperliquid Mainnet/Testnet]
     
     Writer -->|Formatted Content| Publisher[📡 Publisher Agent]
     Publisher -->|Immediate| Diamond[💎 Diamond Tier]
@@ -430,15 +430,21 @@ cvd divergence + poc support + network upgrade catalyst
 
 ### 📈 Futures Agents - Autonomous Perpetual Trading
 
-**Role**: Autonomous AI-powered perpetual futures trading on Hyperliquid testnet.
+**Role**: Autonomous AI-powered perpetual futures trading on Hyperliquid.
 
 **Exchange**: [Hyperliquid](https://app.hyperliquid.xyz/) - A fully on-chain perpetual futures DEX
+
+**Network Modes**:
+| Mode | Network | API Endpoint | Use Case |
+|------|---------|--------------|----------|
+| **Mainnet** | Production | `api.hyperliquid.xyz` | Real funds, live trading |
+| **Testnet** | Paper Trading | `api.hyperliquid-testnet.xyz` | Practice, no real funds |
 
 **Key Features**:
 
 | Feature | Details |
 |---------|---------|
-| **Network** | Hyperliquid Testnet (`api.hyperliquid-testnet.xyz`) |
+| **Network** | Mainnet (real $) or Testnet (paper) - switchable in UI |
 | **Authentication** | EIP-712 typed data signing via private key |
 | **Directions** | LONG and SHORT positions |
 | **Max Leverage** | Dynamic per asset (BTC: 50x, ETH: 50x, memecoins: 3-5x) |
@@ -492,7 +498,8 @@ cvd divergence + poc support + network upgrade catalyst
 - Private keys encrypted with AES-256-GCM
 - Keys stored in database, never logged
 - Wallet address used for identification
-- Testnet-only for development/testing
+- Network mode (mainnet/testnet) stored per user
+- Users can switch networks via UI (requires closing positions first)
 
 **Signal Output** (Futures):
 ```json
@@ -1169,7 +1176,7 @@ User → Speaks: "What's happening with Solana?"
 | **Birdeye** | Real-time DEX data, Solana trending | `/defi/trending`, `/defi/price`, `/defi/ohlcv` |
 | **DeFi Llama** | TVL tracking, yield pools, protocol stats | `/protocols`, `/pools`, `/chains` |
 | **CoinMarketCap** | Alternative price source, global metrics | `/v1/cryptocurrency/quotes/latest` |
-| **Hyperliquid** | Perpetual futures trading (testnet) | `/info`, `/exchange` (EIP-712 signed) |
+| **Hyperliquid** | Perpetual futures trading (mainnet + testnet) | `/info`, `/exchange` (EIP-712 signed) |
 | **Tavily** | News aggregation, sentiment analysis | `/search` |
 | **X API v2** | Social posting (OAuth 1.0a) | `POST /2/tweets` |
 | **VAPI** | Voice conversation platform | `/call`, `/assistant` |
@@ -1464,6 +1471,9 @@ CMC_API_KEY=...            # CoinMarketCap API key
 BIRDEYE_API_KEY=...        # From birdeye.so
 DEFILLAMA_API_KEY=...      # Optional
 TAVILY_API_KEY=tvly-...    # For news/sentiment
+
+# Image Generation (Optional)
+HF_TOKEN=hf_...            # Hugging Face token (optional, uses public quota if not set)
 
 # VAPI (Optional)
 VAPI_API_KEY=...

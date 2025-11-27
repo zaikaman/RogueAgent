@@ -89,7 +89,7 @@ export default function Introduction() {
                 </li>
                 <li className="flex items-start gap-3 text-gray-300">
                     <span className="text-teal-glow text-xl">•</span>
-                    <span><strong className="text-white">Autonomous Futures Trading</strong> on Hyperliquid testnet with LONG/SHORT positions, dynamic leverage per asset (BTC: 50x, memecoins: 3-5x), and smart trigger orders for stop-losses</span>
+                    <span><strong className="text-white">Autonomous Futures Trading</strong> on Hyperliquid with <strong className="text-green-400">Mainnet</strong> (real funds) and <strong className="text-amber-400">Testnet</strong> (paper trading) modes, LONG/SHORT positions, dynamic leverage per asset (BTC: 50x, memecoins: 3-5x), and smart trigger orders for stop-losses</span>
                 </li>
             </ul>
         </section>

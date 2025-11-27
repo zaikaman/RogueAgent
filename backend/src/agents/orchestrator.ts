@@ -15,7 +15,7 @@ import { coingeckoService } from '../services/coingecko.service';
 import { coinMarketCapService } from '../services/coinmarketcap.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
-import { runwareService } from '../services/runware.service';
+import { zImageService } from '../services/zimage.service';
 import { hyperliquidFuturesFilterService } from '../services/hyperliquid-filter.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
@@ -539,7 +539,7 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         if (generatorResult.image_prompt) {
           logger.info('Generating image for intel...');
           this.broadcast('Generating image for intel...', 'info');
-          imageUrl = await runwareService.generateImage(generatorResult.image_prompt);
+          imageUrl = await zImageService.generateImage(generatorResult.image_prompt);
           this.broadcast('Image generated successfully.', 'success', { imageUrl });
         }
 
