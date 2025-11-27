@@ -252,7 +252,7 @@ export class SignalMonitorService {
                     await scheduledPostService.schedulePost(run.id, 'SILVER', generatorResult.formatted_content)
                         .catch(err => logger.error('Error scheduling SILVER post', err));
 
-                    // Delayed 60-90m: Public (Twitter, DB-backed) - randomized to avoid spam detection
+                    // Delayed 30-60m: Public (Twitter, DB-backed) - randomized to avoid spam detection
                     await scheduledPostService.schedulePost(run.id, 'PUBLIC', generatorResult.formatted_content)
                         .catch(err => logger.error('Error scheduling PUBLIC post', err));
 

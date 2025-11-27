@@ -66,7 +66,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 🎚️ **Tiered Distribution**: Signals are distributed strategically:
 - **Diamond/Gold** tier users receive immediate alerts
 - **Silver** tier receives signals after 15 minutes
-- **Public** (X) receives signals after 60-90 minutes (randomized to avoid spam detection)
+- **Public** (X) receives signals after 30-60 minutes (randomized to avoid spam detection)
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
@@ -123,7 +123,7 @@ graph TD
     Publisher -->|Immediate| Diamond[💎 Diamond Tier]
     Publisher -->|Immediate| Gold[🥇 Gold Tier]
     Publisher -->|+15min| Silver[🥈 Silver Tier]
-    Publisher -->|+60-90min| Public[🌐 X/Public]
+    Publisher -->|+30-60min| Public[🌐 X/Public]
     Publisher --> DB[(🗄️ Supabase DB)]
     
     Monitor[⏰ Signal Monitor] -->|Price Tracking| DB
@@ -419,7 +419,7 @@ cvd divergence + poc support + network upgrade catalyst
 | 💎 Diamond | Immediate | Telegram DM |
 | 🥇 Gold | Immediate | Telegram DM |
 | 🥈 Silver | +15 minutes | Telegram DM (via scheduled post service) |
-| 🌐 Public | +60-90 minutes | X + Dashboard (randomized) |
+| 🌐 Public | +30-60 minutes | X + Dashboard (randomized) |
 
 **Database Logging**:
 - Every signal stored with full metadata
@@ -1002,7 +1002,7 @@ Alert Sent: "🚀 SOL limit order activated at $24.95"
 │    00:00 → Save to Database (run record created)    │
 │    00:00 → Diamond/Gold Telegram Alert (immediate)  │
 │    15:00 → Silver Telegram Alert (scheduled)        │
-│    60:00-90:00 → X Post (scheduled, randomized)     │
+│    30:00-60:00 → X Post (scheduled, randomized)     │
 │           → Public Dashboard Update                 │
 └─────────────────────────────────────────────────────┘
 ```
@@ -1232,6 +1232,9 @@ iqAiService.startLogProcessor(); // Continuous
 - **CORS**: Configurable origin whitelist
 - **Environment Variables**: Secrets management via `.env`
 - **Rate Limiting**: API endpoint protection
+- **X API Rate Limiting**: 17 posts per 24 hours (tracked from first post of day)
+  - Swarm runs automatically pause when limit is reached
+  - Resumes after 24-hour window resets
 
 ---
 

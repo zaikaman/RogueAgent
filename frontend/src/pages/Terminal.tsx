@@ -75,6 +75,7 @@ export function Terminal() {
             <Countdown 
               lastRunTime={lastRunTime} 
               intervalMinutes={runStatus?.interval_minutes}
+              xRateLimit={runStatus?.x_rate_limit}
             />
             <div className="h-8 w-px bg-gray-800" />
             <WalletConnect />

@@ -522,6 +522,82 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Get the first PUBLIC post of the current 24h window
+   * Returns the posted_at timestamp of the first post, or null if no posts exist
+   */
+  async getFirstPublicPostToday(): Promise<Date | null> {
+    // Look back 24 hours to find the first post
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data, error } = await this.client
+      .from('scheduled_posts')
+      .select('posted_at')
+      .eq('tier', 'PUBLIC')
+      .eq('status', 'posted')
+      .gte('posted_at', twentyFourHoursAgo)
+      .order('posted_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
+    
+    return data?.posted_at ? new Date(data.posted_at) : null;
+  }
+
+  /**
+   * Count PUBLIC posts since a given timestamp
+   * Used to track X API rate limits (17 posts per 24 hours from first post)
+   */
+  async getPublicPostCountSince(since: Date): Promise<number> {
+    const { count, error } = await this.client
+      .from('scheduled_posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('tier', 'PUBLIC')
+      .eq('status', 'posted')
+      .gte('posted_at', since.toISOString());
+
+    if (error) throw error;
+    return count || 0;
+  }
+
+  /**
+   * Get X post rate limit status
+   * Returns: { isLimited, postsRemaining, resetTime, currentCount }
+   */
+  async getXRateLimitStatus(): Promise<{
+    isLimited: boolean;
+    postsRemaining: number;
+    resetTime: Date | null;
+    currentCount: number;
+  }> {
+    const MAX_POSTS_PER_24H = 17;
+    
+    const firstPostTime = await this.getFirstPublicPostToday();
+    
+    if (!firstPostTime) {
+      // No posts in the last 24 hours - fresh slate
+      return {
+        isLimited: false,
+        postsRemaining: MAX_POSTS_PER_24H,
+        resetTime: null,
+        currentCount: 0
+      };
+    }
+
+    const currentCount = await this.getPublicPostCountSince(firstPostTime);
+    const postsRemaining = Math.max(0, MAX_POSTS_PER_24H - currentCount);
+    const resetTime = new Date(firstPostTime.getTime() + 24 * 60 * 60 * 1000);
+    const isLimited = currentCount >= MAX_POSTS_PER_24H;
+
+    return {
+      isLimited,
+      postsRemaining,
+      resetTime,
+      currentCount
+    };
+  }
 }
 
 export const supabaseService = new SupabaseService();

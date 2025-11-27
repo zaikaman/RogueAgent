@@ -1,7 +1,11 @@
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
+import { supabaseService } from './supabase.service';
 import crypto from 'crypto';
+
+// X API daily rate limit
+const X_DAILY_POST_LIMIT = 17;
 
 /**
  * X API v2 Service
@@ -141,7 +145,22 @@ class TwitterService {
       return null;
     }
 
-    // Check self-imposed rate limiting
+    // Check daily rate limit (17 posts per 24h from first post)
+    try {
+      const rateLimitStatus = await supabaseService.getXRateLimitStatus();
+      if (rateLimitStatus.isLimited) {
+        const resetTimeStr = rateLimitStatus.resetTime 
+          ? `Resets at ${rateLimitStatus.resetTime.toISOString()}`
+          : 'Unknown reset time';
+        logger.warn(`X API daily rate limit reached (${rateLimitStatus.currentCount}/${X_DAILY_POST_LIMIT}). ${resetTimeStr}`);
+        return null;
+      }
+      logger.info(`X API rate limit status: ${rateLimitStatus.currentCount}/${X_DAILY_POST_LIMIT} posts used`);
+    } catch (error) {
+      logger.error('Failed to check X rate limit status, proceeding with post:', error);
+    }
+
+    // Check self-imposed rate limiting (minimum interval between posts)
     if (!this.checkRateLimit()) {
       logger.warn('Self-imposed rate limit active. Skipping post to avoid spam detection.');
       return null;
@@ -207,6 +226,22 @@ class TwitterService {
         throw error;
       }
     }, 3, 1000, 2, shouldRetryFn);
+  }
+
+  /**
+   * Get the current X API rate limit status
+   * Returns information about daily post limits
+   */
+  async getRateLimitStatus() {
+    return supabaseService.getXRateLimitStatus();
+  }
+
+  /**
+   * Check if X posting is currently rate limited
+   */
+  async isRateLimited(): Promise<boolean> {
+    const status = await supabaseService.getXRateLimitStatus();
+    return status.isLimited;
   }
 }
 

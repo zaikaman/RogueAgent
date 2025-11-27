@@ -40,6 +40,7 @@ router.get('/run/logs', runController.getRunLogs);
 
 // Status and Logs
 router.get('/run-status', statusController.getLatestStatus);
+router.get('/rate-limit', statusController.getXRateLimitStatus);
 router.get('/logs', logsController.getLogs);
 
 // Signals
