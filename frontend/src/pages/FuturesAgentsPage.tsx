@@ -4,13 +4,15 @@ import { useUserTier } from '../hooks/useUserTier';
 import { futuresService } from '../services/futures.service';
 import { TIERS } from '../constants/tiers';
 import { GatedContent } from '../components/GatedContent';
-import { FuturesAgent, FuturesPosition, FuturesAccountInfo } from '../types/futures.types';
-import { motion } from 'framer-motion';
+import { FuturesAgent, FuturesPosition, FuturesAccountInfo, FuturesTrade } from '../types/futures.types';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { 
   Zap, Power, Plus, Settings, Trash2, Copy, 
   TrendingUp, AlertTriangle, X,
-  Shield, Bot, Target, Activity
+  Shield, Bot, Target, Activity, History,
+  ChevronDown, ChevronUp, Clock, DollarSign,
+  CheckCircle2, XCircle, AlertOctagon, Loader2
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -34,6 +36,7 @@ export function FuturesAgentsPage() {
   const [hasApiKeys, setHasApiKeys] = useState(false);
   const [agents, setAgents] = useState<FuturesAgent[]>([]);
   const [positions, setPositions] = useState<FuturesPosition[]>([]);
+  const [trades, setTrades] = useState<FuturesTrade[]>([]);
   const [accountInfo, setAccountInfo] = useState<FuturesAccountInfo | null>(null);
   
   const [showAgentModal, setShowAgentModal] = useState(false);
@@ -50,15 +53,17 @@ export function FuturesAgentsPage() {
   const loadData = async () => {
     if (!address) return;
     try {
-      const [keysStatus, agentsData, positionsData, account] = await Promise.all([
+      const [keysStatus, agentsData, positionsData, tradesData, account] = await Promise.all([
         futuresService.getApiKeysStatus(address),
         futuresService.getAgents(address),
         futuresService.getPositions(address),
+        futuresService.getTrades(address, 100),
         futuresService.getAccountInfo(address),
       ]);
       setHasApiKeys(keysStatus.hasApiKeys);
       setAgents(agentsData);
       setPositions(positionsData);
+      setTrades(tradesData);
       setAccountInfo(account);
     } catch (e) {
       console.error(e);
@@ -152,6 +157,9 @@ export function FuturesAgentsPage() {
 
             {/* Live Positions */}
             <PositionsPanel positions={positions} address={address!} onUpdate={loadData} />
+
+            {/* Trade History & Analysis */}
+            <TradeHistoryPanel trades={trades} agents={agents} />
 
             {/* Emergency Button */}
             <EmergencyPanel address={address!} onUpdate={loadData} />
@@ -515,6 +523,346 @@ function PositionsPanel({ positions, address, onUpdate }: {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRADE HISTORY & ANALYSIS
+// Detailed breakdown of all trades with performance metrics
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents: FuturesAgent[] }) {
+  const [expandedTradeId, setExpandedTradeId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'winners' | 'losers'>('all');
+
+  // Get agent name by ID
+  const getAgentName = (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    return agent?.name || 'Unknown Agent';
+  };
+
+  // Filter trades
+  const filteredTrades = trades.filter(trade => {
+    switch (filter) {
+      case 'open': return trade.status === 'open';
+      case 'closed': return trade.status !== 'open';
+      case 'winners': return (trade.pnl_usd || 0) > 0;
+      case 'losers': return (trade.pnl_usd || 0) < 0;
+      default: return true;
+    }
+  });
+
+  // Calculate summary stats
+  const closedTrades = trades.filter(t => t.status !== 'open');
+  const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  const winningTrades = closedTrades.filter(t => (t.pnl_usd || 0) > 0);
+  const losingTrades = closedTrades.filter(t => (t.pnl_usd || 0) < 0);
+  const winRate = closedTrades.length > 0 ? ((winningTrades.length / closedTrades.length) * 100).toFixed(1) : '0';
+  const avgWin = winningTrades.length > 0 ? winningTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / winningTrades.length : 0;
+  const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0)) / losingTrades.length : 0;
+  const profitFactor = avgLoss > 0 ? (avgWin / avgLoss) : avgWin > 0 ? Infinity : 0;
+  const bestTrade = closedTrades.length > 0 ? closedTrades.reduce((best, t) => (t.pnl_usd || 0) > (best.pnl_usd || 0) ? t : best, closedTrades[0]) : null;
+  const worstTrade = closedTrades.length > 0 ? closedTrades.reduce((worst, t) => (t.pnl_usd || 0) < (worst.pnl_usd || 0) ? t : worst, closedTrades[0]) : null;
+
+  // Status badge component
+  const StatusBadge = ({ status }: { status: FuturesTrade['status'] }) => {
+    const configs: Record<FuturesTrade['status'], { icon: React.ReactNode; text: string; class: string }> = {
+      'open': { icon: <Loader2 className="w-3 h-3 animate-spin" />, text: 'Open', class: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+      'tp_hit': { icon: <CheckCircle2 className="w-3 h-3" />, text: 'TP Hit', class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+      'sl_hit': { icon: <XCircle className="w-3 h-3" />, text: 'SL Hit', class: 'bg-red-500/20 text-red-400 border-red-500/30' },
+      'closed': { icon: <CheckCircle2 className="w-3 h-3" />, text: 'Closed', class: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+      'error': { icon: <AlertOctagon className="w-3 h-3" />, text: 'Error', class: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+    };
+    const config = configs[status];
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${config.class}`}>
+        {config.icon}
+        {config.text}
+      </span>
+    );
+  };
+
+  // Format date nicely
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Calculate trade duration
+  const calculateDuration = (openedAt: string, closedAt: string | null) => {
+    if (!closedAt) return 'Ongoing';
+    const start = new Date(openedAt).getTime();
+    const end = new Date(closedAt).getTime();
+    const diff = end - start;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 24) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header with summary stats */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <History className="w-5 h-5 text-amber-400" />
+          Trade History & Analysis ({trades.length})
+        </h2>
+        
+        {/* Filter pills */}
+        <div className="flex flex-wrap gap-2">
+          {(['all', 'open', 'closed', 'winners', 'losers'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                filter === f 
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' 
+                  : 'bg-gray-800/50 text-gray-500 border border-gray-700 hover:border-gray-600'
+              }`}
+            >
+              {f === 'all' ? 'All' : f === 'open' ? '● Open' : f === 'closed' ? 'Closed' : f === 'winners' ? '🏆 Winners' : '📉 Losers'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Performance Summary Cards */}
+      {closedTrades.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="p-3 rounded-lg bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider flex items-center gap-1">
+              <DollarSign className="w-3 h-3" /> Total P&L
+            </div>
+            <div className={`text-xl font-bold font-mono ${totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(2)}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">Win Rate</div>
+            <div className="text-xl font-bold text-white">{winRate}%</div>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">Profit Factor</div>
+            <div className={`text-xl font-bold ${profitFactor >= 1.5 ? 'text-emerald-400' : profitFactor >= 1 ? 'text-amber-400' : 'text-red-400'}`}>
+              {profitFactor === Infinity ? '∞' : profitFactor.toFixed(2)}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Win</div>
+            <div className="text-xl font-bold text-emerald-400 font-mono">+{avgWin.toFixed(2)}</div>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Loss</div>
+            <div className="text-xl font-bold text-red-400 font-mono">-{avgLoss.toFixed(2)}</div>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider">W / L</div>
+            <div className="text-xl font-bold text-white">
+              <span className="text-emerald-400">{winningTrades.length}</span>
+              <span className="text-gray-600 mx-1">/</span>
+              <span className="text-red-400">{losingTrades.length}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Best & Worst Trade Highlights */}
+      {bestTrade && worstTrade && (bestTrade.pnl_usd !== 0 || worstTrade.pnl_usd !== 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center gap-4">
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-emerald-400/70 uppercase tracking-wider">Best Trade</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="font-bold text-white">{bestTrade.symbol}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${bestTrade.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {bestTrade.direction}
+                </span>
+                <span className="font-mono font-bold text-emerald-400">+${(bestTrade.pnl_usd || 0).toFixed(2)}</span>
+                <span className="text-xs text-emerald-400/70">(+{(bestTrade.pnl_percent || 0).toFixed(1)}%)</span>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 flex items-center gap-4">
+            <div className="p-2 rounded-lg bg-red-500/10">
+              <TrendingUp className="w-5 h-5 text-red-400 rotate-180" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-red-400/70 uppercase tracking-wider">Worst Trade</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="font-bold text-white">{worstTrade.symbol}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${worstTrade.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {worstTrade.direction}
+                </span>
+                <span className="font-mono font-bold text-red-400">${(worstTrade.pnl_usd || 0).toFixed(2)}</span>
+                <span className="text-xs text-red-400/70">({(worstTrade.pnl_percent || 0).toFixed(1)}%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trades Table */}
+      {filteredTrades.length === 0 ? (
+        <div className="p-8 text-center border border-gray-800 rounded-xl">
+          <History className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+          <p className="text-gray-500">{filter === 'all' ? 'No trades yet' : `No ${filter} trades`}</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950/50">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-500 text-xs uppercase bg-gray-900/80">
+                  <th className="text-left p-3 pl-4">Asset</th>
+                  <th className="text-center p-3">Side</th>
+                  <th className="text-right p-3">Entry</th>
+                  <th className="text-right p-3">Exit</th>
+                  <th className="text-right p-3">P&L</th>
+                  <th className="text-center p-3">Status</th>
+                  <th className="text-center p-3">Agent</th>
+                  <th className="text-right p-3 pr-4">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTrades.map(trade => (
+                  <>
+                    <tr 
+                      key={trade.id} 
+                      onClick={() => setExpandedTradeId(expandedTradeId === trade.id ? null : trade.id)}
+                      className={`border-t border-gray-800/50 hover:bg-gray-900/50 cursor-pointer transition-colors ${expandedTradeId === trade.id ? 'bg-gray-900/70' : ''}`}
+                    >
+                      <td className="p-3 pl-4">
+                        <div className="flex items-center gap-2">
+                          {expandedTradeId === trade.id ? (
+                            <ChevronUp className="w-4 h-4 text-gray-600" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-600" />
+                          )}
+                          <span className="font-mono font-bold text-white">{trade.symbol}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${trade.direction === 'LONG' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                          {trade.direction} {trade.leverage}x
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-mono text-gray-300">${trade.entry_price.toFixed(4)}</td>
+                      <td className="p-3 text-right font-mono text-gray-300">
+                        {trade.exit_price ? `$${trade.exit_price.toFixed(4)}` : '—'}
+                      </td>
+                      <td className={`p-3 text-right font-mono font-bold ${(trade.pnl_usd || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {trade.pnl_usd !== null ? (
+                          <>
+                            {trade.pnl_usd >= 0 ? '+' : ''}{trade.pnl_usd.toFixed(2)}
+                            <span className="text-xs ml-1 opacity-70">({(trade.pnl_percent || 0).toFixed(1)}%)</span>
+                          </>
+                        ) : '—'}
+                      </td>
+                      <td className="p-3 text-center">
+                        <StatusBadge status={trade.status} />
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="text-xs text-gray-500 truncate max-w-[100px] inline-block">{getAgentName(trade.agent_id)}</span>
+                      </td>
+                      <td className="p-3 pr-4 text-right">
+                        <div className="flex items-center justify-end gap-1 text-gray-400">
+                          <Clock className="w-3 h-3" />
+                          <span className="text-xs">{formatDate(trade.opened_at)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    {/* Expanded Details Row */}
+                    <AnimatePresence>
+                      {expandedTradeId === trade.id && (
+                        <tr>
+                          <td colSpan={8} className="p-0">
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-4 bg-gradient-to-r from-gray-900/80 via-gray-900/50 to-gray-900/80 border-t border-gray-800/50">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Signal ID</div>
+                                    <div className="text-white font-mono text-sm">{trade.signal_id.slice(0, 12)}...</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Quantity</div>
+                                    <div className="text-white font-mono text-sm">{trade.quantity}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Risk Used</div>
+                                    <div className="text-amber-400 font-mono text-sm">{trade.risk_percent}%</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Duration</div>
+                                    <div className="text-white text-sm">{calculateDuration(trade.opened_at, trade.closed_at)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Opened</div>
+                                    <div className="text-gray-400 text-sm">{new Date(trade.opened_at).toLocaleString()}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Closed</div>
+                                    <div className="text-gray-400 text-sm">{trade.closed_at ? new Date(trade.closed_at).toLocaleString() : 'Still Open'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-500 uppercase tracking-wider mb-1">Order IDs</div>
+                                    <div className="text-gray-400 font-mono text-sm truncate">
+                                      Entry: {trade.entry_order_id?.slice(0, 8) || 'N/A'}...
+                                    </div>
+                                  </div>
+                                  {trade.error_message && (
+                                    <div className="col-span-2 md:col-span-4">
+                                      <div className="text-red-500 uppercase tracking-wider mb-1">Error</div>
+                                      <div className="text-red-400 text-sm bg-red-500/10 p-2 rounded">{trade.error_message}</div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Trade Performance Bar */}
+                                {trade.pnl_percent !== null && (
+                                  <div className="mt-4 pt-4 border-t border-gray-800/50">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs text-gray-500">Performance</span>
+                                      <span className={`text-xs font-mono ${(trade.pnl_percent || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {trade.pnl_percent >= 0 ? '+' : ''}{trade.pnl_percent.toFixed(2)}%
+                                      </span>
+                                    </div>
+                                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all rounded-full ${trade.pnl_percent >= 0 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : 'bg-gradient-to-r from-red-500 to-red-400'}`}
+                                        style={{ 
+                                          width: `${Math.min(100, Math.abs(trade.pnl_percent) * 5)}%`,
+                                          marginLeft: trade.pnl_percent < 0 ? 'auto' : 0 
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          </td>
+                        </tr>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
