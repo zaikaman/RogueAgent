@@ -393,13 +393,19 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
           }
           
           // Calculate PnL
+          // pnlPercent is the leveraged return percentage (what the user sees as ROI)
           const pnlPercent = trade.direction === 'LONG'
             ? ((closePrice - trade.entry_price) / trade.entry_price) * 100 * trade.leverage
             : ((trade.entry_price - closePrice) / trade.entry_price) * 100 * trade.leverage;
           
-          // Calculate USD PnL based on position size
+          // Calculate USD PnL based on actual position value (notional)
+          // positionValue is the notional size (entry_price * quantity)
+          // pnlUsd = price change percentage (unleveraged) * notional value
           const positionValue = trade.entry_price * trade.quantity;
-          const pnlUsd = (pnlPercent / 100) * positionValue;
+          const priceChangePercent = trade.direction === 'LONG'
+            ? ((closePrice - trade.entry_price) / trade.entry_price) * 100
+            : ((trade.entry_price - closePrice) / trade.entry_price) * 100;
+          const pnlUsd = (priceChangePercent / 100) * positionValue;
           
           const status: 'tp_hit' | 'sl_hit' = pnlPercent > 0 ? 'tp_hit' : 'sl_hit';
           
@@ -475,12 +481,19 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
         }
 
         // Calculate PnL
+        // pnlPercent is the leveraged return percentage (what the user sees as ROI)
         const pnlPercent = trade.direction === 'LONG'
           ? ((closePrice - trade.entry_price) / trade.entry_price) * 100 * trade.leverage
           : ((trade.entry_price - closePrice) / trade.entry_price) * 100 * trade.leverage;
         
+        // Calculate USD PnL based on actual position value (notional)
+        // positionValue is the notional size (entry_price * quantity)
+        // pnlUsd = price change percentage (unleveraged) * notional value
         const positionValue = trade.entry_price * trade.quantity;
-        const pnlUsd = (pnlPercent / 100) * positionValue;
+        const priceChangePercent = trade.direction === 'LONG'
+          ? ((closePrice - trade.entry_price) / trade.entry_price) * 100
+          : ((trade.entry_price - closePrice) / trade.entry_price) * 100;
+        const pnlUsd = (priceChangePercent / 100) * positionValue;
 
         // Update the trade
         await futuresAgentsService.updateTrade(trade.id, {
