@@ -6,7 +6,8 @@
 // Network mode for Hyperliquid (mainnet or testnet)
 export type NetworkMode = 'mainnet' | 'testnet';
 
-export interface FuturesAgentStats {
+// Stats for a single network
+export interface NetworkStatsEntry {
   total_trades: number;
   winning_trades: number;
   losing_trades: number;
@@ -15,6 +16,22 @@ export interface FuturesAgentStats {
   max_drawdown_percent: number;
   trades_today: number;
   last_trade_at: string | null;
+}
+
+// Stats split by network mode
+export interface FuturesAgentStats {
+  mainnet: NetworkStatsEntry;
+  testnet: NetworkStatsEntry;
+}
+
+// Helper to get stats for a specific network (handles legacy format)
+export function getNetworkStats(stats: FuturesAgentStats | NetworkStatsEntry, networkMode: NetworkMode): NetworkStatsEntry {
+  // Check if it's the new format with mainnet/testnet keys
+  if ('mainnet' in stats && 'testnet' in stats) {
+    return stats[networkMode];
+  }
+  // Legacy format - return as-is (all stats were on testnet originally)
+  return stats as NetworkStatsEntry;
 }
 
 export interface FuturesAgent {
@@ -53,6 +70,7 @@ export interface FuturesTrade {
   pending_tp_price: number | null;
   pending_sl_price: number | null;
   error_message: string | null;
+  network_mode: NetworkMode;
   opened_at: string;
   closed_at: string | null;
 }

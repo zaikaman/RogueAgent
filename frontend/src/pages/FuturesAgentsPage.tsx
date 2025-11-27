@@ -4,7 +4,7 @@ import { useUserTier } from '../hooks/useUserTier';
 import { futuresService } from '../services/futures.service';
 import { TIERS } from '../constants/tiers';
 import { GatedContent } from '../components/GatedContent';
-import { FuturesAgent, FuturesPosition, FuturesAccountInfo, FuturesTrade, NetworkMode, SignalJob } from '../types/futures.types';
+import { FuturesAgent, FuturesPosition, FuturesAccountInfo, FuturesTrade, NetworkMode, SignalJob, getNetworkStats } from '../types/futures.types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { 
@@ -211,6 +211,7 @@ export function FuturesAgentsPage() {
             <ClassicAgentCard 
               agent={classicAgent} 
               address={address!}
+              networkMode={networkMode}
               onUpdate={loadData}
               onCreate={() => { setEditingAgent(null); setShowAgentModal(true); }}
             />
@@ -236,6 +237,7 @@ export function FuturesAgentsPage() {
                     key={agent.id} 
                     agent={agent} 
                     address={address!}
+                    networkMode={networkMode}
                     onUpdate={loadData}
                     onEdit={() => { setEditingAgent(agent); setShowAgentModal(true); }}
                   />
@@ -256,10 +258,10 @@ export function FuturesAgentsPage() {
             <PositionsPanel positions={positions} address={address!} onUpdate={loadData} />
 
             {/* Pending Limit Orders */}
-            <PendingOrdersPanel trades={trades} address={address!} onUpdate={loadData} />
+            <PendingOrdersPanel trades={trades} address={address!} networkMode={networkMode} onUpdate={loadData} />
 
             {/* Trade History & Analysis */}
-            <TradeHistoryPanel trades={trades} agents={agents} />
+            <TradeHistoryPanel trades={trades} agents={agents} networkMode={networkMode} />
 
             {/* Emergency Button */}
             <EmergencyPanel address={address!} onUpdate={loadData} />
@@ -450,8 +452,8 @@ function ApiKeySetup({ address, networkMode, setNetworkMode, onComplete }: {
   );
 }
 
-function ClassicAgentCard({ agent, address, onUpdate, onCreate }: { 
-  agent?: FuturesAgent; address: string; onUpdate: () => void; onCreate: () => void;
+function ClassicAgentCard({ agent, address, networkMode, onUpdate, onCreate }: { 
+  agent?: FuturesAgent; address: string; networkMode: NetworkMode; onUpdate: () => void; onCreate: () => void;
 }) {
   const [isToggling, setIsToggling] = useState(false);
 
@@ -476,8 +478,9 @@ function ClassicAgentCard({ agent, address, onUpdate, onCreate }: {
     );
   }
 
-  const winRate = agent.stats.total_trades > 0 
-    ? ((agent.stats.winning_trades / agent.stats.total_trades) * 100).toFixed(1)
+  const stats = getNetworkStats(agent.stats, networkMode);
+  const winRate = stats.total_trades > 0 
+    ? ((stats.winning_trades / stats.total_trades) * 100).toFixed(1)
     : '0';
 
   return (
@@ -513,25 +516,25 @@ function ClassicAgentCard({ agent, address, onUpdate, onCreate }: {
         </div>
         <div>
           <div className="text-xs text-gray-500 uppercase">Total P&L</div>
-          <div className={`text-lg font-bold ${agent.stats.total_pnl_usd >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            ${agent.stats.total_pnl_usd.toFixed(2)}
+          <div className={`text-lg font-bold ${stats.total_pnl_usd >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            ${stats.total_pnl_usd.toFixed(2)}
           </div>
         </div>
         <div>
           <div className="text-xs text-gray-500 uppercase">Trades</div>
-          <div className="text-lg font-bold text-white">{agent.stats.total_trades}</div>
+          <div className="text-lg font-bold text-white">{stats.total_trades}</div>
         </div>
         <div>
           <div className="text-xs text-gray-500 uppercase">Today</div>
-          <div className="text-lg font-bold text-cyan-400">{agent.stats.trades_today}</div>
+          <div className="text-lg font-bold text-cyan-400">{stats.trades_today}</div>
         </div>
       </div>
     </div>
   );
 }
 
-function AgentCard({ agent, address, onUpdate, onEdit }: { 
-  agent: FuturesAgent; address: string; onUpdate: () => void; onEdit: () => void;
+function AgentCard({ agent, address, networkMode: _networkMode, onUpdate, onEdit }: { 
+  agent: FuturesAgent; address: string; networkMode: NetworkMode; onUpdate: () => void; onEdit: () => void;
 }) {
   const [isToggling, setIsToggling] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -703,13 +706,13 @@ function PositionsPanel({ positions, address, onUpdate }: {
 // Shows limit orders waiting to be filled
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function PendingOrdersPanel({ trades, address, onUpdate }: { 
-  trades: FuturesTrade[]; address: string; onUpdate: () => void;
+function PendingOrdersPanel({ trades, address, networkMode, onUpdate }: { 
+  trades: FuturesTrade[]; address: string; networkMode: NetworkMode; onUpdate: () => void;
 }) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   
-  // Filter for pending trades only
-  const pendingTrades = trades.filter(t => t.status === 'pending');
+  // Filter for pending trades only on current network
+  const pendingTrades = trades.filter(t => t.status === 'pending' && (t.network_mode || 'testnet') === networkMode);
   
   if (pendingTrades.length === 0) {
     return null; // Don't show section if no pending orders
@@ -814,7 +817,7 @@ function PendingOrdersPanel({ trades, address, onUpdate }: {
 // Detailed breakdown of all trades with performance metrics
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents: FuturesAgent[] }) {
+function TradeHistoryPanel({ trades, agents, networkMode }: { trades: FuturesTrade[]; agents: FuturesAgent[]; networkMode: NetworkMode }) {
   const [expandedTradeId, setExpandedTradeId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'winners' | 'losers'>('all');
 
@@ -824,8 +827,11 @@ function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents:
     return agent?.name || 'Unknown Agent';
   };
 
+  // Filter trades by network mode (legacy trades without network_mode are considered testnet)
+  const networkTrades = trades.filter(t => (t.network_mode || 'testnet') === networkMode);
+
   // Filter trades
-  const filteredTrades = trades.filter(trade => {
+  const filteredTrades = networkTrades.filter(trade => {
     switch (filter) {
       case 'open': return trade.status === 'open' || trade.status === 'pending';
       case 'closed': return trade.status !== 'open' && trade.status !== 'pending';
@@ -836,7 +842,7 @@ function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents:
   });
 
   // Calculate summary stats (exclude pending trades from stats)
-  const closedTrades = trades.filter(t => t.status !== 'open' && t.status !== 'pending');
+  const closedTrades = networkTrades.filter(t => t.status !== 'open' && t.status !== 'pending');
   const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
   const winningTrades = closedTrades.filter(t => (t.pnl_usd || 0) > 0);
   const losingTrades = closedTrades.filter(t => (t.pnl_usd || 0) < 0);
@@ -891,7 +897,7 @@ function TradeHistoryPanel({ trades, agents }: { trades: FuturesTrade[]; agents:
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <History className="w-5 h-5 text-amber-400" />
-          Trade History & Analysis ({trades.length})
+          Trade History & Analysis ({networkTrades.length})
         </h2>
         
         {/* Filter pills */}

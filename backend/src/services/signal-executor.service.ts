@@ -234,6 +234,9 @@ class SignalExecutorService {
                                    tradeResult.entryOrder?.response?.data?.statuses?.[0]?.resting && 
                                    !tradeResult.tpOrder && !tradeResult.slOrder;
 
+      // Get network mode for trade recording
+      const networkMode = await futuresAgentsService.getNetworkMode(walletAddress);
+
       // Record the trade
       const trade = await futuresAgentsService.recordTrade({
         agent_id: agent.id,
@@ -255,6 +258,7 @@ class SignalExecutorService {
         pending_tp_price: isLimitOrderPending ? takeProfitPrice : null,
         pending_sl_price: isLimitOrderPending ? stopLossPrice : null,
         error_message: null,
+        network_mode: networkMode,
         opened_at: new Date().toISOString(),
         closed_at: null,
       });

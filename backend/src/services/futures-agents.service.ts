@@ -40,7 +40,8 @@ export interface FuturesAgent {
   updated_at: string;
 }
 
-export interface FuturesAgentStats {
+// Stats for a single network
+export interface NetworkStatsEntry {
   total_trades: number;
   winning_trades: number;
   losing_trades: number;
@@ -49,6 +50,12 @@ export interface FuturesAgentStats {
   max_drawdown_percent: number;
   trades_today: number;
   last_trade_at: string | null;
+}
+
+// Stats split by network mode
+export interface FuturesAgentStats {
+  mainnet: NetworkStatsEntry;
+  testnet: NetworkStatsEntry;
 }
 
 export interface FuturesTrade {
@@ -72,6 +79,7 @@ export interface FuturesTrade {
   pending_tp_price: number | null;
   pending_sl_price: number | null;
   error_message: string | null;
+  network_mode: NetworkMode;
   opened_at: string;
   closed_at: string | null;
 }
@@ -201,6 +209,11 @@ class FuturesAgentsService {
     };
   }
 
+  async getNetworkMode(walletAddress: string): Promise<NetworkMode> {
+    const keys = await this.getApiKeys(walletAddress);
+    return keys?.networkMode || 'testnet';
+  }
+
   async deleteApiKeys(walletAddress: string): Promise<boolean> {
     const { error } = await this.supabase.getClient()
       .from('futures_api_keys')
@@ -282,7 +295,7 @@ class FuturesAgentsService {
       }
     }
 
-    const defaultStats: FuturesAgentStats = {
+    const defaultNetworkStats: NetworkStatsEntry = {
       total_trades: 0,
       winning_trades: 0,
       losing_trades: 0,
@@ -291,6 +304,10 @@ class FuturesAgentsService {
       max_drawdown_percent: 0,
       trades_today: 0,
       last_trade_at: null,
+    };
+    const defaultStats: FuturesAgentStats = {
+      mainnet: { ...defaultNetworkStats },
+      testnet: { ...defaultNetworkStats },
     };
 
     const { data, error } = await this.supabase.getClient()
@@ -618,29 +635,44 @@ class FuturesAgentsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const stats: FuturesAgentStats = {
-      total_trades: trades.length,
-      winning_trades: trades.filter(t => (t.pnl_usd || 0) > 0).length,
-      losing_trades: trades.filter(t => (t.pnl_usd || 0) < 0).length,
-      total_pnl_usd: trades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0),
-      total_pnl_percent: trades.reduce((sum, t) => sum + (t.pnl_percent || 0), 0),
-      max_drawdown_percent: 0, // Calculate proper drawdown
-      trades_today: trades.filter(t => new Date(t.opened_at) >= today).length,
-      last_trade_at: trades.length > 0 ? trades[0].opened_at : null,
+    // Helper to calculate stats for a set of trades
+    const calculateNetworkStats = (networkTrades: FuturesTrade[]): NetworkStatsEntry => {
+      const networkStats: NetworkStatsEntry = {
+        total_trades: networkTrades.length,
+        winning_trades: networkTrades.filter(t => (t.pnl_usd || 0) > 0).length,
+        losing_trades: networkTrades.filter(t => (t.pnl_usd || 0) < 0).length,
+        total_pnl_usd: networkTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0),
+        total_pnl_percent: networkTrades.reduce((sum, t) => sum + (t.pnl_percent || 0), 0),
+        max_drawdown_percent: 0,
+        trades_today: networkTrades.filter(t => new Date(t.opened_at) >= today).length,
+        last_trade_at: networkTrades.length > 0 ? networkTrades[0].opened_at : null,
+      };
+
+      // Calculate max drawdown for this network
+      let peak = 0;
+      let maxDrawdown = 0;
+      let runningPnl = 0;
+      
+      const sortedTrades = [...networkTrades].reverse();
+      for (const trade of sortedTrades) {
+        runningPnl += trade.pnl_percent || 0;
+        if (runningPnl > peak) peak = runningPnl;
+        const drawdown = peak - runningPnl;
+        if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+      }
+      networkStats.max_drawdown_percent = maxDrawdown;
+
+      return networkStats;
     };
 
-    // Calculate max drawdown
-    let peak = 0;
-    let maxDrawdown = 0;
-    let runningPnl = 0;
-    
-    for (const trade of trades.reverse()) {
-      runningPnl += trade.pnl_percent || 0;
-      if (runningPnl > peak) peak = runningPnl;
-      const drawdown = peak - runningPnl;
-      if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-    }
-    stats.max_drawdown_percent = maxDrawdown;
+    // Split trades by network mode
+    const mainnetTrades = trades.filter(t => t.network_mode === 'mainnet');
+    const testnetTrades = trades.filter(t => t.network_mode === 'testnet' || !t.network_mode);
+
+    const stats: FuturesAgentStats = {
+      mainnet: calculateNetworkStats(mainnetTrades),
+      testnet: calculateNetworkStats(testnetTrades),
+    };
 
     await this.supabase.getClient()
       .from('futures_agents')
