@@ -156,7 +156,7 @@ export default function Telegram() {
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="text-xl">🌐</span>
-                            <span className="text-white font-semibold text-sm">+30-60 minutes</span>
+                            <span className="text-white font-semibold text-sm">+90 minutes</span>
                         </div>
                         <p className="text-gray-400 text-xs">Public (Twitter only)</p>
                     </div>

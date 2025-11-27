@@ -4,8 +4,8 @@ import { retry } from '../utils/retry.util';
 import { supabaseService } from './supabase.service';
 import crypto from 'crypto';
 
-// X API daily rate limit
-const X_DAILY_POST_LIMIT = 17;
+// Minimum interval between X posts (90 minutes = max 16 posts/day, under 17 limit)
+const MIN_POST_INTERVAL_MINUTES = 90;
 
 /**
  * X API v2 Service
@@ -145,22 +145,22 @@ class TwitterService {
       return null;
     }
 
-    // Check daily rate limit (17 posts per 24h from first post)
+    // Check rate limit (90-minute spacing between posts)
     try {
       const rateLimitStatus = await supabaseService.getXRateLimitStatus();
       if (rateLimitStatus.isLimited) {
-        const resetTimeStr = rateLimitStatus.resetTime 
-          ? `Resets at ${rateLimitStatus.resetTime.toISOString()}`
-          : 'Unknown reset time';
-        logger.warn(`X API daily rate limit reached (${rateLimitStatus.currentCount}/${X_DAILY_POST_LIMIT}). ${resetTimeStr}`);
+        logger.warn(`X API rate limited: Must wait ${rateLimitStatus.minutesUntilNextPost} more minutes before next post (90-min spacing enforced)`);
         return null;
       }
-      logger.info(`X API rate limit status: ${rateLimitStatus.currentCount}/${X_DAILY_POST_LIMIT} posts used`);
+      if (rateLimitStatus.lastPostTime) {
+        const minsSinceLastPost = Math.floor((Date.now() - rateLimitStatus.lastPostTime.getTime()) / 60000);
+        logger.info(`X API: ${minsSinceLastPost} minutes since last post (min: ${MIN_POST_INTERVAL_MINUTES})`);
+      }
     } catch (error) {
       logger.error('Failed to check X rate limit status, proceeding with post:', error);
     }
 
-    // Check self-imposed rate limiting (minimum interval between posts)
+    // Check self-imposed rate limiting (minimum interval between posts in memory)
     if (!this.checkRateLimit()) {
       logger.warn('Self-imposed rate limit active. Skipping post to avoid spam detection.');
       return null;

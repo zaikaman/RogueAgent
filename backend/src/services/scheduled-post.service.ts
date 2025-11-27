@@ -19,7 +19,7 @@ export function getRandomDelayMinutes(minMinutes: number, maxMinutes: number): n
 // Default delay config for different tiers (in minutes)
 export const POST_DELAY_CONFIG = {
   SILVER: 15,                         // Fixed 15 minutes after signal (Telegram only, no randomization needed)
-  PUBLIC: { min: 30, max: 60 },       // 30-60 minutes after signal (randomized to avoid X spam detection)
+  PUBLIC: 90,                         // 90 minutes after signal (matches X API rate limit spacing for max 16 posts/day)
 };
 
 const ShortenerAgent = AgentBuilder.create('shortener_agent')
@@ -178,13 +178,13 @@ export class ScheduledPostService {
     content: string,
     delayMinutes?: number
   ) {
-    // Use randomized delay for PUBLIC posts to avoid Twitter spam detection
-    // SILVER uses fixed 15 minutes (Telegram only, no need for randomization)
+    // PUBLIC uses fixed 90 minutes (matches X API rate limit spacing)
+    // SILVER uses fixed 15 minutes (Telegram only)
     let actualDelay: number;
     if (delayMinutes !== undefined) {
       actualDelay = delayMinutes;
     } else if (tier === 'PUBLIC') {
-      actualDelay = getRandomDelayMinutes(POST_DELAY_CONFIG.PUBLIC.min, POST_DELAY_CONFIG.PUBLIC.max);
+      actualDelay = POST_DELAY_CONFIG.PUBLIC; // Fixed 90 minutes
     } else if (tier === 'SILVER') {
       actualDelay = POST_DELAY_CONFIG.SILVER; // Fixed 15 minutes
     } else {

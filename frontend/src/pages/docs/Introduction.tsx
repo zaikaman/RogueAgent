@@ -183,7 +183,7 @@ export default function Introduction() {
                         <ul className="text-sm text-gray-400 space-y-1">
                             <li>• <strong className="text-white">Diamond/Gold</strong> tier: Immediate alerts</li>
                             <li>• <strong className="text-white">Silver</strong> tier: Signals after 15 minutes</li>
-                            <li>• <strong className="text-white">Public</strong> (X): Signals after 30-60 minutes</li>
+                            <li>• <strong className="text-white">Public</strong> (X): Signals after 90 minutes</li>
                         </ul>
                     </div>
                 </div>

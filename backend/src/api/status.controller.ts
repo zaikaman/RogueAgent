@@ -4,8 +4,8 @@ import { logger } from '../utils/logger.util';
 import { config } from '../config/env.config';
 import { TIERS } from '../constants/tiers';
 
-// X API daily post limit
-const X_DAILY_POST_LIMIT = 17;
+// Minimum interval between X posts (90 minutes = max 16 posts/day)
+const MIN_POST_INTERVAL_MINUTES = 90;
 
 export const getLatestStatus = async (req: Request, res: Response) => {
   try {
@@ -54,16 +54,15 @@ export const getLatestStatus = async (req: Request, res: Response) => {
     const now = Date.now();
     const timeUntilNextRun = Math.max(0, nextRunTime - now);
 
-    // Get X API rate limit status
+    // Get X API rate limit status (90-min spacing)
     let xRateLimit;
     try {
       const rateLimitStatus = await supabaseService.getXRateLimitStatus();
       xRateLimit = {
         is_limited: rateLimitStatus.isLimited,
-        posts_remaining: rateLimitStatus.postsRemaining,
-        posts_used: rateLimitStatus.currentCount,
-        max_posts_per_day: X_DAILY_POST_LIMIT,
-        reset_time: rateLimitStatus.resetTime?.toISOString() || null
+        minutes_until_next_post: rateLimitStatus.minutesUntilNextPost,
+        min_interval_minutes: MIN_POST_INTERVAL_MINUTES,
+        last_post_time: rateLimitStatus.lastPostTime?.toISOString() || null
       };
     } catch (e) {
       xRateLimit = null;
@@ -87,26 +86,20 @@ export const getLatestStatus = async (req: Request, res: Response) => {
 
 /**
  * Get X API rate limit status
- * Returns information about daily post limits and reset time
+ * Returns information about post spacing (90-min minimum between posts)
  */
 export const getXRateLimitStatus = async (req: Request, res: Response) => {
   try {
     const rateLimitStatus = await supabaseService.getXRateLimitStatus();
-    
-    const timeUntilReset = rateLimitStatus.resetTime 
-      ? Math.max(0, Math.ceil((rateLimitStatus.resetTime.getTime() - Date.now()) / 1000 / 60))
-      : null;
 
     res.json({
       is_limited: rateLimitStatus.isLimited,
-      posts_used: rateLimitStatus.currentCount,
-      posts_remaining: rateLimitStatus.postsRemaining,
-      max_posts_per_day: X_DAILY_POST_LIMIT,
-      reset_time: rateLimitStatus.resetTime?.toISOString() || null,
-      minutes_until_reset: timeUntilReset,
+      minutes_until_next_post: rateLimitStatus.minutesUntilNextPost,
+      min_interval_minutes: MIN_POST_INTERVAL_MINUTES,
+      last_post_time: rateLimitStatus.lastPostTime?.toISOString() || null,
       message: rateLimitStatus.isLimited 
-        ? `X API rate limit reached. Swarm runs paused until ${rateLimitStatus.resetTime?.toISOString() || 'reset'}.`
-        : `${rateLimitStatus.postsRemaining} X posts remaining today.`
+        ? `X post cooldown active. Next post available in ${rateLimitStatus.minutesUntilNextPost} minutes.`
+        : 'Ready to post to X.'
     });
   } catch (error) {
     logger.error('Failed to get X rate limit status:', error);

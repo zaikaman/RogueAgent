@@ -53,7 +53,7 @@ export default function Tiers() {
 
                         <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                             <p className="text-blue-200 text-sm">
-                                <strong>30-60 minute edge</strong> over public signals. Custom scans allow you to stay ahead of trends.
+                                <strong>90 minute edge</strong> over public signals. Custom scans allow you to stay ahead of trends.
                             </p>
                         </div>
                     </div>
@@ -89,7 +89,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
                         <p className="text-yellow-200 text-sm">
-                            <strong>30-60 minute edge</strong> over public. Perfect for active traders.
+                            <strong>90 minute edge</strong> over public. Perfect for active traders.
                         </p>
                     </div>
                 </div>
@@ -124,7 +124,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-gray-400/10 border border-gray-400/30 rounded-lg p-3">
                         <p className="text-gray-200 text-sm">
-                            <strong>15-45 minute edge</strong> over public. Great for swing traders.
+                            <strong>75 minute edge</strong> over public. Great for swing traders.
                         </p>
                     </div>
                 </div>
@@ -145,7 +145,7 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">Public signals</strong> - Posted to X 30-60 minutes after initial broadcast</span>
+                            <span><strong className="text-white">Public signals</strong> - Posted to X 90 minutes after initial broadcast</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>

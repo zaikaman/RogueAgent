@@ -524,20 +524,16 @@ export class SupabaseService {
   }
 
   /**
-   * Get the first PUBLIC post of the current 24h window
-   * Returns the posted_at timestamp of the first post, or null if no posts exist
+   * Get the last PUBLIC post time
+   * Used to enforce minimum spacing between X posts (90 minutes = max 16 posts/day)
    */
-  async getFirstPublicPostToday(): Promise<Date | null> {
-    // Look back 24 hours to find the first post
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+  async getLastPublicPostTime(): Promise<Date | null> {
     const { data, error } = await this.client
       .from('scheduled_posts')
       .select('posted_at')
       .eq('tier', 'PUBLIC')
       .eq('status', 'posted')
-      .gte('posted_at', twentyFourHoursAgo)
-      .order('posted_at', { ascending: true })
+      .order('posted_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -547,55 +543,37 @@ export class SupabaseService {
   }
 
   /**
-   * Count PUBLIC posts since a given timestamp
-   * Used to track X API rate limits (17 posts per 24 hours from first post)
-   */
-  async getPublicPostCountSince(since: Date): Promise<number> {
-    const { count, error } = await this.client
-      .from('scheduled_posts')
-      .select('*', { count: 'exact', head: true })
-      .eq('tier', 'PUBLIC')
-      .eq('status', 'posted')
-      .gte('posted_at', since.toISOString());
-
-    if (error) throw error;
-    return count || 0;
-  }
-
-  /**
-   * Get X post rate limit status
-   * Returns: { isLimited, postsRemaining, resetTime, currentCount }
+   * Get X post rate limit status based on 90-minute spacing
+   * With 90-minute spacing between posts, max 16 posts per day (under 17 limit)
    */
   async getXRateLimitStatus(): Promise<{
     isLimited: boolean;
-    postsRemaining: number;
-    resetTime: Date | null;
-    currentCount: number;
+    minutesUntilNextPost: number;
+    lastPostTime: Date | null;
   }> {
-    const MAX_POSTS_PER_24H = 17;
+    const MIN_POST_INTERVAL_MINUTES = 90; // 90 minutes = max 16 posts per day
     
-    const firstPostTime = await this.getFirstPublicPostToday();
+    const lastPostTime = await this.getLastPublicPostTime();
     
-    if (!firstPostTime) {
-      // No posts in the last 24 hours - fresh slate
+    if (!lastPostTime) {
+      // No posts yet - can post immediately
       return {
         isLimited: false,
-        postsRemaining: MAX_POSTS_PER_24H,
-        resetTime: null,
-        currentCount: 0
+        minutesUntilNextPost: 0,
+        lastPostTime: null
       };
     }
 
-    const currentCount = await this.getPublicPostCountSince(firstPostTime);
-    const postsRemaining = Math.max(0, MAX_POSTS_PER_24H - currentCount);
-    const resetTime = new Date(firstPostTime.getTime() + 24 * 60 * 60 * 1000);
-    const isLimited = currentCount >= MAX_POSTS_PER_24H;
+    const now = Date.now();
+    const timeSinceLastPost = now - lastPostTime.getTime();
+    const minIntervalMs = MIN_POST_INTERVAL_MINUTES * 60 * 1000;
+    const timeUntilNextPost = Math.max(0, minIntervalMs - timeSinceLastPost);
+    const minutesUntilNextPost = Math.ceil(timeUntilNextPost / 60000);
 
     return {
-      isLimited,
-      postsRemaining,
-      resetTime,
-      currentCount
+      isLimited: timeUntilNextPost > 0,
+      minutesUntilNextPost,
+      lastPostTime
     };
   }
 }

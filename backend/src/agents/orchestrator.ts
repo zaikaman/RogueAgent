@@ -22,9 +22,6 @@ import { scheduledPostService } from '../services/scheduled-post.service';
 import { signalExecutorService } from '../services/signal-executor.service';
 import { EventEmitter } from 'events';
 
-// X API daily post limit
-const X_DAILY_POST_LIMIT = 17;
-
 interface ScannerResult {
   candidates?: Array<{
     symbol: string;
@@ -121,20 +118,17 @@ export class Orchestrator extends EventEmitter {
     this.broadcast(`Initializing Rogue Swarm Protocol... Run ID: ${runId.slice(0, 8)}`, 'info');
 
     try {
-      // Check X API rate limit before running swarm
-      const rateLimitStatus = await supabaseService.getXRateLimitStatus();
-      if (rateLimitStatus.isLimited) {
-        const resetTime = rateLimitStatus.resetTime;
-        const timeUntilReset = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / 1000 / 60) : 0;
-        const message = `X API daily rate limit reached (${rateLimitStatus.currentCount}/${X_DAILY_POST_LIMIT} posts). Pausing swarm runs. Reset in ${timeUntilReset} minutes.`;
-        logger.warn(message);
-        this.broadcast(message, 'warning');
-        this.broadcast(`Rate limit resets at: ${resetTime?.toISOString() || 'unknown'}`, 'warning');
-        return; // Skip this swarm run
+      // Log X API rate limit status (swarm runs continue regardless - posts are spaced by 90min)
+      try {
+        const rateLimitStatus = await supabaseService.getXRateLimitStatus();
+        if (rateLimitStatus.isLimited) {
+          this.broadcast(`X post cooldown: ${rateLimitStatus.minutesUntilNextPost}m remaining (90-min spacing)`, 'info');
+        } else {
+          this.broadcast(`X API ready: Can post now`, 'info');
+        }
+      } catch (e) {
+        // Non-critical, continue with swarm
       }
-      
-      logger.info(`X API rate limit: ${rateLimitStatus.currentCount}/${X_DAILY_POST_LIMIT} posts used today`);
-      this.broadcast(`X API status: ${rateLimitStatus.postsRemaining} posts remaining today`, 'info');
 
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
@@ -369,8 +363,8 @@ export class Orchestrator extends EventEmitter {
         await scheduledPostService.schedulePost(runId, 'SILVER', content)
           .catch(err => logger.error('Error scheduling SILVER post', err));
 
-        // Delayed 30-60m: Public (Twitter, DB-backed) - randomized to avoid spam detection
-        logger.info(`Scheduling Signal for PUBLIC (+30-60m randomized) for run ${runId}...`);
+        // Delayed 90m: Public (Twitter, DB-backed) - spaced to stay under X API limits
+        logger.info(`Scheduling Signal for PUBLIC (+90m) for run ${runId}...`);
         await scheduledPostService.schedulePost(runId, 'PUBLIC', content)
           .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
@@ -600,9 +594,9 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
              .catch(err => logger.error('Error scheduling SILVER intel post', err));
         }
 
-        // Delayed 30-60m: Public (Twitter) - SKIP if it's an exclusive Deep Dive - randomized to avoid spam detection
+        // Delayed 90m: Public (Twitter) - SKIP if it's an exclusive Deep Dive - spaced to stay under X API limits
         if (tweetContent && !shouldGenerateDeepDive) {
-           logger.info(`Scheduling Intel Tweet for PUBLIC (+30-60m randomized) for run ${runId}...`);
+           logger.info(`Scheduling Intel Tweet for PUBLIC (+90m) for run ${runId}...`);
            await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent)
              .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
         } else if (shouldGenerateDeepDive) {
