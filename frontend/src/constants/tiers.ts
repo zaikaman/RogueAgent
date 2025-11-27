@@ -14,8 +14,8 @@ export const TIER_THRESHOLDS = {
 };
 
 export const TIER_BENEFITS = {
-  [TIERS.NONE]: ['Public X posts (delayed 90m)'],
-  [TIERS.SILVER]: ['75 min early access', 'Private Telegram DMs'],
-  [TIERS.GOLD]: ['Immediate access', 'Sunday Deep-Dive Thread', 'Advanced signals'],
-  [TIERS.DIAMOND]: ['Everything in Gold', 'Unlimited Custom Scans (DM)', 'Instant Alpha'],
+  [TIERS.NONE]: ['Select signals on X (delayed 30m)', 'Dashboard access'],
+  [TIERS.SILVER]: ['100% signal coverage via Telegram', '15 min early access', 'Private Telegram DMs'],
+  [TIERS.GOLD]: ['100% signal coverage via Telegram', 'Immediate access', 'Sunday Deep-Dive Thread', 'Advanced signals'],
+  [TIERS.DIAMOND]: ['100% signal coverage via Telegram', 'Everything in Gold', 'Unlimited Custom Scans (DM)', 'Instant Alpha'],
 };

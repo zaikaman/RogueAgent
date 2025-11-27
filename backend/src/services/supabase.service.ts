@@ -522,60 +522,6 @@ export class SupabaseService {
     if (error) throw error;
     return data;
   }
-
-  /**
-   * Get the last PUBLIC post time
-   * Used to enforce minimum spacing between X posts (90 minutes = max 16 posts/day)
-   */
-  async getLastPublicPostTime(): Promise<Date | null> {
-    const { data, error } = await this.client
-      .from('scheduled_posts')
-      .select('posted_at')
-      .eq('tier', 'PUBLIC')
-      .eq('status', 'posted')
-      .order('posted_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
-    
-    return data?.posted_at ? new Date(data.posted_at) : null;
-  }
-
-  /**
-   * Get X post rate limit status based on 90-minute spacing
-   * With 90-minute spacing between posts, max 16 posts per day (under 17 limit)
-   */
-  async getXRateLimitStatus(): Promise<{
-    isLimited: boolean;
-    minutesUntilNextPost: number;
-    lastPostTime: Date | null;
-  }> {
-    const MIN_POST_INTERVAL_MINUTES = 90; // 90 minutes = max 16 posts per day
-    
-    const lastPostTime = await this.getLastPublicPostTime();
-    
-    if (!lastPostTime) {
-      // No posts yet - can post immediately
-      return {
-        isLimited: false,
-        minutesUntilNextPost: 0,
-        lastPostTime: null
-      };
-    }
-
-    const now = Date.now();
-    const timeSinceLastPost = now - lastPostTime.getTime();
-    const minIntervalMs = MIN_POST_INTERVAL_MINUTES * 60 * 1000;
-    const timeUntilNextPost = Math.max(0, minIntervalMs - timeSinceLastPost);
-    const minutesUntilNextPost = Math.ceil(timeUntilNextPost / 60000);
-
-    return {
-      isLimited: timeUntilNextPost > 0,
-      minutesUntilNextPost,
-      lastPostTime
-    };
-  }
 }
 
 export const supabaseService = new SupabaseService();

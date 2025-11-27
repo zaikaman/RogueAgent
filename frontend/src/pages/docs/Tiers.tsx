@@ -35,7 +35,11 @@ export default function Tiers() {
                         <ul className="space-y-2 text-gray-300">
                             <li className="flex items-start gap-2">
                                 <span className="text-teal-glow mt-1">✓</span>
-                                <span><strong className="text-white">Immediate signals</strong> - Get alerts the moment analysis completes</span>
+                                <span><strong className="text-white">100% signal coverage</strong> - Receive every signal and intel report via Telegram DM</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-teal-glow mt-1">✓</span>
+                                <span><strong className="text-white">Immediate delivery</strong> - Get alerts the moment analysis completes</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="text-teal-glow mt-1">✓</span>
@@ -53,7 +57,7 @@ export default function Tiers() {
 
                         <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                             <p className="text-blue-200 text-sm">
-                                <strong>90 minute edge</strong> over public signals. Custom scans allow you to stay ahead of trends.
+                                <strong>30 minute edge</strong> over public signals. Custom scans allow you to stay ahead of trends.
                             </p>
                         </div>
                     </div>
@@ -75,7 +79,11 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">Immediate signals</strong> - Same speed as Diamond</span>
+                            <span><strong className="text-white">100% signal coverage</strong> - Receive every signal and intel report via Telegram DM</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-teal-glow mt-1">✓</span>
+                            <span><strong className="text-white">Immediate delivery</strong> - Same speed as Diamond</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
@@ -89,7 +97,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
                         <p className="text-yellow-200 text-sm">
-                            <strong>90 minute edge</strong> over public. Perfect for active traders.
+                            <strong>30 minute edge</strong> over public. Perfect for active traders.
                         </p>
                     </div>
                 </div>
@@ -110,6 +118,10 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
+                            <span><strong className="text-white">100% signal coverage</strong> - Receive every signal and intel report via Telegram DM</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-teal-glow mt-1">✓</span>
                             <span><strong className="text-white">15-minute early access</strong> - Signals arrive 15 minutes after Diamond/Gold</span>
                         </li>
                         <li className="flex items-start gap-2">
@@ -124,7 +136,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-gray-400/10 border border-gray-400/30 rounded-lg p-3">
                         <p className="text-gray-200 text-sm">
-                            <strong>75 minute edge</strong> over public. Great for swing traders.
+                            <strong>15 minute edge</strong> over public. Great for swing traders.
                         </p>
                     </div>
                 </div>
@@ -145,7 +157,7 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">Public signals</strong> - Posted to X 90 minutes after initial broadcast</span>
+                            <span><strong className="text-white">Select signals on X</strong> - Curated highlights posted 30 minutes after premium broadcast</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
@@ -159,7 +171,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-white/5 border border-white/10 rounded-lg p-3">
                         <p className="text-gray-300 text-sm">
-                            Free tier. Great for getting a taste of Rogue's capabilities.
+                            Free tier with curated content. Upgrade to Silver+ for <strong className="text-teal-glow">100% signal coverage</strong> via Telegram.
                         </p>
                     </div>
                 </div>
@@ -263,10 +275,10 @@ export default function Tiers() {
                         </div>
                         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-white font-semibold">21:00:00 - 21:30:00</span>
-                                <span className="text-gray-400 text-sm">Public</span>
+                                <span className="text-white font-semibold">20:30:00</span>
+                                <span className="text-gray-400 text-sm">Public (X)</span>
                             </div>
-                            <p className="text-gray-300 text-sm">Signal posted to X +60-90 minutes later</p>
+                            <p className="text-gray-300 text-sm">Select signals posted to X +30 minutes later (curated highlights only)</p>
                         </div>
                     </div>
                 </div>

@@ -1,11 +1,7 @@
 import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
-import { supabaseService } from './supabase.service';
 import crypto from 'crypto';
-
-// Minimum interval between X posts (90 minutes = max 16 posts/day, under 17 limit)
-const MIN_POST_INTERVAL_MINUTES = 90;
 
 /**
  * X API v2 Service
@@ -145,22 +141,7 @@ class TwitterService {
       return null;
     }
 
-    // Check rate limit (90-minute spacing between posts)
-    try {
-      const rateLimitStatus = await supabaseService.getXRateLimitStatus();
-      if (rateLimitStatus.isLimited) {
-        logger.warn(`X API rate limited: Must wait ${rateLimitStatus.minutesUntilNextPost} more minutes before next post (90-min spacing enforced)`);
-        return null;
-      }
-      if (rateLimitStatus.lastPostTime) {
-        const minsSinceLastPost = Math.floor((Date.now() - rateLimitStatus.lastPostTime.getTime()) / 60000);
-        logger.info(`X API: ${minsSinceLastPost} minutes since last post (min: ${MIN_POST_INTERVAL_MINUTES})`);
-      }
-    } catch (error) {
-      logger.error('Failed to check X rate limit status, proceeding with post:', error);
-    }
-
-    // Check self-imposed rate limiting (minimum interval between posts in memory)
+    // Check self-imposed rate limiting (minimum interval between posts)
     if (!this.checkRateLimit()) {
       logger.warn('Self-imposed rate limit active. Skipping post to avoid spam detection.');
       return null;
@@ -226,22 +207,6 @@ class TwitterService {
         throw error;
       }
     }, 3, 1000, 2, shouldRetryFn);
-  }
-
-  /**
-   * Get the current X API rate limit status
-   * Returns information about daily post limits
-   */
-  async getRateLimitStatus() {
-    return supabaseService.getXRateLimitStatus();
-  }
-
-  /**
-   * Check if X posting is currently rate limited
-   */
-  async isRateLimited(): Promise<boolean> {
-    const status = await supabaseService.getXRateLimitStatus();
-    return status.isLimited;
   }
 }
 

@@ -1,23 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Timer, Clock } from 'lucide-react';
-
-interface XRateLimit {
-  is_limited: boolean;
-  minutes_until_next_post: number;
-  min_interval_minutes: number;
-  last_post_time: string | null;
-}
+import { Timer } from 'lucide-react';
 
 interface CountdownProps {
   lastRunTime: string | null;
   intervalMinutes?: number;
-  xRateLimit?: XRateLimit | null;
 }
 
-export function Countdown({ lastRunTime, intervalMinutes = 60, xRateLimit }: CountdownProps) {
+export function Countdown({ lastRunTime, intervalMinutes = 60 }: CountdownProps) {
   const [timeLeft, setTimeLeft] = useState<string>('00:00');
   const [progress, setProgress] = useState(0);
-  const [xCooldown, setXCooldown] = useState<string>('');
 
   useEffect(() => {
     if (!lastRunTime) return;
@@ -41,25 +32,10 @@ export function Countdown({ lastRunTime, intervalMinutes = 60, xRateLimit }: Cou
         const elapsed = now - lastRun;
         setProgress(Math.min((elapsed / CYCLE_DURATION) * 100, 100));
       }
-
-      // Update X cooldown display
-      if (xRateLimit?.is_limited && xRateLimit?.last_post_time) {
-        const lastPostTime = new Date(xRateLimit.last_post_time).getTime();
-        const cooldownEnd = lastPostTime + (xRateLimit.min_interval_minutes * 60 * 1000);
-        const cooldownRemaining = cooldownEnd - now;
-        if (cooldownRemaining > 0) {
-          const mins = Math.ceil(cooldownRemaining / 60000);
-          setXCooldown(`${mins}m`);
-        } else {
-          setXCooldown('Ready');
-        }
-      } else {
-        setXCooldown('Ready');
-      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [lastRunTime, intervalMinutes, xRateLimit]);
+  }, [lastRunTime, intervalMinutes]);
 
   return (
     <div className="flex flex-col gap-1">
@@ -70,12 +46,6 @@ export function Countdown({ lastRunTime, intervalMinutes = 60, xRateLimit }: Cou
       <div className="font-mono text-2xl font-bold text-cyan-400">
         {timeLeft}
       </div>
-      {xRateLimit && (
-        <div className="flex items-center gap-1 text-xs text-gray-500">
-          <Clock className="w-3 h-3" />
-          <span>X: {xRateLimit.is_limited ? xCooldown : 'Ready'}</span>
-        </div>
-      )}
       <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
         <div 
           className="h-full bg-cyan-500 transition-all duration-1000 ease-linear"

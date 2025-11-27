@@ -144,21 +144,21 @@ export default function Telegram() {
                             <span className="text-xl">💎🥇</span>
                             <span className="text-white font-semibold text-sm">Immediate</span>
                         </div>
-                        <p className="text-gray-400 text-xs">Diamond & Gold users</p>
+                        <p className="text-gray-400 text-xs">Diamond & Gold — 100% coverage</p>
                     </div>
                     <div className="bg-gray-400/10 border border-gray-400/30 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="text-xl">🥈</span>
                             <span className="text-white font-semibold text-sm">+15 minutes</span>
                         </div>
-                        <p className="text-gray-400 text-xs">Silver users</p>
+                        <p className="text-gray-400 text-xs">Silver — 100% coverage</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="text-xl">🌐</span>
-                            <span className="text-white font-semibold text-sm">+90 minutes</span>
+                            <span className="text-white font-semibold text-sm">+30 minutes</span>
                         </div>
-                        <p className="text-gray-400 text-xs">Public (Twitter only)</p>
+                        <p className="text-gray-400 text-xs">Public — Curated highlights on X</p>
                     </div>
                 </div>
 
@@ -293,7 +293,7 @@ export default function Telegram() {
                         <li>• Make sure you've run <code className="text-teal-glow bg-white/5 px-2 py-0.5 rounded">/verify</code></li>
                         <li>• Check your tier with <code className="text-teal-glow bg-white/5 px-2 py-0.5 rounded">/start</code></li>
                         <li>• Ensure bot is not muted or blocked</li>
-                        <li>• Public tier users receive signals via Twitter, not Telegram</li>
+                        <li>• Public tier users receive curated signals on X only — <strong className="text-teal-glow">upgrade to Silver+ for 100% signal coverage via Telegram</strong></li>
                     </ul>
                 </div>
 

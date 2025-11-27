@@ -118,18 +118,6 @@ export class Orchestrator extends EventEmitter {
     this.broadcast(`Initializing Rogue Swarm Protocol... Run ID: ${runId.slice(0, 8)}`, 'info');
 
     try {
-      // Log X API rate limit status (swarm runs continue regardless - posts are spaced by 90min)
-      try {
-        const rateLimitStatus = await supabaseService.getXRateLimitStatus();
-        if (rateLimitStatus.isLimited) {
-          this.broadcast(`X post cooldown: ${rateLimitStatus.minutesUntilNextPost}m remaining (90-min spacing)`, 'info');
-        } else {
-          this.broadcast(`X API ready: Can post now`, 'info');
-        }
-      } catch (e) {
-        // Non-critical, continue with swarm
-      }
-
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
       this.broadcast('Establishing connection to global market data feeds...', 'info');
@@ -363,8 +351,8 @@ export class Orchestrator extends EventEmitter {
         await scheduledPostService.schedulePost(runId, 'SILVER', content)
           .catch(err => logger.error('Error scheduling SILVER post', err));
 
-        // Delayed 90m: Public (Twitter, DB-backed) - spaced to stay under X API limits
-        logger.info(`Scheduling Signal for PUBLIC (+90m) for run ${runId}...`);
+        // Delayed 30m: Public (Twitter, DB-backed)
+        logger.info(`Scheduling Signal for PUBLIC (+30m) for run ${runId}...`);
         await scheduledPostService.schedulePost(runId, 'PUBLIC', content)
           .catch(err => logger.error('Error scheduling PUBLIC post', err));
 
@@ -594,9 +582,9 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
              .catch(err => logger.error('Error scheduling SILVER intel post', err));
         }
 
-        // Delayed 90m: Public (Twitter) - SKIP if it's an exclusive Deep Dive - spaced to stay under X API limits
+        // Delayed 30m: Public (Twitter) - SKIP if it's an exclusive Deep Dive
         if (tweetContent && !shouldGenerateDeepDive) {
-           logger.info(`Scheduling Intel Tweet for PUBLIC (+90m) for run ${runId}...`);
+           logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
            await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent)
              .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
         } else if (shouldGenerateDeepDive) {

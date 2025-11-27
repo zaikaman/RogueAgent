@@ -51,10 +51,10 @@ export default function Home() {
         {
             id: '03',
             title: 'Token-Gated Speed',
-            description: '$RGE holders receive signals 90 minutes before the public feed. In crypto, speed is the difference between 10x and 100x.',
+            description: '$RGE holders receive 100% of signals via Telegram, up to 30 minutes before the curated public feed on X.',
             icon: Shield02Icon,
             stats: [
-                { label: 'ADVANTAGE', value: '90m' },
+                { label: 'ADVANTAGE', value: '30m' },
                 { label: 'ACCESS', value: 'TIER 1' }
             ]
         },
@@ -483,7 +483,7 @@ export default function Home() {
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-gray-600" />
                                             <h3 className="text-xl font-bold text-white mb-2">Alpha Publisher</h3>
-                                            <p className="text-gray-400">Broadcasts validated signals to $RGE holders instantly, and to the public feed after a delay.</p>
+                                            <p className="text-gray-400">Broadcasts all signals to $RGE holders instantly via Telegram. Curated highlights posted to X.</p>
                                         </div>
                                     </div>
                                 </div>

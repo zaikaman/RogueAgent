@@ -64,9 +64,10 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 - Signals rejected if proper stops can't be placed
 
 🎚️ **Tiered Distribution**: Signals are distributed strategically:
-- **Diamond/Gold** tier users receive immediate alerts
-- **Silver** tier receives signals after 15 minutes
-- **Public** (X) receives signals after 90 minutes (spaced to stay under API limits)
+- **Diamond/Gold** tier users receive immediate alerts via Telegram DM
+- **Silver** tier receives signals after 15 minutes via Telegram DM
+- **Public** (X) receives select signals after 30 minutes
+- 💎 **Premium Advantage**: Paid tiers receive ALL signals and intel via Telegram—X only features curated highlights
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
@@ -123,7 +124,7 @@ graph TD
     Publisher -->|Immediate| Diamond[💎 Diamond Tier]
     Publisher -->|Immediate| Gold[🥇 Gold Tier]
     Publisher -->|+15min| Silver[🥈 Silver Tier]
-    Publisher -->|+90min| Public[🌐 X/Public]
+    Publisher -->|+30min| Public[🌐 X/Public]
     Publisher --> DB[(🗄️ Supabase DB)]
     
     Monitor[⏰ Signal Monitor] -->|Price Tracking| DB
@@ -414,12 +415,14 @@ cvd divergence + poc support + network upgrade catalyst
 
 **Distribution Strategy**:
 
-| Tier | Delivery Time | Channels |
-|------|---------------|----------|
-| 💎 Diamond | Immediate | Telegram DM |
-| 🥇 Gold | Immediate | Telegram DM |
-| 🥈 Silver | +15 minutes | Telegram DM (via scheduled post service) |
-| 🌐 Public | +90 minutes | X + Dashboard |
+| Tier | Delivery Time | Channels | Coverage |
+|------|---------------|----------|----------|
+| 💎 Diamond | Immediate | Telegram DM | **100% of signals & intel** |
+| 🥇 Gold | Immediate | Telegram DM | **100% of signals & intel** |
+| 🥈 Silver | +15 minutes | Telegram DM | **100% of signals & intel** |
+| 🌐 Public | +30 minutes | X + Dashboard | Curated highlights only |
+
+> 💡 **Premium Value**: Paid tier subscribers receive every signal and intel report directly to their Telegram. Public X posts feature only select highlights—ensuring premium users always have the full picture and the edge.
 
 **Database Logging**:
 - Every signal stored with full metadata
@@ -1009,7 +1012,7 @@ Alert Sent: "🚀 SOL limit order activated at $24.95"
 │    00:00 → Save to Database (run record created)    │
 │    00:00 → Diamond/Gold Telegram Alert (immediate)  │
 │    15:00 → Silver Telegram Alert (scheduled)        │
-│    90:00 → X Post (scheduled, 90-min spacing)       │
+│    30:00 → X Post (scheduled)                       │
 │           → Public Dashboard Update                 │
 └─────────────────────────────────────────────────────┘
 ```
@@ -1239,9 +1242,6 @@ iqAiService.startLogProcessor(); // Continuous
 - **CORS**: Configurable origin whitelist
 - **Environment Variables**: Secrets management via `.env`
 - **Rate Limiting**: API endpoint protection
-- **X API Rate Limiting**: 90-minute minimum spacing between posts
-  - Guarantees max 16 posts per day (under 17 post limit)
-  - Swarm runs continue normally; posts are queued if cooldown active
 
 ---
 
