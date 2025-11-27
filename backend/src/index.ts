@@ -7,6 +7,7 @@ import { supabaseService } from './services/supabase.service';
 import { signalMonitorService } from './services/signal-monitor.service';
 import { scheduledPostService } from './services/scheduled-post.service';
 import { iqAiService } from './services/iqai.service';
+import { signalExecutorService } from './services/signal-executor.service';
 
 const app = createServer();
 const port = config.PORT;
@@ -42,6 +43,10 @@ const server = app.listen(port, () => {
   // Start IQ AI Log Processor
   logger.info('Starting IQ AI Log Processor');
   iqAiService.startLogProcessor();
+
+  // Start Signal Job Processor for custom futures agents
+  logger.info('Starting Signal Job Processor (5s interval)');
+  signalExecutorService.startJobProcessor();
 
   // Start Swarm Scheduler
   const intervalMs = config.RUN_INTERVAL_MINUTES * 60 * 1000;
@@ -127,6 +132,10 @@ const shutdown = async (signal: string) => {
     logger.info('Stopping Telegram bot...');
     telegramService.stopPolling();
   }
+
+  // Stop Signal Job Processor
+  logger.info('Stopping Signal Job Processor...');
+  signalExecutorService.stopJobProcessor();
 
   // Close server
   server.close(() => {

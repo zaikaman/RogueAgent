@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { futuresAgentsService } from '../services/futures-agents.service';
 import { signalExecutorService } from '../services/signal-executor.service';
+import { signalJobsService } from '../services/signal-jobs.service';
 import { tierManager } from '../agents/tier-manager.agent';
 import { logger } from '../utils/logger.util';
 import { z } from 'zod';
@@ -21,6 +22,7 @@ const apiKeysSchema = z.object({
   walletAddress: z.string().min(1), // Connected wallet (for DB lookup)
   hyperliquidWalletAddress: z.string().min(1), // Hyperliquid wallet address
   privateKey: z.string().min(1), // Hyperliquid private key
+  networkMode: z.enum(['mainnet', 'testnet']).optional().default('testnet'), // Network mode
 });
 
 const createAgentSchema = z.object({
@@ -106,15 +108,15 @@ async function requireDiamondTier(req: Request, res: Response, next: Function) {
  */
 router.post('/api-keys', requireDiamondTier, async (req: Request, res: Response) => {
   try {
-    const { walletAddress, hyperliquidWalletAddress, privateKey } = apiKeysSchema.parse(req.body);
+    const { walletAddress, hyperliquidWalletAddress, privateKey, networkMode } = apiKeysSchema.parse(req.body);
     
-    const result = await futuresAgentsService.saveApiKeys(walletAddress, hyperliquidWalletAddress, privateKey);
+    const result = await futuresAgentsService.saveApiKeys(walletAddress, hyperliquidWalletAddress, privateKey, networkMode);
     
     if (!result.success) {
       return res.status(400).json({ success: false, error: result.error });
     }
 
-    res.json({ success: true, message: 'API keys saved successfully' });
+    res.json({ success: true, message: 'API keys saved successfully', networkMode });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, error: error.errors });
@@ -138,6 +140,7 @@ router.post('/api-keys/test', requireDiamondTier, async (req: Request, res: Resp
       success: result.success, 
       balance: result.balance,
       error: result.error,
+      networkMode: result.networkMode,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -183,15 +186,18 @@ router.get('/api-keys/status', async (req: Request, res: Response) => {
     const hasKeys = !!keys;
     
     let balance: number | undefined;
+    let networkMode: 'mainnet' | 'testnet' | undefined;
     if (hasKeys) {
       const testResult = await futuresAgentsService.testApiKeys(walletAddress);
       balance = testResult.balance;
+      networkMode = keys.networkMode;
     }
 
     res.json({ 
       success: true, 
       hasApiKeys: hasKeys,
       balance,
+      networkMode,
     });
   } catch (error) {
     logger.error('Error checking API keys status', error);
@@ -584,6 +590,73 @@ router.get('/account', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('Error fetching account info', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIGNAL JOBS (Background processing status for custom agents)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /futures/jobs
+ * Get active and recent signal jobs for a user
+ */
+router.get('/jobs', async (req: Request, res: Response) => {
+  try {
+    const walletAddress = req.query.walletAddress as string;
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, error: 'Wallet address required' });
+    }
+
+    const [activeJobs, recentJobs] = await Promise.all([
+      signalJobsService.getActiveJobsForUser(walletAddress),
+      signalJobsService.getRecentJobsForUser(walletAddress, 20),
+    ]);
+
+    res.json({ 
+      success: true, 
+      data: {
+        active: activeJobs,
+        recent: recentJobs.filter(j => !activeJobs.find(a => a.id === j.id)), // Exclude active from recent
+      },
+    });
+  } catch (error: any) {
+    logger.error('Error fetching signal jobs', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+/**
+ * GET /futures/jobs/:jobId
+ * Get a specific signal job status
+ */
+router.get('/jobs/:jobId', async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    const job = await signalJobsService.getJob(jobId);
+
+    if (!job) {
+      return res.status(404).json({ success: false, error: 'Job not found' });
+    }
+
+    res.json({ success: true, data: job });
+  } catch (error: any) {
+    logger.error('Error fetching signal job', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+/**
+ * GET /futures/jobs/stats
+ * Get job processing statistics (for monitoring)
+ */
+router.get('/jobs/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await signalJobsService.getStats();
+    res.json({ success: true, data: stats });
+  } catch (error: any) {
+    logger.error('Error fetching job stats', error);
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });

@@ -3,6 +3,9 @@
 // TypeScript interfaces for Diamond-tier automated trading
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Network mode for Hyperliquid (mainnet or testnet)
+export type NetworkMode = 'mainnet' | 'testnet';
+
 export interface FuturesAgentStats {
   total_trades: number;
   winning_trades: number;
@@ -99,4 +102,33 @@ export interface UpdateAgentParams {
   maxConcurrentPositions?: number;
   maxLeverage?: number;
   customPrompt?: string;
+}
+
+// Signal job types for background processing
+export type SignalJobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
+
+export interface SignalJob {
+  id: string;
+  user_wallet_address: string;
+  agent_id: string;
+  signal_id: string;
+  signal_data: {
+    token: {
+      symbol: string;
+      name: string;
+    };
+    entry_price: number;
+    target_price: number;
+    stop_loss: number;
+    confidence: number;
+  };
+  status: SignalJobStatus;
+  should_trade: boolean | null;
+  evaluation_reason: string | null;
+  evaluation_confidence: number | null;
+  trade_id: string | null;
+  trade_error: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
 }

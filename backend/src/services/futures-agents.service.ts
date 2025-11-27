@@ -8,6 +8,9 @@ import crypto from 'crypto';
 // Manages Diamond-tier user agents for automated Hyperliquid Testnet trading
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Network mode type
+export type NetworkMode = 'mainnet' | 'testnet';
+
 // Database types
 export interface FuturesApiKeys {
   id: string;
@@ -16,6 +19,7 @@ export interface FuturesApiKeys {
   encrypted_api_key: string; // Encrypted private key
   encrypted_api_secret: string;
   is_active: boolean;
+  network_mode: NetworkMode; // mainnet or testnet
   last_tested_at: string | null;
   created_at: string;
   updated_at: string;
@@ -133,18 +137,20 @@ class FuturesAgentsService {
   async saveApiKeys(
     walletAddress: string,          // Connected wallet (for DB lookup)
     hyperliquidWalletAddress: string, // Hyperliquid wallet address
-    privateKey: string              // Hyperliquid private key
+    privateKey: string,             // Hyperliquid private key
+    networkMode: NetworkMode = 'testnet' // Network mode (mainnet or testnet)
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Encrypt the private key
       const encryptedPrivateKey = this.encrypt(privateKey);
 
       // Test the connection first with the correct Hyperliquid wallet address
-      const hyperliquid = createHyperliquidService(privateKey, hyperliquidWalletAddress, true); // true = testnet
+      const isTestnet = networkMode === 'testnet';
+      const hyperliquid = createHyperliquidService(privateKey, hyperliquidWalletAddress, isTestnet);
       const testResult = await hyperliquid.testConnection();
       
       if (!testResult.success) {
-        return { success: false, error: testResult.error || 'Failed to connect to Hyperliquid Testnet' };
+        return { success: false, error: testResult.error || `Failed to connect to Hyperliquid ${networkMode === 'mainnet' ? 'Mainnet' : 'Testnet'}` };
       }
 
       // Upsert API keys (storing private key in encrypted_api_key field)
@@ -156,6 +162,7 @@ class FuturesAgentsService {
           encrypted_api_key: encryptedPrivateKey,
           encrypted_api_secret: encryptedPrivateKey, // Same value for compat
           is_active: true,
+          network_mode: networkMode, // Store the network mode
           last_tested_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }, {
@@ -175,7 +182,7 @@ class FuturesAgentsService {
     }
   }
 
-  async getApiKeys(walletAddress: string): Promise<{ privateKey: string; hyperliquidWalletAddress: string } | null> {
+  async getApiKeys(walletAddress: string): Promise<{ privateKey: string; hyperliquidWalletAddress: string; networkMode: NetworkMode } | null> {
     const { data, error } = await this.supabase.getClient()
       .from('futures_api_keys')
       .select('*')
@@ -188,6 +195,7 @@ class FuturesAgentsService {
     return {
       privateKey: this.decrypt(data.encrypted_api_key),
       hyperliquidWalletAddress: data.hyperliquid_wallet_address,
+      networkMode: data.network_mode || 'testnet', // Default to testnet for backwards compatibility
     };
   }
 
@@ -206,15 +214,17 @@ class FuturesAgentsService {
     return true;
   }
 
-  async testApiKeys(walletAddress: string): Promise<{ success: boolean; balance?: number; error?: string }> {
+  async testApiKeys(walletAddress: string): Promise<{ success: boolean; balance?: number; error?: string; networkMode?: NetworkMode }> {
     const keys = await this.getApiKeys(walletAddress);
     if (!keys) {
       return { success: false, error: 'No private key found' };
     }
 
-    // Use the Hyperliquid wallet address, not the connected wallet
-    const hyperliquid = createHyperliquidService(keys.privateKey, keys.hyperliquidWalletAddress, true);
-    return hyperliquid.testConnection();
+    // Use the Hyperliquid wallet address and stored network mode
+    const isTestnet = keys.networkMode === 'testnet';
+    const hyperliquid = createHyperliquidService(keys.privateKey, keys.hyperliquidWalletAddress, isTestnet);
+    const result = await hyperliquid.testConnection();
+    return { ...result, networkMode: keys.networkMode };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -231,8 +241,9 @@ class FuturesAgentsService {
     const keys = await this.getApiKeys(walletAddress);
     if (!keys) return null;
 
-    // Use the Hyperliquid wallet address, not the connected wallet
-    const service = createHyperliquidService(keys.privateKey, keys.hyperliquidWalletAddress, true); // true = testnet
+    // Use the Hyperliquid wallet address with stored network mode
+    const isTestnet = keys.networkMode === 'testnet';
+    const service = createHyperliquidService(keys.privateKey, keys.hyperliquidWalletAddress, isTestnet);
     this.hyperliquidServices.set(walletAddress, service);
     return service;
   }

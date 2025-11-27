@@ -59,6 +59,7 @@ CREATE TABLE public.futures_api_keys (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   hyperliquid_wallet_address text NOT NULL,
+  network_mode text NOT NULL DEFAULT 'testnet'::text CHECK (network_mode = ANY (ARRAY['mainnet'::text, 'testnet'::text])),
   CONSTRAINT futures_api_keys_pkey PRIMARY KEY (id),
   CONSTRAINT futures_api_keys_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address)
 );
@@ -150,6 +151,26 @@ CREATE TABLE public.scheduled_posts (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT scheduled_posts_pkey PRIMARY KEY (id),
   CONSTRAINT scheduled_posts_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs(id)
+);
+CREATE TABLE public.signal_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_wallet_address text NOT NULL,
+  agent_id uuid NOT NULL,
+  signal_id text NOT NULL,
+  signal_data jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text, 'skipped'::text])),
+  should_trade boolean,
+  evaluation_reason text,
+  evaluation_confidence integer,
+  trade_id uuid,
+  trade_error text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  CONSTRAINT signal_jobs_pkey PRIMARY KEY (id),
+  CONSTRAINT signal_jobs_user_wallet_address_fkey FOREIGN KEY (user_wallet_address) REFERENCES public.users(wallet_address),
+  CONSTRAINT signal_jobs_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.futures_agents(id),
+  CONSTRAINT signal_jobs_trade_id_fkey FOREIGN KEY (trade_id) REFERENCES public.futures_trades(id)
 );
 CREATE TABLE public.tier_snapshots (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

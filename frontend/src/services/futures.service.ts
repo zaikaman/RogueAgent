@@ -6,6 +6,8 @@ import type {
   FuturesAccountInfo,
   CreateAgentParams,
   UpdateAgentParams,
+  NetworkMode,
+  SignalJob,
 } from '../types/futures.types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -18,12 +20,18 @@ export const futuresService = {
   // API KEY MANAGEMENT (Uses private key for Hyperliquid)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async saveApiKeys(connectedWallet: string, hyperliquidWallet: string, privateKey: string): Promise<{ success: boolean; error?: string }> {
+  async saveApiKeys(
+    connectedWallet: string, 
+    hyperliquidWallet: string, 
+    privateKey: string,
+    networkMode: NetworkMode = 'testnet'
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await api.post('/futures/api-keys', {
         walletAddress: connectedWallet,           // Connected wallet (for DB lookup)
         hyperliquidWalletAddress: hyperliquidWallet, // Hyperliquid wallet address
         privateKey,                               // Hyperliquid private key
+        networkMode,                              // Network mode (mainnet or testnet)
       });
       return { success: true };
     } catch (error: any) {
@@ -49,7 +57,7 @@ export const futuresService = {
     }
   },
 
-  async getApiKeysStatus(walletAddress: string): Promise<{ hasApiKeys: boolean; balance?: number }> {
+  async getApiKeysStatus(walletAddress: string): Promise<{ hasApiKeys: boolean; balance?: number; networkMode?: NetworkMode }> {
     try {
       const response = await api.get('/futures/api-keys/status', {
         params: { walletAddress },
@@ -186,6 +194,30 @@ export const futuresService = {
       return response.data.deactivatedCount || 0;
     } catch {
       return 0;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SIGNAL JOBS (Background processing for custom agents)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async getSignalJobs(walletAddress: string): Promise<{ active: SignalJob[]; recent: SignalJob[] }> {
+    try {
+      const response = await api.get('/futures/jobs', {
+        params: { walletAddress },
+      });
+      return response.data.data || { active: [], recent: [] };
+    } catch {
+      return { active: [], recent: [] };
+    }
+  },
+
+  async getSignalJob(jobId: string): Promise<SignalJob | null> {
+    try {
+      const response = await api.get(`/futures/jobs/${jobId}`);
+      return response.data.data;
+    } catch {
+      return null;
     }
   },
 };

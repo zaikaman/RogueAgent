@@ -4,15 +4,16 @@ import { useUserTier } from '../hooks/useUserTier';
 import { futuresService } from '../services/futures.service';
 import { TIERS } from '../constants/tiers';
 import { GatedContent } from '../components/GatedContent';
-import { FuturesAgent, FuturesPosition, FuturesAccountInfo, FuturesTrade } from '../types/futures.types';
+import { FuturesAgent, FuturesPosition, FuturesAccountInfo, FuturesTrade, NetworkMode, SignalJob } from '../types/futures.types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { 
   Zap, Power, Plus, Settings, Trash2, Copy, 
   TrendingUp, AlertTriangle, X,
-  Shield, Bot, Target, Activity, History,
+  Bot, Target, Activity, History,
   ChevronDown, ChevronUp, Clock, DollarSign,
-  CheckCircle2, XCircle, AlertOctagon, Loader2
+  CheckCircle2, XCircle, AlertOctagon, Loader2,
+  Globe, FlaskConical, Cpu, Sparkles
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -27,17 +28,20 @@ import {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FUTURES AGENTS PAGE
-// Diamond-only Hyperliquid Perpetual Futures automated trading terminal (Testnet)
+// Diamond-only Hyperliquid Perpetual Futures automated trading terminal
+// Supports both Mainnet (real funds) and Testnet (paper trading)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function FuturesAgentsPage() {
   const { address } = useAccount();
   const { tier } = useUserTier();
   const [hasApiKeys, setHasApiKeys] = useState(false);
+  const [networkMode, setNetworkMode] = useState<NetworkMode>('testnet');
   const [agents, setAgents] = useState<FuturesAgent[]>([]);
   const [positions, setPositions] = useState<FuturesPosition[]>([]);
   const [trades, setTrades] = useState<FuturesTrade[]>([]);
   const [accountInfo, setAccountInfo] = useState<FuturesAccountInfo | null>(null);
+  const [signalJobs, setSignalJobs] = useState<{ active: SignalJob[]; recent: SignalJob[] }>({ active: [], recent: [] });
   
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<FuturesAgent | null>(null);
@@ -50,21 +54,36 @@ export function FuturesAgentsPage() {
     return () => clearInterval(interval);
   }, [address]);
 
+  // Faster polling for signal jobs when there are active jobs
+  useEffect(() => {
+    if (!address || signalJobs.active.length === 0) return;
+    const fastPollInterval = setInterval(async () => {
+      const jobs = await futuresService.getSignalJobs(address);
+      setSignalJobs(jobs);
+    }, 2000); // Poll every 2s when jobs are active
+    return () => clearInterval(fastPollInterval);
+  }, [address, signalJobs.active.length]);
+
   const loadData = async () => {
     if (!address) return;
     try {
-      const [keysStatus, agentsData, positionsData, tradesData, account] = await Promise.all([
+      const [keysStatus, agentsData, positionsData, tradesData, account, jobs] = await Promise.all([
         futuresService.getApiKeysStatus(address),
         futuresService.getAgents(address),
         futuresService.getPositions(address),
         futuresService.getTrades(address, 100),
         futuresService.getAccountInfo(address),
+        futuresService.getSignalJobs(address),
       ]);
       setHasApiKeys(keysStatus.hasApiKeys);
+      if (keysStatus.networkMode) {
+        setNetworkMode(keysStatus.networkMode);
+      }
       setAgents(agentsData);
       setPositions(positionsData);
       setTrades(tradesData);
       setAccountInfo(account);
+      setSignalJobs(jobs);
     } catch (e) {
       console.error(e);
     }
@@ -76,17 +95,36 @@ export function FuturesAgentsPage() {
   return (
     <div className="space-y-6">
       <GatedContent userTier={tier} requiredTier={TIERS.DIAMOND}>
-        {/* Testnet Disclaimer Banner */}
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-amber-400 font-semibold text-sm">Testnet Environment</h3>
-            <p className="text-amber-200/70 text-sm mt-1">
-              This feature is for demonstration purposes only. Hyperliquid testnet prices may be unstable and 
-              inaccurate compared to mainnet. No real funds are at risk. Exercise caution when interpreting results.
-            </p>
+        {/* Network Mode Banner */}
+        {networkMode === 'mainnet' ? (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3">
+            <Globe className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-green-400 font-semibold text-sm flex items-center gap-2">
+                Mainnet Mode
+                <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">LIVE</span>
+              </h3>
+              <p className="text-green-200/70 text-sm mt-1">
+                You are trading with <span className="font-bold text-green-300">real funds</span> on Hyperliquid mainnet. 
+                All trades will be executed on the live network. Trade responsibly.
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+            <FlaskConical className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-amber-400 font-semibold text-sm flex items-center gap-2">
+                Testnet Mode
+                <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">PAPER</span>
+              </h3>
+              <p className="text-amber-200/70 text-sm mt-1">
+                This is a paper trading environment. Hyperliquid testnet prices may be unstable and 
+                inaccurate compared to mainnet. No real funds are at risk.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -94,8 +132,13 @@ export function FuturesAgentsPage() {
             <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
               <Bot className="w-6 h-6 text-cyan-500" />
               Futures Terminal
+              {networkMode === 'mainnet' && (
+                <span className="px-2 py-0.5 text-xs bg-green-500 text-black font-bold rounded-full animate-pulse">MAINNET</span>
+              )}
             </h2>
-            <p className="text-gray-400 mt-1">AI-powered Hyperliquid perpetuals trading (Testnet) • Up to 50x leverage</p>
+            <p className="text-gray-400 mt-1">
+              AI-powered Hyperliquid perpetuals trading ({networkMode === 'mainnet' ? 'Mainnet' : 'Testnet'}) • Up to 50x leverage
+            </p>
           </div>
           {accountInfo && (
             <div className="text-right hidden md:block">
@@ -110,7 +153,7 @@ export function FuturesAgentsPage() {
 
         {/* API Keys Section */}
         {!hasApiKeys ? (
-          <ApiKeySetup address={address!} onComplete={() => { setHasApiKeys(true); loadData(); }} />
+          <ApiKeySetup address={address!} networkMode={networkMode} setNetworkMode={setNetworkMode} onComplete={() => { setHasApiKeys(true); loadData(); }} />
         ) : (
           <>
             {/* Classic Agent */}
@@ -155,6 +198,9 @@ export function FuturesAgentsPage() {
               </div>
             </div>
 
+            {/* Signal Processing Status */}
+            <SignalJobsPanel jobs={signalJobs} agents={agents} />
+
             {/* Live Positions */}
             <PositionsPanel positions={positions} address={address!} onUpdate={loadData} />
 
@@ -183,7 +229,12 @@ export function FuturesAgentsPage() {
 // SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () => void }) {
+function ApiKeySetup({ address, networkMode, setNetworkMode, onComplete }: { 
+  address: string; 
+  networkMode: NetworkMode;
+  setNetworkMode: (mode: NetworkMode) => void;
+  onComplete: () => void;
+}) {
   const [hyperliquidWallet, setHyperliquidWallet] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -197,10 +248,11 @@ function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () 
     // address = connected wallet (for DB lookup)
     // hyperliquidWallet = the Hyperliquid wallet address user entered
     // privateKey = the private key for the Hyperliquid wallet
-    const result = await futuresService.saveApiKeys(address, hyperliquidWallet, privateKey);
+    // networkMode = mainnet or testnet
+    const result = await futuresService.saveApiKeys(address, hyperliquidWallet, privateKey, networkMode);
     
     if (result.success) {
-      toast.success('API keys connected successfully!');
+      toast.success(`Connected to Hyperliquid ${networkMode === 'mainnet' ? 'Mainnet' : 'Testnet'}!`);
       onComplete();
     } else {
       setError(result.error || 'Failed to save API keys');
@@ -213,15 +265,54 @@ function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () 
       {/* Left: Connection Form */}
       <div className="p-6 rounded-xl border border-gray-800 bg-gray-900/50">
         <div className="flex items-start gap-4 mb-6">
-          <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
-            <Shield className="w-6 h-6 text-cyan-400" />
+          <div className={`p-3 rounded-lg ${networkMode === 'mainnet' ? 'bg-green-500/10 border border-green-500/30' : 'bg-cyan-500/10 border border-cyan-500/30'}`}>
+            {networkMode === 'mainnet' ? (
+              <Globe className="w-6 h-6 text-green-400" />
+            ) : (
+              <FlaskConical className="w-6 h-6 text-cyan-400" />
+            )}
           </div>
           <div>
             <h2 className="text-lg font-bold text-white">Connect Hyperliquid Wallet</h2>
             <p className="text-gray-400 text-sm mt-1">
-              Enter your wallet credentials for testnet trading.
+              Enter your wallet credentials for {networkMode === 'mainnet' ? 'mainnet' : 'testnet'} trading.
             </p>
           </div>
+        </div>
+
+        {/* Network Mode Toggle */}
+        <div className="mb-6">
+          <label className="text-xs text-gray-500 uppercase tracking-wider block mb-2">Network Mode</label>
+          <div className="flex rounded-lg overflow-hidden border border-gray-800">
+            <button
+              onClick={() => setNetworkMode('testnet')}
+              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 text-sm font-medium transition-all ${
+                networkMode === 'testnet' 
+                  ? 'bg-amber-500/20 text-amber-400 border-r border-amber-500/30' 
+                  : 'bg-gray-900 text-gray-500 hover:text-gray-300 border-r border-gray-800'
+              }`}
+            >
+              <FlaskConical className="w-4 h-4" />
+              Testnet (Paper)
+            </button>
+            <button
+              onClick={() => setNetworkMode('mainnet')}
+              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 text-sm font-medium transition-all ${
+                networkMode === 'mainnet' 
+                  ? 'bg-green-500/20 text-green-400' 
+                  : 'bg-gray-900 text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              Mainnet (Real $)
+            </button>
+          </div>
+          {networkMode === 'mainnet' && (
+            <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              Warning: You will be trading with real funds!
+            </p>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -249,9 +340,13 @@ function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () 
           <button
             onClick={handleSubmit}
             disabled={isLoading || !hyperliquidWallet || !privateKey}
-            className="w-full py-3 rounded-lg bg-cyan-500 text-black font-bold hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className={`w-full py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+              networkMode === 'mainnet'
+                ? 'bg-green-500 text-black hover:bg-green-400'
+                : 'bg-cyan-500 text-black hover:bg-cyan-400'
+            }`}
           >
-            {isLoading ? 'Connecting...' : 'Connect & Test'}
+            {isLoading ? 'Connecting...' : `Connect to ${networkMode === 'mainnet' ? 'Mainnet' : 'Testnet'}`}
           </button>
         </div>
       </div>
@@ -259,20 +354,43 @@ function ApiKeySetup({ address, onComplete }: { address: string; onComplete: () 
       {/* Right: Setup Instructions */}
       <div className="p-6 rounded-xl border border-gray-800 bg-gray-900/50">
         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Setup Instructions</h3>
-        <ol className="text-sm text-gray-400 space-y-3 list-decimal list-inside">
-          <li>Go to <a href="https://app.hyperliquid-testnet.xyz" target="_blank" className="text-cyan-400 hover:underline">Hyperliquid Testnet</a></li>
-          <li>Connect your wallet and get testnet funds from the faucet</li>
-          <li>Export your wallet's private key from MetaMask or your wallet</li>
-          <li>Enter your wallet address (0x...) and private key</li>
-          <li><span className="text-red-400 font-bold">WARNING:</span> Use a dedicated trading wallet, not your main wallet</li>
-          <li>Your keys are encrypted and stored securely for trade execution</li>
-        </ol>
         
-        <div className="mt-6 p-4 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
-          <p className="text-xs text-cyan-400/80">
-            <span className="font-bold">Testnet Mode:</span> This terminal uses Hyperliquid testnet. No real funds are at risk during testing.
-          </p>
-        </div>
+        {networkMode === 'testnet' ? (
+          <>
+            <ol className="text-sm text-gray-400 space-y-3 list-decimal list-inside">
+              <li>Go to <a href="https://app.hyperliquid-testnet.xyz" target="_blank" className="text-cyan-400 hover:underline">Hyperliquid Testnet</a></li>
+              <li>Connect your wallet and get testnet funds from the faucet</li>
+              <li>Export your wallet's private key from MetaMask or your wallet</li>
+              <li>Enter your wallet address (0x...) and private key</li>
+              <li><span className="text-red-400 font-bold">WARNING:</span> Use a dedicated trading wallet, not your main wallet</li>
+              <li>Your keys are encrypted and stored securely for trade execution</li>
+            </ol>
+            
+            <div className="mt-6 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+              <p className="text-xs text-amber-400/80">
+                <span className="font-bold">Testnet Mode:</span> This terminal uses Hyperliquid testnet. No real funds are at risk during testing.
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <ol className="text-sm text-gray-400 space-y-3 list-decimal list-inside">
+              <li>Go to <a href="https://app.hyperliquid.xyz" target="_blank" className="text-green-400 hover:underline">Hyperliquid Mainnet</a></li>
+              <li>Connect your wallet and deposit USDC (bridge from Arbitrum, min 5 USDC)</li>
+              <li>Export your wallet's private key from MetaMask or your wallet</li>
+              <li>Enter your wallet address (0x...) and private key</li>
+              <li><span className="text-red-400 font-bold">CRITICAL:</span> Use a dedicated trading wallet with only funds you can afford to lose</li>
+              <li>Your keys are encrypted and stored securely for trade execution</li>
+            </ol>
+            
+            <div className="mt-6 p-4 rounded-lg bg-red-500/5 border border-red-500/20">
+              <p className="text-xs text-red-400/80">
+                <span className="font-bold">⚠️ MAINNET WARNING:</span> You are connecting to the live Hyperliquid network. 
+                All trades will use REAL funds. Only trade with money you can afford to lose. DYOR.
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1024,6 +1142,144 @@ function AgentModal({ isOpen, onClose, agent, address, onSave }: {
           </button>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIGNAL JOBS PANEL - Shows background processing status for custom agents
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function SignalJobsPanel({ jobs, agents }: { 
+  jobs: { active: SignalJob[]; recent: SignalJob[] }; 
+  agents: FuturesAgent[];
+}) {
+  const getAgentName = (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    return agent?.name || 'Unknown Agent';
+  };
+
+  const getStatusIcon = (status: SignalJob['status']) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-400 animate-pulse" />;
+      case 'processing':
+        return <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />;
+      case 'completed':
+        return <CheckCircle2 className="w-4 h-4 text-green-400" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-400" />;
+      case 'skipped':
+        return <AlertOctagon className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getStatusColor = (status: SignalJob['status']) => {
+    switch (status) {
+      case 'pending': return 'border-yellow-500/30 bg-yellow-500/5';
+      case 'processing': return 'border-cyan-500/30 bg-cyan-500/5';
+      case 'completed': return 'border-green-500/30 bg-green-500/5';
+      case 'failed': return 'border-red-500/30 bg-red-500/5';
+      case 'skipped': return 'border-gray-500/30 bg-gray-500/5';
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Combine and sort all jobs by created_at
+  const allJobs = [...jobs.active, ...jobs.recent].slice(0, 10);
+
+  if (allJobs.length === 0) {
+    return null; // Don't show panel if no jobs
+  }
+
+  const hasActiveJobs = jobs.active.length > 0;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-white flex items-center gap-2">
+        <Cpu className="w-5 h-5 text-purple-400" />
+        Signal Processing
+        {hasActiveJobs && (
+          <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-300 rounded-full animate-pulse">
+            {jobs.active.length} Active
+          </span>
+        )}
+      </h2>
+
+      <div className="grid gap-3">
+        <AnimatePresence mode="popLayout">
+          {allJobs.map((job) => (
+            <motion.div
+              key={job.id}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`p-4 rounded-xl border ${getStatusColor(job.status)} transition-all`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getStatusIcon(job.status)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-white">
+                        {job.signal_data.token.symbol}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400">
+                        {getAgentName(job.agent_id)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Entry: ${job.signal_data.entry_price.toFixed(4)} → Target: ${job.signal_data.target_price.toFixed(4)}
+                    </div>
+                    {job.evaluation_reason && (
+                      <div className="text-xs text-gray-400 mt-2 flex items-start gap-1">
+                        <Sparkles className="w-3 h-3 flex-shrink-0 mt-0.5 text-purple-400" />
+                        <span className="line-clamp-2">{job.evaluation_reason}</span>
+                      </div>
+                    )}
+                    {job.trade_error && (
+                      <div className="text-xs text-red-400 mt-2">
+                        ⚠️ {job.trade_error}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <div className="text-xs text-gray-500">
+                    {formatTime(job.created_at)}
+                  </div>
+                  {job.status === 'processing' && (
+                    <div className="text-xs text-cyan-400 mt-1">
+                      AI Evaluating...
+                    </div>
+                  )}
+                  {job.status === 'completed' && job.should_trade && (
+                    <div className="text-xs text-green-400 mt-1">
+                      Trade Placed ✓
+                    </div>
+                  )}
+                  {job.status === 'skipped' && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      Skipped
+                    </div>
+                  )}
+                  {job.evaluation_confidence !== null && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {job.evaluation_confidence}% confidence
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

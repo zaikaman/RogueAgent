@@ -1,4 +1,5 @@
 import { futuresAgentsService, FuturesAgent, FuturesTrade } from './futures-agents.service';
+import { signalJobsService, SignalJob } from './signal-jobs.service';
 import { SignalContent } from '../../shared/types/signal.types';
 import { logger } from '../utils/logger.util';
 import axios from 'axios';
@@ -29,6 +30,7 @@ interface TradeExecutionResult {
   success: boolean;
   trade?: Partial<FuturesTrade>;
   error?: string;
+  jobId?: string; // For queued custom agent signals
 }
 
 class SignalExecutorService {
@@ -48,10 +50,12 @@ class SignalExecutorService {
 
   /**
    * Process a new signal for all active Diamond agents
+   * Classic agents are processed immediately, custom agents are queued for background processing
    */
   async processSignal(payload: SignalPayload): Promise<{
     processed: number;
     executed: number;
+    queued: number;
     results: TradeExecutionResult[];
   }> {
     const { signalId, signal } = payload;
@@ -63,12 +67,13 @@ class SignalExecutorService {
     
     if (diamondUsers.length === 0) {
       logger.info('No Diamond users with active agents');
-      return { processed: 0, executed: 0, results: [] };
+      return { processed: 0, executed: 0, queued: 0, results: [] };
     }
 
     const results: TradeExecutionResult[] = [];
     let processed = 0;
     let executed = 0;
+    let queued = 0;
 
     // Process each user's agents
     for (const user of diamondUsers) {
@@ -76,15 +81,46 @@ class SignalExecutorService {
         processed++;
         
         try {
-          const result = await this.processAgentSignal(
-            user.walletAddress,
-            agent,
-            signalId,
-            signal
-          );
-          
-          results.push(result);
-          if (result.success) executed++;
+          // Custom agents with prompts get queued for background processing
+          if (agent.type === 'custom' && agent.custom_prompt) {
+            const job = await signalJobsService.createJob({
+              walletAddress: user.walletAddress,
+              agentId: agent.id,
+              signalId,
+              signalData: signal,
+            });
+            
+            if (job) {
+              queued++;
+              results.push({
+                agentId: agent.id,
+                agentName: agent.name,
+                walletAddress: user.walletAddress,
+                success: true,
+                error: undefined,
+                jobId: job.id, // Include job ID for tracking
+              });
+            } else {
+              results.push({
+                agentId: agent.id,
+                agentName: agent.name,
+                walletAddress: user.walletAddress,
+                success: false,
+                error: 'Failed to queue signal job',
+              });
+            }
+          } else {
+            // Classic agents and custom agents without prompts are processed immediately
+            const result = await this.processAgentSignal(
+              user.walletAddress,
+              agent,
+              signalId,
+              signal
+            );
+            
+            results.push(result);
+            if (result.success) executed++;
+          }
         } catch (error: any) {
           results.push({
             agentId: agent.id,
@@ -97,8 +133,8 @@ class SignalExecutorService {
       }
     }
 
-    logger.info(`Signal ${signalId} processed: ${processed} agents, ${executed} trades executed`);
-    return { processed, executed, results };
+    logger.info(`Signal ${signalId} processed: ${processed} agents, ${executed} trades executed, ${queued} queued`);
+    return { processed, executed, queued, results };
   }
 
   /**
@@ -510,6 +546,148 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
     }
 
     return { updated, errors };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BACKGROUND JOB PROCESSING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  private isProcessingJobs = false;
+
+  /**
+   * Process pending signal jobs (called periodically)
+   * This handles the LLM evaluation and trade execution for custom agents
+   */
+  async processBackgroundJobs(): Promise<{ processed: number; executed: number; failed: number }> {
+    if (this.isProcessingJobs) {
+      logger.debug('Job processor already running, skipping');
+      return { processed: 0, executed: 0, failed: 0 };
+    }
+
+    this.isProcessingJobs = true;
+    let processed = 0;
+    let executed = 0;
+    let failed = 0;
+
+    try {
+      // Reset any stale jobs first
+      await signalJobsService.resetStaleJobs();
+
+      // Get pending jobs
+      const jobs = await signalJobsService.getPendingJobs(5);
+      
+      if (jobs.length === 0) {
+        return { processed: 0, executed: 0, failed: 0 };
+      }
+
+      logger.info(`Processing ${jobs.length} pending signal jobs`);
+
+      for (const job of jobs) {
+        try {
+          processed++;
+          await signalJobsService.markProcessing(job.id);
+
+          // Get the agent
+          const agents = await futuresAgentsService.getUserAgents(job.user_wallet_address);
+          const agent = agents.find(a => a.id === job.agent_id);
+
+          if (!agent) {
+            await signalJobsService.markFailed(job.id, 'Agent not found');
+            failed++;
+            continue;
+          }
+
+          // Check if agent is still active
+          if (!agent.is_active) {
+            await signalJobsService.markCompleted(job.id, {
+              shouldTrade: false,
+              reason: 'Agent is no longer active',
+              confidence: 0,
+            });
+            continue;
+          }
+
+          // Evaluate the prompt
+          const evaluation = await this.evaluateAgentPrompt(agent, job.signal_data);
+          
+          if (!evaluation.shouldTrade) {
+            await signalJobsService.markCompleted(job.id, {
+              shouldTrade: false,
+              reason: evaluation.reason,
+              confidence: evaluation.confidence,
+            });
+            continue;
+          }
+
+          // Execute the trade
+          const tradeResult = await this.processAgentSignal(
+            job.user_wallet_address,
+            agent,
+            job.signal_id,
+            job.signal_data
+          );
+
+          if (tradeResult.success && tradeResult.trade?.id) {
+            await signalJobsService.markCompleted(job.id, {
+              shouldTrade: true,
+              reason: evaluation.reason,
+              confidence: evaluation.confidence,
+              tradeId: tradeResult.trade.id as string,
+            });
+            executed++;
+          } else {
+            await signalJobsService.markCompleted(job.id, {
+              shouldTrade: true,
+              reason: evaluation.reason,
+              confidence: evaluation.confidence,
+              tradeError: tradeResult.error,
+            });
+          }
+        } catch (error: any) {
+          logger.error(`Error processing job ${job.id}`, error);
+          await signalJobsService.markFailed(job.id, error.message);
+          failed++;
+        }
+      }
+
+      logger.info(`Job processing complete: ${processed} processed, ${executed} executed, ${failed} failed`);
+    } finally {
+      this.isProcessingJobs = false;
+    }
+
+    return { processed, executed, failed };
+  }
+
+  /**
+   * Start the background job processor (runs every 5 seconds)
+   */
+  private jobProcessorInterval: NodeJS.Timeout | null = null;
+
+  startJobProcessor(): void {
+    if (this.jobProcessorInterval) {
+      logger.warn('Job processor already started');
+      return;
+    }
+
+    logger.info('Starting signal job processor (5s interval)');
+    this.jobProcessorInterval = setInterval(() => {
+      this.processBackgroundJobs().catch(err => {
+        logger.error('Job processor error', err);
+      });
+    }, 5000);
+
+    // Run immediately on start
+    this.processBackgroundJobs().catch(err => {
+      logger.error('Initial job processing error', err);
+    });
+  }
+
+  stopJobProcessor(): void {
+    if (this.jobProcessorInterval) {
+      clearInterval(this.jobProcessorInterval);
+      this.jobProcessorInterval = null;
+      logger.info('Signal job processor stopped');
+    }
   }
 }
 
