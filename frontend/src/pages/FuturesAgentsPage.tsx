@@ -92,37 +92,80 @@ export function FuturesAgentsPage() {
   const classicAgent = agents.find(a => a.type === 'classic');
   const customAgents = agents.filter(a => a.type === 'custom');
 
+  // Handle network switch - requires disconnecting current wallet
+  const handleSwitchNetwork = async () => {
+    if (!address) return;
+    
+    // Check if there are open positions
+    if (positions.length > 0) {
+      toast.error('Close all positions before switching networks');
+      return;
+    }
+    
+    // Delete current API keys to allow reconnecting with different network
+    const deleted = await futuresService.deleteApiKeys(address);
+    if (deleted) {
+      setHasApiKeys(false);
+      setNetworkMode(networkMode === 'mainnet' ? 'testnet' : 'mainnet');
+      toast.success('Disconnected. Now connect with the other network.');
+    } else {
+      toast.error('Failed to disconnect wallet');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <GatedContent userTier={tier} requiredTier={TIERS.DIAMOND}>
         {/* Network Mode Banner */}
         {networkMode === 'mainnet' ? (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3">
-            <Globe className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-green-400 font-semibold text-sm flex items-center gap-2">
-                Mainnet Mode
-                <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">LIVE</span>
-              </h3>
-              <p className="text-green-200/70 text-sm mt-1">
-                You are trading with <span className="font-bold text-green-300">real funds</span> on Hyperliquid mainnet. 
-                All trades will be executed on the live network. Trade responsibly.
-              </p>
+          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Globe className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-green-400 font-semibold text-sm flex items-center gap-2">
+                  Mainnet Mode
+                  <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">LIVE</span>
+                </h3>
+                <p className="text-green-200/70 text-sm mt-1">
+                  You are trading with <span className="font-bold text-green-300">real funds</span> on Hyperliquid mainnet. 
+                  All trades will be executed on the live network. Trade responsibly.
+                </p>
+              </div>
             </div>
+            {hasApiKeys && (
+              <button
+                onClick={handleSwitchNetwork}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-all whitespace-nowrap"
+              >
+                <FlaskConical className="w-3.5 h-3.5" />
+                Switch to Testnet
+              </button>
+            )}
           </div>
         ) : (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-            <FlaskConical className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-amber-400 font-semibold text-sm flex items-center gap-2">
-                Testnet Mode
-                <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">PAPER</span>
-              </h3>
-              <p className="text-amber-200/70 text-sm mt-1">
-                This is a paper trading environment. Hyperliquid testnet prices may be unstable and 
-                inaccurate compared to mainnet. No real funds are at risk.
-              </p>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <FlaskConical className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-amber-400 font-semibold text-sm flex items-center gap-2">
+                  Testnet Mode
+                  <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">PAPER</span>
+                </h3>
+                <p className="text-amber-200/70 text-sm mt-1">
+                  This is a paper trading environment. Hyperliquid testnet prices may be unstable and 
+                  inaccurate compared to mainnet. No real funds are at risk.
+                </p>
+              </div>
             </div>
+            {hasApiKeys && (
+              <button
+                onClick={handleSwitchNetwork}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg hover:bg-green-500/20 transition-all whitespace-nowrap"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                Switch to Mainnet
+              </button>
+            )}
           </div>
         )}
 
