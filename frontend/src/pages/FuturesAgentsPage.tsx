@@ -34,8 +34,9 @@ import {
 
 export function FuturesAgentsPage() {
   const { address } = useAccount();
-  const { tier } = useUserTier();
-  const [hasApiKeys, setHasApiKeys] = useState(false);
+  const { tier, isLoading: isTierLoading } = useUserTier();
+  // Start as null to indicate "not yet loaded" - prevents flash of API key setup form
+  const [hasApiKeys, setHasApiKeys] = useState<boolean | null>(null);
   const [networkMode, setNetworkMode] = useState<NetworkMode>('testnet');
   const [agents, setAgents] = useState<FuturesAgent[]>([]);
   const [positions, setPositions] = useState<FuturesPosition[]>([]);
@@ -45,6 +46,9 @@ export function FuturesAgentsPage() {
   
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<FuturesAgent | null>(null);
+
+  // Track if initial data has been loaded
+  const isDataLoading = hasApiKeys === null;
 
   // Load data
   useEffect(() => {
@@ -115,7 +119,7 @@ export function FuturesAgentsPage() {
 
   return (
     <div className="space-y-6">
-      <GatedContent userTier={tier} requiredTier={TIERS.DIAMOND}>
+      <GatedContent userTier={tier} requiredTier={TIERS.DIAMOND} isLoading={isTierLoading}>
         {/* Network Mode Banner */}
         {networkMode === 'mainnet' ? (
           <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start justify-between gap-3">
@@ -194,8 +198,12 @@ export function FuturesAgentsPage() {
           )}
         </div>
 
-        {/* API Keys Section */}
-        {!hasApiKeys ? (
+        {/* API Keys Section - Show loading state first to prevent flash */}
+        {isDataLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+          </div>
+        ) : !hasApiKeys ? (
           <ApiKeySetup address={address!} networkMode={networkMode} setNetworkMode={setNetworkMode} onComplete={() => { setHasApiKeys(true); loadData(); }} />
         ) : (
           <>

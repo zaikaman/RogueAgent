@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 import { Tier, TIERS, TIER_THRESHOLDS } from '../constants/tiers';
 import { Button } from './ui/button';
 
@@ -8,9 +8,10 @@ interface GatedContentProps {
   userTier: Tier;
   requiredTier: Tier;
   onConnect?: () => void;
+  isLoading?: boolean;
 }
 
-export function GatedContent({ children, userTier, requiredTier, onConnect }: GatedContentProps) {
+export function GatedContent({ children, userTier, requiredTier, onConnect, isLoading }: GatedContentProps) {
   const tierLevels = {
     [TIERS.NONE]: 0,
     [TIERS.SILVER]: 1,
@@ -19,6 +20,15 @@ export function GatedContent({ children, userTier, requiredTier, onConnect }: Ga
   };
 
   const hasAccess = tierLevels[userTier] >= tierLevels[requiredTier];
+
+  // Show loading state while tier data is being fetched
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+      </div>
+    );
+  }
 
   if (hasAccess) {
     return <>{children}</>;

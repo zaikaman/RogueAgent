@@ -17,7 +17,7 @@ export function IntelPage() {
   const [page, setPage] = useState(1);
   const { data: historyData, isLoading: isHistoryLoading } = useIntelHistory(page, page === 1 ? 10 : 9);
   const { data: detailData, isLoading: isDetailLoading } = useIntelDetail(id);
-  const { tier, isConnected } = useUserTier();
+  const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
   const isLoading = id ? isDetailLoading : isHistoryLoading;
@@ -119,6 +119,7 @@ export function IntelPage() {
           userTier={tier} 
           requiredTier={TIERS.SILVER}
           onConnect={!isConnected ? handleConnect : undefined}
+          isLoading={isTierLoading}
         >
           {filteredArchive.length > 0 ? (
             <>

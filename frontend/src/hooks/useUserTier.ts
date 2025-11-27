@@ -8,7 +8,8 @@ export function useUserTier() {
   const [tier, setTier] = useState<Tier>(TIERS.NONE);
   const [balance, setBalance] = useState(0);
   const [telegramConnected, setTelegramConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start as true to prevent flash of "tier required" content before data loads
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -25,6 +26,7 @@ export function useUserTier() {
       setTier(TIERS.NONE);
       setBalance(0);
       setTelegramConnected(false);
+      // Only set loading to false when we know there's no wallet connected
       setIsLoading(false);
     }
   }, [isConnected, address]);

@@ -23,9 +23,12 @@ export function Terminal() {
   const [userTier, setUserTier] = useState<Tier>(TIERS.NONE);
   const [balance, setBalance] = useState(0);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
+  // Start as true to prevent flash of "tier required" content before data loads
+  const [isTierLoading, setIsTierLoading] = useState(true);
 
   useEffect(() => {
     if (isConnected && address) {
+      setIsTierLoading(true);
       walletService.verifyTier(address)
         .then(data => {
           setUserTier(data.tier);
@@ -36,10 +39,13 @@ export function Terminal() {
              setShowTelegramModal(true);
           }
         })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => setIsTierLoading(false));
     } else {
       setUserTier(TIERS.NONE);
       setBalance(0);
+      // Only set loading to false when we know there's no wallet connected
+      setIsTierLoading(false);
     }
   }, [isConnected, address]);
 
@@ -90,7 +96,7 @@ export function Terminal() {
             <SignalCard signal={latestSignal} isLoading={isRunLoading} isLatest={true} />
             
             {/* Mindshare Chart (Gated) */}
-            <GatedContent userTier={userTier} requiredTier={TIERS.SILVER}>
+            <GatedContent userTier={userTier} requiredTier={TIERS.SILVER} isLoading={isTierLoading}>
               <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
                   <Activity className="w-4 h-4" />
@@ -108,7 +114,7 @@ export function Terminal() {
         </div>
 
         {/* Intel Thread (Gated) */}
-        <GatedContent userTier={userTier} requiredTier={TIERS.GOLD}>
+        <GatedContent userTier={userTier} requiredTier={TIERS.GOLD} isLoading={isTierLoading}>
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <History className="w-5 h-5 text-cyan-400" />

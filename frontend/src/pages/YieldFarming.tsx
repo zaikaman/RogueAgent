@@ -16,7 +16,7 @@ export function YieldFarming() {
   const opportunities = yieldData?.opportunities || [];
   const pagination = yieldData?.pagination;
   const totalPages = pagination?.pages || 1;
-  const { tier, isConnected } = useUserTier();
+  const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
   const handleConnect = () => {
@@ -74,6 +74,7 @@ export function YieldFarming() {
           userTier={tier} 
           requiredTier={TIERS.SILVER}
           onConnect={!isConnected ? handleConnect : undefined}
+          isLoading={isTierLoading}
         >
           <div className="space-y-4 pt-8 border-t border-gray-800">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>

@@ -13,7 +13,7 @@ export function SignalsPage() {
   const [page, setPage] = useState(1);
   const { data: runStatus, isLoading: isStatusLoading } = useRunStatus();
   const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory(page, page === 1 ? 11 : 10);
-  const { tier, isConnected } = useUserTier();
+  const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
   const handleConnect = () => {
@@ -67,6 +67,7 @@ export function SignalsPage() {
         userTier={tier} 
         requiredTier={TIERS.SILVER}
         onConnect={!isConnected ? handleConnect : undefined}
+        isLoading={isTierLoading}
       >
         {/* History */}
         <div className="space-y-4 pt-8 border-t border-gray-800">
