@@ -25,6 +25,7 @@ export class SignalMonitorService {
   /**
    * Recalculate PnL for all historical signals using 1% fixed risk model
    * Call this once to migrate old data
+   * Supports both LONG and SHORT directions
    */
   async recalculateHistoricalPnL() {
     logger.info('Recalculating historical PnL with 1% risk model...');
@@ -52,9 +53,19 @@ export class SignalMonitorService {
         continue;
       }
 
+      // Determine direction from signal or infer from price structure
+      const direction = content.direction || (content.target_price > content.entry_price ? 'LONG' : 'SHORT');
+      const isLong = direction === 'LONG';
+
       const entryPrice = content.entry_price;
-      const risk = entryPrice - content.stop_loss;
-      const reward = content.target_price - entryPrice;
+      
+      // Calculate risk and reward based on direction
+      const risk = isLong 
+        ? entryPrice - content.stop_loss  // LONG: SL is below entry
+        : content.stop_loss - entryPrice; // SHORT: SL is above entry
+      const reward = isLong 
+        ? content.target_price - entryPrice  // LONG: TP is above entry
+        : entryPrice - content.target_price; // SHORT: TP is below entry
       const rrRatio = risk > 0 ? reward / risk : 1;
 
       let newPnL: number;
@@ -65,7 +76,10 @@ export class SignalMonitorService {
       } else {
         // closed manually - calculate based on close price if available
         const closePrice = content.current_price || entryPrice;
-        const currentR = risk > 0 ? (closePrice - entryPrice) / risk : 0;
+        const priceMove = isLong 
+          ? closePrice - entryPrice  // LONG: up is good
+          : entryPrice - closePrice; // SHORT: down is good
+        const currentR = risk > 0 ? priceMove / risk : 0;
         newPnL = currentR * RISK_PER_TRADE;
       }
 
@@ -73,7 +87,7 @@ export class SignalMonitorService {
       content.pnl_percent = newPnL;
 
       await supabaseService.updateRun(run.id, { content });
-      logger.info(`Signal ${run.id} (${content.token.symbol}): ${content.status} - Old PnL: ${oldPnL?.toFixed(2)}%, New PnL: ${newPnL.toFixed(2)}R (R:R ${rrRatio.toFixed(2)})`);
+      logger.info(`Signal ${run.id} (${content.token.symbol} ${direction}): ${content.status} - Old PnL: ${oldPnL?.toFixed(2)}%, New PnL: ${newPnL.toFixed(2)}R (R:R ${rrRatio.toFixed(2)})`);
     }
 
     logger.info('Historical PnL recalculation complete!');
@@ -288,43 +302,66 @@ export class SignalMonitorService {
           content.status = 'active';
         }
 
+        // Determine trade direction from signal
+        // LONG: profit when price rises, SHORT: profit when price falls
+        const direction = content.direction || (content.target_price > content.entry_price ? 'LONG' : 'SHORT');
+        const isLong = direction === 'LONG';
+
         // Fixed 1% risk per trade model
-        // Risk = entry_price - stop_loss
-        // Reward = target_price - entry_price
+        // LONG: Risk = entry_price - stop_loss, Reward = target_price - entry_price
+        // SHORT: Risk = stop_loss - entry_price, Reward = entry_price - target_price
         // R:R ratio = reward / risk
         // On SL hit: -1% (fixed loss)
         // On TP hit: +1% × R:R ratio
         // While active: show current R multiple (how many R's we're up/down)
         const RISK_PER_TRADE = 1; // 1% risk per trade
         const entryPrice = content.entry_price;
-        const risk = entryPrice - content.stop_loss; // Risk in price terms
-        const reward = content.target_price - entryPrice; // Reward in price terms
-        const rrRatio = risk > 0 ? reward / risk : 1; // Risk:Reward ratio
+        
+        // Calculate risk and reward based on direction
+        const risk = isLong 
+          ? entryPrice - content.stop_loss  // LONG: SL is below entry
+          : content.stop_loss - entryPrice; // SHORT: SL is above entry
+        const reward = isLong 
+          ? content.target_price - entryPrice  // LONG: TP is above entry
+          : entryPrice - content.target_price; // SHORT: TP is below entry
+        const rrRatio = risk > 0 ? reward / risk : 1;
         
         content.current_price = currentPrice;
 
-        // Check TP/SL first to determine final PnL
+        // Check TP/SL based on direction
         let statusChanged = false;
         
-        // Assuming Long position logic
-        if (currentPrice >= content.target_price) {
+        // LONG: TP when price rises to target, SL when price falls to stop
+        // SHORT: TP when price falls to target, SL when price rises to stop
+        const tpHit = isLong 
+          ? currentPrice >= content.target_price 
+          : currentPrice <= content.target_price;
+        const slHit = isLong 
+          ? currentPrice <= content.stop_loss 
+          : currentPrice >= content.stop_loss;
+        
+        if (tpHit) {
             content.status = 'tp_hit';
             content.closed_at = new Date().toISOString();
             // TP hit: gain = 1% × R:R ratio
             content.pnl_percent = RISK_PER_TRADE * rrRatio;
             statusChanged = true;
-            logger.info(`Signal ${run.id} hit TP! PnL: +${content.pnl_percent.toFixed(2)}% (R:R ${rrRatio.toFixed(2)})`);
-        } else if (currentPrice <= content.stop_loss) {
+            logger.info(`Signal ${run.id} (${direction}) hit TP! PnL: +${content.pnl_percent.toFixed(2)}% (R:R ${rrRatio.toFixed(2)})`);
+        } else if (slHit) {
             content.status = 'sl_hit';
             content.closed_at = new Date().toISOString();
             // SL hit: fixed -1% loss
             content.pnl_percent = -RISK_PER_TRADE;
             statusChanged = true;
-            logger.info(`Signal ${run.id} hit SL! PnL: ${content.pnl_percent.toFixed(2)}%`);
+            logger.info(`Signal ${run.id} (${direction}) hit SL! PnL: ${content.pnl_percent.toFixed(2)}%`);
         } else {
             // Still active: calculate current R multiple
-            // Current R = (currentPrice - entryPrice) / risk
-            const currentR = risk > 0 ? (currentPrice - entryPrice) / risk : 0;
+            // LONG: positive R when price > entry, negative when price < entry
+            // SHORT: positive R when price < entry, negative when price > entry
+            const priceMove = isLong 
+              ? currentPrice - entryPrice  // LONG: up is good
+              : entryPrice - currentPrice; // SHORT: down is good
+            const currentR = risk > 0 ? priceMove / risk : 0;
             content.pnl_percent = currentR * RISK_PER_TRADE;
             statusChanged = true; // Update anyway to show live price/pnl
         }
