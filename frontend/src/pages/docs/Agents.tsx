@@ -510,6 +510,164 @@ cvd divergence + poc support + upgrade catalyst
                 </div>
             </div>
         </section>
+
+        <section className="mb-16" id="predictor">
+            <h2 className="text-3xl font-bold text-white mb-6">Predictor Agent</h2>
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                <p className="text-yellow-200 text-sm">
+                    <strong>Role:</strong> The Prediction Markets Oracle - Discovers high-edge betting opportunities on Polymarket
+                </p>
+            </div>
+
+            <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2">
+                    <span className="text-2xl">💎</span>
+                    <span className="text-yellow-300 font-bold">Diamond Tier Exclusive</span>
+                    <span className="text-gray-400 text-sm">- Requires 1,000+ $RGE tokens</span>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Capabilities</h3>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
+                <ul className="space-y-3 text-gray-300 list-none">
+                    <li className="flex items-start gap-3">
+                        <span className="text-yellow-400 text-xl">→</span>
+                        <span><strong className="text-white">Real-time market discovery</strong> via web search on Polymarket.com</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-yellow-400 text-xl">→</span>
+                        <span><strong className="text-white">X (Twitter) sentiment analysis</strong> for each market</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-yellow-400 text-xl">→</span>
+                        <span><strong className="text-white">Independent probability calculation</strong> vs market implied odds</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-yellow-400 text-xl">→</span>
+                        <span><strong className="text-white">Edge detection</strong> identifying mispriced markets (12%+ edge required)</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <span className="text-yellow-400 text-xl">→</span>
+                        <span><strong className="text-white">URL verification</strong> ensuring all market links are valid</span>
+                    </li>
+                </ul>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Analysis Process</h3>
+            <div className="space-y-3 mb-6">
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-yellow-500/20 text-yellow-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">1</span>
+                    <div>
+                        <p className="text-white font-medium">Search Polymarket</p>
+                        <p className="text-gray-400 text-sm">Discovers active, high-volume markets across all categories</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-yellow-500/20 text-yellow-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">2</span>
+                    <div>
+                        <p className="text-white font-medium">Verify URLs</p>
+                        <p className="text-gray-400 text-sm">Confirms each market link exists (no fake/404 links)</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-yellow-500/20 text-yellow-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">3</span>
+                    <div>
+                        <p className="text-white font-medium">Get Market Price</p>
+                        <p className="text-gray-400 text-sm">Fetches current YES price and calculates implied probability</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-yellow-500/20 text-yellow-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">4</span>
+                    <div>
+                        <p className="text-white font-medium">Research Sentiment</p>
+                        <p className="text-gray-400 text-sm">Searches X and news for insider signals and sentiment shifts</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-yellow-500/20 text-yellow-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">5</span>
+                    <div>
+                        <p className="text-white font-medium">Calculate Edge</p>
+                        <p className="text-gray-400 text-sm">Edge = |Rogue Probability - Market Implied Probability| (min 12%)</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Categories Covered</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                    <h4 className="text-orange-400 font-bold text-sm mb-1">🪙 Crypto</h4>
+                    <p className="text-xs text-gray-400">BTC/ETH price targets, regulatory events</p>
+                </div>
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                    <h4 className="text-blue-400 font-bold text-sm mb-1">🏛️ Politics</h4>
+                    <p className="text-xs text-gray-400">Elections, policy decisions</p>
+                </div>
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                    <h4 className="text-green-400 font-bold text-sm mb-1">⚽ Sports</h4>
+                    <p className="text-xs text-gray-400">Major championships, player moves</p>
+                </div>
+                <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-3">
+                    <h4 className="text-pink-400 font-bold text-sm mb-1">🎬 Entertainment</h4>
+                    <p className="text-xs text-gray-400">Awards, releases, celebrity events</p>
+                </div>
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                    <h4 className="text-purple-400 font-bold text-sm mb-1">💻 Technology</h4>
+                    <p className="text-xs text-gray-400">Product launches, milestones</p>
+                </div>
+                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
+                    <h4 className="text-cyan-400 font-bold text-sm mb-1">📊 Economics</h4>
+                    <p className="text-xs text-gray-400">Fed decisions, market indicators</p>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Confidence Scoring</h3>
+            <div className="space-y-3 mb-6">
+                <div className="flex gap-3">
+                    <div className="w-20 text-yellow-300 font-mono text-sm font-bold">99</div>
+                    <div className="text-white text-sm">Near-certain (leaked info, definitive sources)</div>
+                </div>
+                <div className="flex gap-3">
+                    <div className="w-20 text-green-400 font-mono text-sm">95-98</div>
+                    <div className="text-gray-300 text-sm">Very high confidence (strong evidence, clear trend)</div>
+                </div>
+                <div className="flex gap-3">
+                    <div className="w-20 text-blue-400 font-mono text-sm">92-94</div>
+                    <div className="text-gray-300 text-sm">High confidence (solid analysis, some uncertainty)</div>
+                </div>
+                <div className="flex gap-3">
+                    <div className="w-20 text-gray-400 font-mono text-sm">90-91</div>
+                    <div className="text-gray-400 text-sm">Moderate confidence (edge exists but riskier)</div>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Output Format</h3>
+            <div className="bg-[#0d1117] rounded-lg border border-white/10 p-4 mb-6 font-mono text-xs overflow-x-auto">
+                <pre className="text-gray-300">{`{
+  "market_id": "will-btc-hit-100k-2025",
+  "title": "Will Bitcoin hit $100,000 in 2025?",
+  "platform": "Polymarket",
+  "category": "Crypto",
+  "yes_price": 0.72,
+  "implied_probability": 72,
+  "rogue_probability": 88,
+  "edge_percent": 16,
+  "confidence_score": 94,
+  "recommended_bet": "BUY YES",
+  "market_url": "https://polymarket.com/event/will-btc-hit-100k-2025",
+  "reasoning": "ETF inflows and halving cycle momentum underpriced; X sentiment bullish."
+}`}</pre>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Schedule</h3>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                <p className="text-gray-300">
+                    <strong className="text-white">Scan Interval:</strong> Every 6 hours
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                    Results are cached in the database for instant access. Diamond tier users can also trigger manual scans.
+                </p>
+            </div>
+        </section>
       </div>
     </DocsLayout>
   );

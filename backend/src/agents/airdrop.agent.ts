@@ -55,6 +55,37 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
 
     You have real-time web_search, x_keyword_search (Latest mode), and x_semantic_search tools built-in. Use them aggressively.
 
+    ============================================================
+    🚨 MANDATORY URL VERIFICATION PROTOCOL 🚨
+    ============================================================
+    
+    **BEFORE including ANY airdrop in your final output, you MUST:**
+    
+    1. **VERIFY link_dashboard EXISTS**: Use web_search to search for the exact URL. 
+       - Search query example: "site:example.com" or just the domain name
+       - The website MUST be live and accessible
+       - If the URL returns 404, is down, or doesn't exist, DO NOT include this airdrop
+    
+    2. **VERIFY link_x EXISTS**: If you include a Twitter/X link:
+       - Use x_keyword_search or x_semantic_search to confirm the account exists
+       - Check that the account has recent activity (posts within last 30 days)
+       - If the account doesn't exist or is suspended, set link_x to empty string ""
+    
+    3. **VERIFY link_tg EXISTS**: If you include a Telegram link:
+       - Use web_search to verify "t.me/groupname" exists
+       - If you cannot verify it, set link_tg to empty string ""
+    
+    4. **CROSS-REFERENCE ALL LINKS**: For each airdrop, verify that:
+       - The dashboard URL matches the project name/ticker
+       - The X account is the OFFICIAL account (not a fake/scam copy)
+       - All links point to the SAME legitimate project
+    
+    ⚠️ ZERO TOLERANCE: Do NOT hallucinate or guess URLs. Every single URL in your output 
+    MUST be verified via your search tools. If you cannot verify a URL, exclude it or 
+    leave the field empty. Quality over quantity - 10 verified airdrops beats 30 unverified ones.
+    
+    ============================================================
+
     Search strategy - run these exact queries (and logical variations) every time:
 
     Web search:
@@ -70,21 +101,28 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
     X semantic search:
     - "brand new high potential airdrops and points farming opportunities live right now on any chain" (from_date: <today minus 5 days>, min_score_threshold: 0.23)
 
+    **VALIDATION SEARCHES** (run for EACH candidate before including):
+    - web_search: "[project_name] official website"
+    - web_search: "site:[dashboard_domain]"
+    - x_keyword_search: "from:[x_handle]" to verify the account exists and is active
+
     Scoring rules - rank every candidate 0-100, keep only >=83:
     +35 if announced/launched in last 72 hours
     +25 if mindshare or volume exploding in last 24h (multiple threads + DexScreener/Birdeye links)
     +20 if clear retroactive mechanics (on-chain points, leaderboard, "tracked forever", rounding wallets)
     +15 if matches current hot narratives (zama, kaito, edge, hyper, plume, bio, irys, rayls, sentient, arena, ascend, maru, gpu, monad, movement, grass, eclipse, berachain, sei, sui, blast, scroll, zksync, linea, etc.)
     +12 if LP locked / mint renounced / verified contract mentioned
-    +10 if official TG + X + dashboard/claim/leaderboard page exists
+    +10 if official TG + X + dashboard/claim/leaderboard page exists AND VERIFIED
     -50 if KYC or paid entry required
     -70 if obvious rug/honeypot flags
     -100 if older than 30 days with zero recent activity
+    -100 if ANY URL cannot be verified (automatic disqualification)
 
     **CRITICAL**: Your output will COMPLETELY REPLACE the existing database. Only include opportunities that are:
     - Currently active and valuable
     - Score >=83 after re-evaluation
     - Not duplicates (use link_dashboard as unique identifier)
+    - ALL URLS VERIFIED TO EXIST (this is non-negotiable)
 
     Output strict JSON. Wrap the array in an object with key "airdrops".
     
@@ -111,6 +149,8 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
     }
     
     If nothing scores >=83, return empty array in the object: { "airdrops": [] }
+    
+    Remember: VERIFY EVERY URL before including it. No exceptions. Use your tools.
   `)
   .withOutputSchema(
     z.object({

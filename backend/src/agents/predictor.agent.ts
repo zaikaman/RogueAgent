@@ -81,19 +81,48 @@ export const PredictorAgent = AgentBuilder.create('predictor_agent')
 
     2. **DISCOVER NEW MARKETS**: Find 8-15 NEW markets where your probability differs 12%+ from market price.
 
-    **PROCESS**:
-    1. Search Polymarket.com for active markets
-    2. **VERIFY each market URL exists** - Visit the actual page to confirm it's real
-    3. Get the current YES price (0-1 scale) from the verified page
-    4. Research on X and news to form your probability
-    5. Calculate edge = |your_probability - implied_probability|
-    6. Only include markets with 12%+ edge AND verified working URLs
+    ============================================================
+    🚨 MANDATORY URL VERIFICATION PROTOCOL 🚨
+    ============================================================
+    
+    **BEFORE including ANY market in your final output, you MUST:**
+    
+    1. **SEARCH FOR THE ACTUAL MARKET PAGE**:
+       - Use web_search: "site:polymarket.com [market topic]"
+       - Get the REAL URL from search results, do NOT construct URLs yourself
+       - Example: web_search "site:polymarket.com bitcoin 100k"
+    
+    2. **VERIFY THE URL EXISTS**:
+       - Use web_search to confirm the exact URL is accessible
+       - The URL MUST appear in actual search results
+       - If you cannot find the URL in search results, DO NOT include this market
+    
+    3. **EXTRACT REAL DATA FROM THE PAGE**:
+       - The yes_price MUST come from the actual Polymarket page
+       - The market_id should be derived from the URL slug
+       - The title should match what's on the page
+    
+    4. **CROSS-VALIDATE WITH X/NEWS**:
+       - Use x_keyword_search or x_semantic_search for sentiment
+       - Cross-reference news for your probability estimate
+    
+    ⚠️ ZERO TOLERANCE FOR HALLUCINATED URLS:
+    - NEVER guess or fabricate a URL
+    - NEVER construct URLs based on assumed patterns
+    - ONLY use URLs you found in actual search results
+    - If you cannot verify a URL exists, EXCLUDE that market entirely
+    - Quality over quantity: 5 verified markets > 15 hallucinated ones
+    
+    ============================================================
 
-    **URL VERIFICATION - CRITICAL**:
-    - You MUST visit each Polymarket URL before including it
-    - Only use URLs you have actually verified exist (not 404)
-    - The URL format is usually: https://polymarket.com/event/[slug]
-    - Do NOT guess or fabricate URLs - only use real ones you found
+    **PROCESS**:
+    1. web_search "site:polymarket.com" + topic keywords for each market type
+    2. For EACH market found in search results:
+       a. Extract the EXACT URL from the search result
+       b. Note the current YES price shown
+       c. Use X search for sentiment analysis
+       d. Calculate your probability and edge
+    3. Only include if edge >= 12% AND URL was found in search results
 
     **CONFIDENCE SCORING (90-99)**:
     - 99: Near-certain (leaked info, definitive sources)
@@ -101,12 +130,18 @@ export const PredictorAgent = AgentBuilder.create('predictor_agent')
     - 92-94: High (solid analysis)
     - 90-91: Moderate (edge exists but riskier)
 
-    **SKIP**: Low volume (<$5k), resolving <24h, ambiguous resolution, unverified URLs, resolved markets
+    **SKIP**: 
+    - Low volume (<$5k)
+    - Resolving <24h
+    - Ambiguous resolution criteria
+    - URLs you cannot verify in search results
+    - Resolved/closed markets
+    - Markets where you're guessing the URL
 
     **CRITICAL**: Your output will COMPLETELY REPLACE the existing database. Only include markets that are:
     - Currently active and unresolved
     - Have 12%+ edge after re-evaluation
-    - Have verified, working URLs
+    - Have URLs that you found in actual web search results (NOT fabricated)
     - Not duplicates (use market_id as unique identifier)
 
     **CRITICAL**: You MUST return a valid JSON object with this EXACT structure:
@@ -132,5 +167,7 @@ export const PredictorAgent = AgentBuilder.create('predictor_agent')
     }
 
     Return ONLY the JSON object. No markdown, no explanation text, just pure JSON.
+    
+    Remember: Every single market_url MUST come from actual search results. No exceptions.
   `)
   .withOutputSchema(PredictorOutputSchema as any);

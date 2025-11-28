@@ -112,18 +112,20 @@ graph TD
     Orchestrator --> Intel[📊 Intel Agent]
     Orchestrator --> Yield[🌾 Yield Agent]
     Orchestrator --> Airdrop[🎁 Airdrop Agent]
+    Orchestrator --> Predictor[🎲 Predictor Agent]
     Orchestrator --> FuturesScanner[📈 Futures Scanner]
     
     Scanner -->|Trending Tokens| Analyzer[🧠 Analyzer Agent]
     Analyzer -->|High-Conviction Signals| Writer[✍️ Writer Agent]
     Intel -->|Market Narratives| Writer
+    Predictor -->|High-Edge Markets| Diamond[💎 Diamond Tier]
     
     FuturesScanner -->|LONG/SHORT Candidates| FuturesAnalyzer[📉 Futures Analyzer]
     FuturesAnalyzer -->|Direction + Levels| FuturesExecutor[⚡ Signal Executor]
     FuturesExecutor -->|Orders| Hyperliquid[🔗 Hyperliquid Mainnet/Testnet]
     
     Writer -->|Formatted Content| Publisher[📡 Publisher Agent]
-    Publisher -->|Immediate| Diamond[💎 Diamond Tier]
+    Publisher -->|Immediate| Diamond
     Publisher -->|Immediate| Gold[🥇 Gold Tier]
     Publisher -->|+15min| Silver[🥈 Silver Tier]
     Publisher -->|+30min| Public[🌐 X/Public]
@@ -140,6 +142,7 @@ graph TD
     style Scanner fill:#4ecdc4,stroke:#0d7377,stroke-width:2px
     style Analyzer fill:#45b7d1,stroke:#0d3b66,stroke-width:2px
     style Intel fill:#96ceb4,stroke:#2d6a4f,stroke-width:2px
+    style Predictor fill:#ffd700,stroke:#b8860b,stroke-width:2px
     style ChatAgent fill:#ffd93d,stroke:#f77f00,stroke-width:2px
     style Publisher fill:#a8dadc,stroke:#457b9d,stroke-width:2px
     style FuturesScanner fill:#9d4edd,stroke:#5a189a,stroke-width:2px
@@ -301,6 +304,64 @@ Monitors specific high-alpha X accounts: WatcherGuru, agentcookiefun, cz_binance
 - **9-10**: Critical alpha, market-moving intelligence (PRIORITY)
 
 **Output**: Market intelligence reports that help users understand the "why" behind price movements.
+
+---
+
+#### 🎲 **Predictor Agent** - The Prediction Markets Oracle (Diamond Only)
+
+**Role**: Discovers high-edge betting opportunities on Polymarket using AI-powered probability analysis.
+
+**Access**: 💎 **Diamond Tier Exclusive** - Requires 1,000+ $RGE tokens
+
+**Capabilities**:
+- **Real-time market discovery** via web search on Polymarket.com
+- **X (Twitter) sentiment analysis** for each market
+- **Independent probability calculation** vs market implied odds
+- **Edge detection** identifying mispriced markets (12%+ edge required)
+- **URL verification** ensuring all market links are valid
+
+**Analysis Process**:
+1. Searches Polymarket for active, high-volume markets
+2. Verifies each market URL exists (no fake links)
+3. Gets current YES price and calculates implied probability
+4. Researches sentiment on X and news sources
+5. Calculates true probability using multiple signals
+6. Identifies edge = |Rogue Probability - Market Implied Probability|
+7. Only surfaces markets with 12%+ edge
+
+**Categories Covered**:
+- **Crypto**: BTC/ETH price targets, regulatory events, protocol milestones
+- **Politics**: Elections, policy decisions, geopolitical events
+- **Sports**: Major championships, player movements
+- **Entertainment**: Awards shows, releases, celebrity events
+- **Technology**: Product launches, company milestones
+- **Economics**: Fed decisions, market indicators
+
+**Confidence Scoring (90-99)**:
+- **99**: Near-certain (leaked info, definitive sources)
+- **95-98**: Very high confidence (strong evidence, clear trend)
+- **92-94**: High confidence (solid analysis, some uncertainty)
+- **90-91**: Moderate confidence (edge exists but riskier)
+
+**Output**: 8-15 high-conviction markets with:
+```json
+{
+  "market_id": "will-btc-hit-100k-2025",
+  "title": "Will Bitcoin hit $100,000 in 2025?",
+  "platform": "Polymarket",
+  "category": "Crypto",
+  "yes_price": 0.72,
+  "implied_probability": 72,
+  "rogue_probability": 88,
+  "edge_percent": 16,
+  "confidence_score": 94,
+  "recommended_bet": "BUY YES",
+  "market_url": "https://polymarket.com/event/will-btc-hit-100k-2025",
+  "reasoning": "ETF inflows and halving cycle momentum underpriced; X sentiment overwhelmingly bullish."
+}
+```
+
+**Schedule**: Scans every 6 hours, caches results for instant access
 
 ---
 
