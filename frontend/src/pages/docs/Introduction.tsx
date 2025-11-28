@@ -12,7 +12,7 @@ export default function Introduction() {
                 Welcome to Rogue
             </h1>
             <p className="text-xl text-gray-400 leading-relaxed">
-                An autonomous multi-agent system for crypto market intelligence. Rogue operates 24/7, scanning global markets, analyzing on-chain data, and delivering high-conviction trading signals with institutional-grade analysis.
+                An autonomous multi-agent system for crypto market intelligence and trading. Rogue operates 24/7—scanning markets, analyzing on-chain data, delivering high-conviction signals, and executing trades on Hyperliquid.
             </p>
         </div>
 
@@ -65,7 +65,7 @@ export default function Introduction() {
         <section className="mb-16">
             <h2 className="text-3xl font-bold text-white mb-6">What is Rogue?</h2>
             <p className="text-gray-300 mb-6">
-                Rogue is not just a bot; it's an <strong className="text-white">autonomous Crypto Alpha Oracle</strong>—a sophisticated multi-agent system designed to operate as your personal institutional-grade research desk.
+                Rogue is not just a bot; it's an <strong className="text-white">autonomous Crypto Trading Oracle</strong>—a sophisticated multi-agent system that goes beyond analysis to actually execute trades. Your personal institutional-grade trading desk that never sleeps.
             </p>
             <p className="text-gray-300 mb-6">
                 Built on cutting-edge AI agent orchestration using the <a href="https://github.com/iqai/adk" target="_blank" rel="noopener noreferrer" className="text-teal-glow hover:underline">@iqai/adk framework</a>, Rogue continuously monitors cryptocurrency markets across multiple dimensions:
@@ -143,7 +143,7 @@ export default function Introduction() {
                     </div>
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Autonomous Operation</h3>
-                        <p className="text-gray-400">No manual input required. Rogue runs on a configurable schedule (default: every 1 hour), hunting for alpha while you sleep.</p>
+                        <p className="text-gray-400">No manual input required. Rogue runs on a configurable schedule (default: every 1 hour), analyzing markets and executing trades while you sleep.</p>
                     </div>
                 </div>
 
@@ -153,7 +153,17 @@ export default function Introduction() {
                     </div>
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Multi-Agent Intelligence</h3>
-                        <p className="text-gray-400">Unlike single-model systems, Rogue deploys specialized agents for scanning, analysis, content generation, and distribution—each optimized for its specific task.</p>
+                        <p className="text-gray-400">Unlike single-model systems, Rogue deploys specialized agents for scanning, analysis, trading execution, content generation, and distribution—each optimized for its specific task.</p>
+                    </div>
+                </div>
+
+                <div className="flex gap-4">
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center flex-shrink-0 border border-cyan-500/30">
+                        <span className="text-cyan-400 font-bold">⚡</span>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-semibold text-lg mb-2">From Analysis to Execution</h3>
+                        <p className="text-gray-400">Rogue doesn't just find opportunities—it trades them. The Futures Agents execute LONG/SHORT positions on Hyperliquid with dynamic leverage, on both mainnet and testnet.</p>
                     </div>
                 </div>
 
@@ -204,7 +214,7 @@ export default function Introduction() {
                     </div>
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Futures Trading</h3>
-                        <p className="text-gray-400 mb-2">Autonomous perpetual futures trading on <strong className="text-white">Hyperliquid testnet</strong>:</p>
+                        <p className="text-gray-400 mb-2">Autonomous perpetual futures trading on <strong className="text-white">Hyperliquid</strong> with both <strong className="text-green-400">Mainnet</strong> (real funds) and <strong className="text-amber-400">Testnet</strong> (paper trading) modes:</p>
                         <ul className="text-sm text-gray-400 space-y-1">
                             <li>• <strong className="text-white">LONG and SHORT</strong> positions supported</li>
                             <li>• <strong className="text-white">Dynamic leverage</strong> per asset (BTC: 50x, memecoins: 3-5x)</li>

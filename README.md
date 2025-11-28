@@ -1,4 +1,4 @@
-# ROGUE | The Crypto Alpha Oracle
+# ROGUE | The Autonomous Crypto Trading Oracle
 
 ![Rogue Agent Banner](https://rogue-adk.vercel.app/logo.webp)
 
@@ -10,9 +10,9 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18-339933?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 
-**Autonomous Multi-Agent Swarm for Crypto Market Intelligence**
+**Autonomous Multi-Agent Swarm for Crypto Market Intelligence & Trading**
 
-*An advanced AI-powered platform that operates 24/7, scanning global markets, analyzing on-chain data, and delivering high-conviction trading signals with institutional-grade analysis.*
+*An advanced AI-powered platform that operates 24/7—scanning global markets, analyzing on-chain data, delivering high-conviction trading signals, and executing trades autonomously on Hyperliquid.*
 
 </div>
 
@@ -37,7 +37,7 @@
 
 ## ⚡ What is Rogue?
 
-**Rogue** is not just a bot; it's an **autonomous Crypto Alpha Oracle**—a sophisticated multi-agent system designed to operate as your personal institutional-grade research desk.
+**Rogue** is not just a bot; it's an **autonomous Crypto Trading Oracle**—a sophisticated multi-agent system that goes beyond analysis to actually execute trades. Think of it as your personal institutional-grade trading desk that never sleeps.
 
 Built on cutting-edge AI agent orchestration, Rogue continuously monitors the cryptocurrency markets across multiple dimensions:
 - **30+ data sources** including CoinGecko, Birdeye, DeFi Llama, CoinMarketCap
@@ -51,9 +51,11 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 
 ### What Makes Rogue Different?
 
-🎯 **Autonomous Operation**: No manual input required. Rogue runs 24/7, hunting for alpha while you sleep.
+🎯 **Autonomous Operation**: No manual input required. Rogue runs 24/7, analyzing markets and executing trades while you sleep.
 
-🧠 **Multi-Agent Intelligence**: Unlike single-model systems, Rogue deploys specialized agents for scanning, analysis, content generation, and distribution—each optimized for its specific task.
+🧠 **Multi-Agent Intelligence**: Unlike single-model systems, Rogue deploys specialized agents for scanning, analysis, content generation, trading execution, and distribution—each optimized for its specific task.
+
+📈 **From Analysis to Execution**: Rogue doesn't just find opportunities—it trades them. The Futures Agents execute LONG/SHORT positions on Hyperliquid with dynamic leverage per asset.
 
 📈 **Day Trading Focused**: Rogue specializes in **day trades** (4-24 hour holds) with selective swing trades when conditions are perfect. No scalping, no tight stops, no getting stopped out on noise.
 

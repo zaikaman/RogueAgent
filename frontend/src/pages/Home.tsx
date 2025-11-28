@@ -246,7 +246,7 @@ export default function Home() {
                             transition={{ duration: 0.6, delay: 0.2 }}
                             className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed"
                         >
-                            The Real-Time Crypto Alpha Oracle. Relentlessly scanning the ecosystem to surface explosive low-cap opportunities and narrative shifts before they hit mainstream.
+                            The Autonomous Crypto Trading Oracle. Scans markets, analyzes opportunities, and executes trades on Hyperliquid. Your AI-powered trading desk, running 24/7.
                         </motion.p>
 
                         <motion.div
@@ -346,7 +346,7 @@ export default function Home() {
                             transition={{ delay: 0.2 }}
                             className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed"
                         >
-                            The only oracle that combines social sentiment, on-chain data, and narrative analysis to find the next 100x.
+                            The only oracle that analyzes markets and actually executes trades. From signal to execution, fully autonomous on Hyperliquid.
                         </motion.p>
                     </div>
 
@@ -466,24 +466,29 @@ export default function Home() {
                                 <div>
                                     <span className="text-sm font-mono text-teal-glow tracking-wider uppercase">Platform</span>
                                     <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mt-4 mb-8 leading-[1.1]">
-                                        A platform for real-time Crypto Alpha.
+                                        From analysis to execution. Fully autonomous.
                                     </h2>
 
                                     <div className="space-y-8 relative pl-6 border-l border-white/10">
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-teal-glow shadow-[0_0_10px_rgba(0,212,255,0.5)]" />
                                             <h3 className="text-xl font-bold text-white mb-2">Ecosystem Scanner</h3>
-                                            <p className="text-gray-400">Relentlessly monitors X, Telegram, and on-chain data to surface opportunities before they trend.</p>
+                                            <p className="text-gray-400">Monitors X, Telegram, and on-chain data 24/7 to surface opportunities before they trend.</p>
                                         </div>
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-teal-dark" />
                                             <h3 className="text-xl font-bold text-white mb-2">Signal Analyzer</h3>
-                                            <p className="text-gray-400">Filters noise to identify high-conviction setups with clear entry, target, and stop-loss levels.</p>
+                                            <p className="text-gray-400">AI-powered analysis identifies high-conviction setups with precise entry, target, and stop-loss levels.</p>
+                                        </div>
+                                        <div className="relative">
+                                            <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-purple-500" />
+                                            <h3 className="text-xl font-bold text-white mb-2">Autonomous Execution</h3>
+                                            <p className="text-gray-400">Executes LONG/SHORT futures trades on Hyperliquid with dynamic leverage. Mainnet & testnet supported.</p>
                                         </div>
                                         <div className="relative">
                                             <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-gray-600" />
                                             <h3 className="text-xl font-bold text-white mb-2">Alpha Publisher</h3>
-                                            <p className="text-gray-400">Broadcasts all signals to $RGE holders instantly via Telegram. Curated highlights posted to X.</p>
+                                            <p className="text-gray-400">Broadcasts signals to $RGE holders instantly via Telegram. Curated highlights posted to X.</p>
                                         </div>
                                     </div>
                                 </div>
