@@ -115,7 +115,7 @@ Welcome to **Rogue Agent**! 🕵️‍♂️
 I am your AI-powered crypto intelligence assistant.
 
 **Getting Started:**
-1. Verify your wallet: \`/verify <wallet_address>\`
+1. Verify your wallet: \`/verify <wallet\\_address>\`
 2. Once verified, you can chat with me about the market!
 
 **Commands:**
@@ -130,25 +130,25 @@ I am your AI-powered crypto intelligence assistant.
         const helpMessage = `
 **Rogue Agent Commands** 🛠️
 
-**/verify <wallet_address>**
+**/verify <wallet\\_address>**
 Link your wallet to access your tier benefits.
 Example: \`/verify 0x123...\`
 
-**/scan <token_symbol or contract_address>**
+**/scan <token\\_symbol or contract\\_address>**
 Request a deep-dive analysis for a specific token.
-*Exclusive to DIAMOND tier users.*
+_Exclusive to DIAMOND tier users._
 Examples: 
 \`/scan SOL\`
 \`/scan EvDWFiEhRWxpJM1wJHFpe6sy8M14KLTV2bNAh7r6pump\`
 
 **Chat Features** 💬
 You can chat with me normally! Ask about:
-- Market trends
-- Token prices
-- Crypto news
-- General questions
+• Market trends
+• Token prices
+• Crypto news
+• General questions
 
-*Note: Custom scans are currently limited to Diamond tier users.*
+_Note: Custom scans are currently limited to Diamond tier users._
         `;
         this.bot?.sendMessage(msg.chat.id, helpMessage, { parse_mode: 'Markdown' });
     });
