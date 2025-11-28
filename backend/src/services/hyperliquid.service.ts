@@ -80,48 +80,6 @@ interface TradePosition {
   marginType: 'isolated' | 'cross';
 }
 
-// Hyperliquid available perpetual pairs (complete list as of Nov 2025)
-const HYPERLIQUID_PERPS = [
-  // Major coins
-  'BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'LINK',
-  'LTC', 'BCH', 'ETC', 'ATOM', 'UNI', 'AAVE', 'MKR', 'SNX', 'COMP', 'CRV',
-  // Layer 2 & Infrastructure
-  'ARB', 'OP', 'MATIC', 'POL', 'STRK', 'MANTA', 'LINEA', 'BLAST', 'ZK', 'SCROLL',
-  'BASE', 'ZETA', 'METIS', 'CELO', 'NEAR', 'ICP', 'FIL', 'AR', 'RENDER', 'RNDR',
-  // DeFi
-  'DYDX', 'GMX', 'LDO', 'FXS', 'PENDLE', 'EIGEN', 'ETHFI', 'ENA', 'ONDO', 'MORPHO',
-  'USUAL', 'RESOLV', 'LISTA', 'AERO', 'CAKE', 'SUSHI', 'BADGER', 'RSR', 'RDNT',
-  // Gaming & Metaverse
-  'IMX', 'GALA', 'SAND', 'APE', 'ILV', 'YGG', 'BIGTIME', 'PIXEL', 'SUPER', 'NFTI',
-  'MAVIA', 'PRIME', 'XAI', 'BEAM', 'PORTAL', 'ACE', 'RON',
-  // AI & Data
-  'FET', 'TAO', 'IO', 'GRASS', 'AI16Z', 'AIXBT', 'VIRTUAL', 'GRIFFAIN',
-  'AI', 'PROMPT', 'KAITO',
-  // Meme coins
-  'SHIB', 'PEPE', 'BONK', 'FLOKI', 'WIF', 'POPCAT', 'BRETT', 'NEIRO',
-  'GOAT', 'PNUT', 'MOODENG', 'FARTCOIN', 'ZEREBRO', 'TURBO', 'MEME', 'MYRO',
-  'MEW', 'BOME', 'CHILLGUY', 'DOOD', 'SPX', 'HPOS', 'PURR', 'NEIROETH',
-  'kBONK', 'kDOGS', 'kFLOKI', 'kLUNC', 'kNEIRO', 'kPEPE', 'kSHIB',
-  // Political & Social
-  'TRUMP', 'MELANIA', 'PEOPLE', 'FRIEND', 'VINE', 'WLFI',
-  // New ecosystems
-  'SUI', 'SEI', 'TIA', 'APT', 'INJ', 'PYTH', 'JTO', 'JUP', 'W', 'DYM',
-  'ALT', 'BERA', 'INIT', 'HYPE', 'HYPER', 'IP', 'MOVE',
-  'LAYER', 'S', 'ANIME', 'MON', 'BABY', 'LAUNCHCOIN', 'PUMP',
-  // Infrastructure & Utilities
-  'STX', 'KAS', 'TON', 'TRX', 'XLM', 'ALGO', 'HBAR', 'NEO', 'ZEC', 'BSV',
-  'ORDI', 'WLD', 'BLUR', 'ENS', 'GAS', 'BLZ', 'OGN', 'APEX', 'CYBER',
-  // Others
-  'FTM', 'RUNE', 'NOT', 'HMSTR', 'CATI', 'DOGS', 'OM', 'OMNI', 'SAGA',
-  'TNSR', 'REZ', 'MERL', 'BIO', 'PENGU', 'ME', 'PAXG', 'RLB', 'UNIBOT',
-  'GMT', 'BANANA', 'MAV', 'TRB', 'STG', 'UMA', 'BNT', 'ARK', 'NTRN',
-  'IOTA', 'MINA', 'CFX', 'CANTO', 'MNT', 'LOOM', 'REQ', 'USTC', 'FTT',
-  'ZEN', 'ORBS', 'POLYX', 'STRAX', 'PANDORA', 'OX', 'CC', 'MEGA', 'SHIA',
-  '0G', '2Z', 'ASTER', 'AVNT', 'HEMI', 'JELLY', 'MET', 'NIL', 'NXPC',
-  'PROVE', 'SCR', 'SKY', 'SOPH', 'STBL', 'SYRUP', 'TST', 'VVV', 'WCT',
-  'XPL', 'YZY', 'ZORA', 'ZRO'
-];
-
 export class HyperliquidService extends EventEmitter {
   private sdk: Hyperliquid;
   private credentials: HyperliquidCredentials;
@@ -965,13 +923,6 @@ export class HyperliquidService extends EventEmitter {
       throw error;
     }
   }
-
-  /**
-   * Get static list of Hyperliquid perpetual symbols (for signal filtering)
-   */
-  static getKnownSymbols(): string[] {
-    return HYPERLIQUID_PERPS;
-  }
 }
 
 // Factory function to create service instance
@@ -982,6 +933,3 @@ export function createHyperliquidService(
 ): HyperliquidService {
   return new HyperliquidService({ privateKey, walletAddress }, testnet);
 }
-
-// Export known symbols for external use
-export const HYPERLIQUID_AVAILABLE_PERPS = HYPERLIQUID_PERPS;

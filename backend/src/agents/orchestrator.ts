@@ -16,7 +16,6 @@ import { coinMarketCapService } from '../services/coinmarketcap.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { zImageService } from '../services/zimage.service';
-import { hyperliquidFuturesFilterService } from '../services/hyperliquid-filter.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
 import { getCoingeckoId } from '../constants/coingecko-ids.constant';
@@ -194,37 +193,27 @@ export class Orchestrator extends EventEmitter {
         this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success', scannerResult);
 
         if (scannerResult.candidates && scannerResult.candidates.length > 0) {
-          // Filter candidates to only include tokens available on Hyperliquid Futures
-          this.broadcast('Filtering candidates for Hyperliquid Futures availability...', 'info');
-          const futuresFilteredCandidates = await hyperliquidFuturesFilterService.filterFuturesAvailable(scannerResult.candidates);
-          this.broadcast(`${futuresFilteredCandidates.length}/${scannerResult.candidates.length} candidates available on Hyperliquid Futures.`, 'success');
-
-          if (futuresFilteredCandidates.length === 0) {
-            this.broadcast('No candidates available on Hyperliquid Futures. Skipping signal generation.', 'warning');
-            logger.info('All candidates filtered out - not available on Hyperliquid Futures.');
-          } else {
-            // 2. Analyzer
-            logger.info('Running Analyzer Agent...');
-            this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
-            const { runner: analyzer } = await AnalyzerAgent.build();
-            const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(futuresFilteredCandidates)}
+          // 2. Analyzer
+          logger.info('Running Analyzer Agent...');
+          this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
+          const { runner: analyzer } = await AnalyzerAgent.build();
+          const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}
           
             Global Market Context: ${JSON.stringify(marketData.global_market_context)}`;
           
-            analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
-              analyzer,
-              analyzerPrompt,
-              'Analyzer Agent'
-            );
-            logger.info('Analyzer result:', analyzerResult);
+          analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
+            analyzer,
+            analyzerPrompt,
+            'Analyzer Agent'
+          );
+          logger.info('Analyzer result:', analyzerResult);
 
-            if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
-              this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
-              signalGenerated = true;
-            } else {
-              this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
-              logger.info('Analyzer decided to skip signal generation.');
-            }
+          if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
+            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
+            signalGenerated = true;
+          } else {
+            this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
+            logger.info('Analyzer decided to skip signal generation.');
           }
         } else {
           this.broadcast('No significant anomalies found by Scanner Agent.', 'warning');
