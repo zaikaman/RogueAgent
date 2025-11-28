@@ -5,6 +5,7 @@ import { SignalCard } from '../components/SignalCard';
 import { IntelCard } from '../components/IntelCard';
 import { TierDisplay } from '../components/TierDisplay';
 import { TelegramModal } from '../components/TelegramModal';
+import { JudgeAccessModal } from '../components/JudgeAccessModal';
 import { TerminalLog } from '../components/TerminalLog';
 import { useRunStatus } from '../hooks/useRunStatus';
 import { useLogs } from '../hooks/useLogs';
@@ -14,19 +15,43 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, Home01Icon } from '@hugeicons/core-free-icons';
 
 export function DashboardHome() {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { data: runStatus, isLoading: isRunLoading } = useRunStatus();
   // Fetch more logs to fill the scrollable area
   const { data: logsData } = useLogs(1, 100);
   
-  const { tier: userTier, balance, telegramConnected } = useUserTier();
+  const { 
+    tier: userTier, 
+    balance, 
+    telegramConnected,
+    shouldShowJudgeModal,
+    grantTemporaryAccess,
+    markModalShown,
+    hasTemporaryAccess
+  } = useUserTier();
   const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [showJudgeModal, setShowJudgeModal] = useState(false);
+
+  // Show judge modal when wallet is connected for the first time
+  useEffect(() => {
+    if (isConnected && shouldShowJudgeModal) {
+      setShowJudgeModal(true);
+    }
+  }, [isConnected, shouldShowJudgeModal]);
 
   useEffect(() => {
-    if (userTier !== TIERS.NONE && !telegramConnected) {
+    if (userTier !== TIERS.NONE && !telegramConnected && !hasTemporaryAccess) {
        setShowTelegramModal(true);
     }
-  }, [userTier, telegramConnected]);
+  }, [userTier, telegramConnected, hasTemporaryAccess]);
+
+  const handleJudgeConfirm = (isJudge: boolean) => {
+    if (isJudge) {
+      grantTemporaryAccess();
+    }
+    markModalShown();
+    setShowJudgeModal(false);
+  };
 
   const latestSignal = runStatus?.latest_signal;
   const latestIntel = runStatus?.latest_intel;
@@ -34,6 +59,15 @@ export function DashboardHome() {
 
   return (
     <div className="space-y-6">
+      <JudgeAccessModal
+        isOpen={showJudgeModal}
+        onClose={() => {
+          markModalShown();
+          setShowJudgeModal(false);
+        }}
+        onConfirm={handleJudgeConfirm}
+      />
+      
       <TelegramModal 
         isOpen={showTelegramModal} 
         onClose={() => setShowTelegramModal(false)} 
