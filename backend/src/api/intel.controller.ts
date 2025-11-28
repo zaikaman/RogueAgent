@@ -12,23 +12,29 @@ export const getIntelHistory = async (req: Request, res: Response) => {
 
     let userTier: string | undefined;
     let cutoffTime: string | undefined;
+    let requirePublicPosted = false;
 
     if (walletAddress) {
       const user = await supabaseService.getUser(walletAddress);
       userTier = user?.tier;
       if (user && user.tier) {
         if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+          // Gold/Diamond see everything immediately
           cutoffTime = undefined;
         } else if (user.tier === TIERS.SILVER) {
+          // Silver sees after 15 min delay
           cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         } else {
-          cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          // Public tier: only show intel that has been posted to X
+          requirePublicPosted = true;
         }
       } else {
-        cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        // No tier: only show intel that has been posted to X
+        requirePublicPosted = true;
       }
     } else {
-      cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      // No wallet: only show intel that has been posted to X
+      requirePublicPosted = true;
     }
 
     // Gold/Diamond users see both 'intel' and 'deep_dive' types
@@ -45,6 +51,11 @@ export const getIntelHistory = async (req: Request, res: Response) => {
 
     if (cutoffTime) {
       query = query.lt('created_at', cutoffTime);
+    }
+
+    if (requirePublicPosted) {
+      // Public users only see intel that has been posted to X
+      query = query.not('public_posted_at', 'is', null);
     }
 
     // Apply range last
@@ -82,6 +93,7 @@ export const getIntelHistory = async (req: Request, res: Response) => {
 export const getIntelById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const walletAddress = req.query.address as string;
 
     const { data: run, error } = await supabaseService.getClient()
       .from('runs')
@@ -100,6 +112,49 @@ export const getIntelById = async (req: Request, res: Response) => {
     // Allow if type is intel or deep_dive
     if (run.type !== 'intel' && run.type !== 'deep_dive') {
          return res.status(404).json({ error: 'Intel not found' });
+    }
+
+    // Check tier-based access
+    let hasAccess = false;
+    
+    if (walletAddress) {
+      const user = await supabaseService.getUser(walletAddress);
+      if (user && user.tier) {
+        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+          // Gold/Diamond can see everything
+          hasAccess = true;
+        } else if (user.tier === TIERS.SILVER) {
+          // Silver can see after 15 min delay
+          const createdAt = new Date(run.created_at).getTime();
+          const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+          hasAccess = createdAt < fifteenMinutesAgo;
+        } else {
+          // Public: only if posted to X
+          hasAccess = run.public_posted_at !== null;
+        }
+      } else {
+        // No tier: only if posted to X
+        hasAccess = run.public_posted_at !== null;
+      }
+    } else {
+      // No wallet: only if posted to X
+      hasAccess = run.public_posted_at !== null;
+    }
+
+    // Deep dives are Gold/Diamond only
+    if (run.type === 'deep_dive') {
+      if (walletAddress) {
+        const user = await supabaseService.getUser(walletAddress);
+        if (!user || (user.tier !== TIERS.GOLD && user.tier !== TIERS.DIAMOND)) {
+          hasAccess = false;
+        }
+      } else {
+        hasAccess = false;
+      }
+    }
+
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied. Upgrade your tier to view this intel.' });
     }
 
     const intel = {

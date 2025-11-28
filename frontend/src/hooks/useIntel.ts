@@ -44,11 +44,14 @@ export function useIntelHistory(page = 1, limit = 10) {
 }
 
 export function useIntelDetail(id?: string) {
+  const { address } = useAccount();
   return useQuery({
-    queryKey: ['intelDetail', id],
+    queryKey: ['intelDetail', id, address],
     queryFn: async () => {
       if (!id) return null;
-      const response = await api.get<IntelItem>(`${endpoints.intelDetail}/${id}`);
+      const response = await api.get<IntelItem>(`${endpoints.intelDetail}/${id}`, {
+        params: { address }
+      });
       return response.data;
     },
     enabled: !!id,

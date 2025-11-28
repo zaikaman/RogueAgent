@@ -95,21 +95,19 @@ describe('Signals API Endpoint', () => {
     });
 
     it('should filter by wallet address (tier-based access)', async () => {
-      // Free tier - 60 min delay
+      // Free tier - only shows signals posted to X (public_posted_at is not null)
       const freeUser = await request(app)
         .get('/api/signals?address=0x0000000000000000000000000000000000000000')
         .expect(200);
 
       expect(freeUser.body).toHaveProperty('data');
       
-      // All signals should be older than 60 minutes
-      const sixtyMinsAgo = Date.now() - (60 * 60 * 1000);
+      // All signals should have public_posted_at set (posted to X)
       freeUser.body.data.forEach((signal: any) => {
-        const signalTime = new Date(signal.created_at).getTime();
-        expect(signalTime).toBeLessThan(sixtyMinsAgo);
+        expect(signal.public_posted_at).not.toBeNull();
       });
 
-      console.log(`Free tier access: ${freeUser.body.data.length} signals (60min+ old)`);
+      console.log(`Free tier access: ${freeUser.body.data.length} signals (posted to X only)`);
     });
 
     it('should handle invalid pagination gracefully', async () => {

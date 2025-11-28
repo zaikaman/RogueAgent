@@ -19,26 +19,37 @@ export const getSignalHistory = async (req: Request, res: Response) => {
       .order('created_at', { ascending: false });
 
     let cutoffTime: string | undefined;
+    let requirePublicPosted = false;
 
     if (walletAddress) {
       const user = await supabaseService.getUser(walletAddress);
       if (user && user.tier) {
         if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+          // Gold/Diamond see everything immediately
           cutoffTime = undefined;
         } else if (user.tier === TIERS.SILVER) {
+          // Silver sees after 15 min delay
           cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         } else {
-          cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          // Public tier: only show signals that have been posted to X
+          requirePublicPosted = true;
         }
       } else {
-        cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        // No tier: only show signals that have been posted to X
+        requirePublicPosted = true;
       }
     } else {
-      cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      // No wallet: only show signals that have been posted to X
+      requirePublicPosted = true;
     }
 
     if (cutoffTime) {
       query = query.lt('created_at', cutoffTime);
+    }
+
+    if (requirePublicPosted) {
+      // Public users only see signals that have been posted to X
+      query = query.not('public_posted_at', 'is', null);
     }
 
     query = query.range(offset, offset + limit - 1);
