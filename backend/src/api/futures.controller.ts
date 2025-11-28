@@ -554,6 +554,29 @@ router.post('/trades/recalculate-pnl', requireDiamondTier, async (req: Request, 
   }
 });
 
+/**
+ * POST /futures/trades/attach-brackets
+ * Attach TP/SL bracket orders to open trades that are missing them
+ * This is a repair function for positions that exist without proper TP/SL orders
+ */
+router.post('/trades/attach-brackets', requireDiamondTier, async (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = walletSchema.parse(req.body);
+    
+    const result = await signalExecutorService.attachMissingBracketOrders(walletAddress);
+    
+    res.json({ 
+      success: true, 
+      processed: result.processed,
+      bracketPlaced: result.bracketPlaced,
+      errors: result.errors,
+    });
+  } catch (error: any) {
+    logger.error('Error attaching brackets', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL WEBHOOK (For signal processing)
 // ═══════════════════════════════════════════════════════════════════════════

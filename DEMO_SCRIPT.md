@@ -46,6 +46,8 @@
 
 > *"Connect your wallet to unlock tiered access. The more RGE tokens you hold, the faster and more exclusive your signals."*
 
+Here is a custom modal made only for the hackathon judges, so they can interact with our app easier without having to buy RGE, click Yes to get diamond access to the app. And here's the telegram modal that help us connect with the telegram bot, which sends us the intels and signals privately for tiered users only. Now, let's have a look at the tier breakdown. You can pause the video to look at this comparison real quick. Let's continue now. This is the dashboard, it shows you your tier, the latest signal, the lastest intel, the system status and its logs.
+
 *Visual: Show tier breakdown briefly (Diamond → Gold → Silver → Public)*
 
 ---
@@ -103,6 +105,28 @@
 > *"This is the context that separates retail from smart money."*
 
 ---
+
+## 🎥 SCENE 4A: PUBLIC POSTS & IQAI ACTIVITY (2:15 - 2:30)
+*Visual: Left — Rogue's official X profile; Right — IQAI activity log dashboard*
+
+### Voiceover:
+> *"Here's Rogue's official X account where we publish public signals and intels. Public posts are delayed by 30 minutes compared to the Telegram DMs we send to tiered users."*
+
+### On-Screen Actions:
+1. **Open Rogue's X profile**:
+   - Show username, follower count, and the latest signal/intel post
+   - Overlay text: `Public posts: ~30 minute delay`
+
+2. **Demonstrate tiered delivery**:
+   - Briefly show a mock Telegram DM panel labeled `Diamond / Tiered` with the same signal marked `Delivered: Instant`
+   - Voiceover reminder: `Tiered users receive DMs instantly; public X posts are delayed.`
+
+3. **Open IQAI activity logs**:
+   - Show system events: `intel_created`, `signal_posted`, `publish_timestamp`, and agent IDs
+   - Highlight that logs record activities (writing intels, posting signals) and timestamps — useful for auditing
+
+> *"And here's the IQAI token for Rogue. All platform activity is recorded in IQAI system logs for auditing and timing verification."*
+
 
 ## 🎥 SCENE 5: FUTURES AGENTS - AUTONOMOUS TRADING (2:15 - 3:10)
 *Visual: Navigate to Futures Agents page*

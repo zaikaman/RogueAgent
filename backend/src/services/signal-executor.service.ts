@@ -241,7 +241,11 @@ class SignalExecutorService {
       // Get network mode for trade recording
       const networkMode = await futuresAgentsService.getNetworkMode(walletAddress);
 
+      // Determine if TP/SL orders are missing (for market orders where placement failed)
+      const hasMissingBrackets = !isLimitOrderPending && (!tpOid || !slOid);
+
       // Record the trade
+      // ALWAYS store pending_tp_price and pending_sl_price so we can retry bracket placement if needed
       const trade = await futuresAgentsService.recordTrade({
         agent_id: agent.id,
         user_wallet_address: walletAddress,
@@ -259,13 +263,18 @@ class SignalExecutorService {
         entry_order_id: entryOid.toString(),
         tp_order_id: tpOid?.toString() || null,
         sl_order_id: slOid?.toString() || null,
-        pending_tp_price: isLimitOrderPending ? takeProfitPrice : null,
-        pending_sl_price: isLimitOrderPending ? stopLossPrice : null,
+        // Store TP/SL prices for both pending limit orders AND open trades with missing brackets
+        pending_tp_price: (isLimitOrderPending || hasMissingBrackets) ? takeProfitPrice : null,
+        pending_sl_price: (isLimitOrderPending || hasMissingBrackets) ? stopLossPrice : null,
         error_message: null,
         network_mode: networkMode,
         opened_at: new Date().toISOString(),
         closed_at: null,
       });
+
+      if (hasMissingBrackets) {
+        logger.warn(`Trade for ${futuresSymbol} opened but TP/SL placement failed. Will retry on next sync.`);
+      }
       
       if (isLimitOrderPending) {
         logger.info(`Limit order pending for ${futuresSymbol}. TP/SL will be placed when entry fills. Entry OID: ${entryOid}`);
@@ -386,12 +395,25 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
   async syncAllPositions(): Promise<void> {
     const diamondUsers = await futuresAgentsService.getDiamondUsersWithActiveAgents();
     
+    if (diamondUsers.length === 0) return;
+    
+    logger.debug(`Syncing positions for ${diamondUsers.length} active users`);
+    
     for (const user of diamondUsers) {
       try {
         await futuresAgentsService.syncPositions(user.walletAddress);
         
-        // Also monitor pending limit orders and place TP/SL when they fill
-        await this.monitorPendingLimitOrders(user.walletAddress);
+        // Monitor pending limit orders and place TP/SL when they fill
+        const limitResult = await this.monitorPendingLimitOrders(user.walletAddress);
+        if (limitResult.bracketPlaced > 0) {
+          logger.info(`Placed brackets for ${limitResult.bracketPlaced} filled limit orders for ${user.walletAddress.substring(0, 10)}...`);
+        }
+        
+        // Attach missing TP/SL brackets to open trades that don't have them
+        const attachResult = await this.attachMissingBracketOrders(user.walletAddress);
+        if (attachResult.bracketPlaced > 0) {
+          logger.info(`Attached brackets to ${attachResult.bracketPlaced} open trades for ${user.walletAddress.substring(0, 10)}...`);
+        }
       } catch (error) {
         logger.error(`Error syncing positions for ${user.walletAddress}`, error);
       }
@@ -664,6 +686,140 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
   }
 
   /**
+   * Attach TP/SL bracket orders to open trades that are missing them
+   * This handles cases where market orders were placed but TP/SL failed to be set,
+   * or positions that exist on exchange but don't have TP/SL orders
+   */
+  async attachMissingBracketOrders(walletAddress: string): Promise<{ processed: number; bracketPlaced: number; errors: string[] }> {
+    const hyperliquid = await futuresAgentsService.getHyperliquidService(walletAddress);
+    if (!hyperliquid) return { processed: 0, bracketPlaced: 0, errors: ['No Hyperliquid service available'] };
+
+    const trades = await futuresAgentsService.getUserTrades(walletAddress, 100);
+    
+    // Find OPEN trades that have pending TP/SL prices but are missing the actual orders
+    const tradesNeedingBrackets = trades.filter(t => 
+      t.status === 'open' && 
+      t.pending_tp_price !== null && 
+      t.pending_sl_price !== null &&
+      (t.tp_order_id === null || t.sl_order_id === null)
+    );
+
+    if (tradesNeedingBrackets.length === 0) {
+      return { processed: 0, bracketPlaced: 0, errors: [] };
+    }
+
+    logger.info(`Found ${tradesNeedingBrackets.length} open trades needing bracket orders for ${walletAddress}`);
+
+    // Get current positions to verify they're still open
+    const positions = await hyperliquid.getPositions();
+
+    let processed = 0;
+    let bracketPlaced = 0;
+    const errors: string[] = [];
+
+    for (const trade of tradesNeedingBrackets) {
+      processed++;
+      try {
+        const tradeSymbol = trade.symbol.toUpperCase().replace(/-PERP$/, '');
+        
+        // Verify position still exists
+        const position = positions.find((p: any) => {
+          const posSymbol = (p.coin || '').toUpperCase().replace(/-PERP$/, '');
+          return posSymbol === tradeSymbol && parseFloat(p.szi) !== 0;
+        });
+
+        if (!position) {
+          // Position no longer exists - skip (will be handled by updateTradeStatuses)
+          logger.debug(`Trade ${trade.id}: Position no longer open, skipping bracket placement`);
+          continue;
+        }
+
+        const actualQuantity = Math.abs(parseFloat(position.szi));
+        const isBuy = trade.direction === 'LONG';
+
+        // Place Take Profit order if missing
+        let tpOid = trade.tp_order_id;
+        if (!tpOid) {
+          try {
+            const tpOrder = await hyperliquid.placeOrder({
+              symbol: trade.symbol,
+              isBuy: !isBuy, // Opposite side
+              size: actualQuantity,
+              price: trade.pending_tp_price!,
+              reduceOnly: true,
+              orderType: 'limit',
+              timeInForce: 'Gtc',
+            });
+            tpOid = tpOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
+            if (tpOid) {
+              logger.info(`TP order placed for ${trade.symbol} at $${trade.pending_tp_price}, OID: ${tpOid}`);
+            }
+          } catch (tpError: any) {
+            logger.error(`Failed to place TP order for trade ${trade.id}`, tpError);
+            errors.push(`Trade ${trade.id}: TP order failed - ${tpError.message}`);
+          }
+        }
+
+        // Place Stop Loss order if missing
+        let slOid = trade.sl_order_id;
+        if (!slOid) {
+          try {
+            const slOrder = await hyperliquid.placeTriggerOrder({
+              symbol: trade.symbol,
+              isBuy: !isBuy, // Opposite side
+              size: actualQuantity,
+              triggerPrice: trade.pending_sl_price!,
+              reduceOnly: true,
+              triggerType: 'sl',
+            });
+            slOid = slOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
+            if (slOid) {
+              logger.info(`SL trigger order placed for ${trade.symbol} at $${trade.pending_sl_price}, OID: ${slOid}`);
+            }
+          } catch (slError: any) {
+            logger.error(`Failed to place SL order for trade ${trade.id}`, slError);
+            errors.push(`Trade ${trade.id}: SL order failed - ${slError.message}`);
+          }
+        }
+
+        // Update the trade with the new order IDs
+        const updates: Partial<Pick<FuturesTrade, 'tp_order_id' | 'sl_order_id' | 'pending_tp_price' | 'pending_sl_price'>> = {};
+        if (tpOid && !trade.tp_order_id) {
+          updates.tp_order_id = tpOid;
+        }
+        if (slOid && !trade.sl_order_id) {
+          updates.sl_order_id = slOid;
+        }
+        
+        // Clear pending prices only if both orders are now placed
+        if ((tpOid || trade.tp_order_id) && (slOid || trade.sl_order_id)) {
+          updates.pending_tp_price = null;
+          updates.pending_sl_price = null;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await futuresAgentsService.updateTrade(trade.id, updates);
+          
+          if (updates.tp_order_id || updates.sl_order_id) {
+            bracketPlaced++;
+            logger.info(`Trade ${trade.id}: Bracket orders attached (TP: ${tpOid || trade.tp_order_id}, SL: ${slOid || trade.sl_order_id})`);
+          }
+        }
+
+      } catch (error: any) {
+        logger.error(`Error attaching brackets for trade ${trade.id}`, error);
+        errors.push(`Trade ${trade.id}: ${error.message}`);
+      }
+    }
+
+    if (bracketPlaced > 0) {
+      logger.info(`Missing bracket attachment complete: ${bracketPlaced}/${processed} trades had brackets attached`);
+    }
+
+    return { processed, bracketPlaced, errors };
+  }
+
+  /**
    * Recalculate PnL for closed trades that have 0 PnL (repair function)
    * This is useful for trades that were closed before the PnL calculation was fixed
    */
@@ -771,6 +927,11 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
     let failed = 0;
 
     try {
+      // Sync positions and monitor limit orders (runs every cycle)
+      await this.syncAllPositions().catch(err => {
+        logger.error('Error syncing positions in background job', err);
+      });
+
       // Reset any stale jobs first
       await signalJobsService.resetStaleJobs();
 
