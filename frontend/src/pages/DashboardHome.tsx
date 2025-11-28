@@ -26,8 +26,7 @@ export function DashboardHome() {
     telegramConnected,
     shouldShowJudgeModal,
     grantTemporaryAccess,
-    markModalShown,
-    hasTemporaryAccess
+    markModalShown
   } = useUserTier();
   const [showTelegramModal, setShowTelegramModal] = useState(false);
   const [showJudgeModal, setShowJudgeModal] = useState(false);
@@ -39,11 +38,12 @@ export function DashboardHome() {
     }
   }, [isConnected, shouldShowJudgeModal]);
 
+  // Show telegram modal after judge modal is closed (if user has a tier and telegram not connected)
   useEffect(() => {
-    if (userTier !== TIERS.NONE && !telegramConnected && !hasTemporaryAccess) {
+    if (userTier !== TIERS.NONE && !telegramConnected && !showJudgeModal) {
        setShowTelegramModal(true);
     }
-  }, [userTier, telegramConnected, hasTemporaryAccess]);
+  }, [userTier, telegramConnected, showJudgeModal]);
 
   const handleJudgeConfirm = (isJudge: boolean) => {
     if (isJudge) {
@@ -51,6 +51,10 @@ export function DashboardHome() {
     }
     markModalShown();
     setShowJudgeModal(false);
+    // If they confirmed as judge, show telegram modal after
+    if (isJudge && !telegramConnected) {
+      setShowTelegramModal(true);
+    }
   };
 
   const latestSignal = runStatus?.latest_signal;
