@@ -10,6 +10,29 @@ import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
 import { TechnicalAnalysis } from '../utils/ta.util';
 import { logger } from '../utils/logger.util';
+import { getCoingeckoId, hasCoingeckoMapping } from '../constants/coingecko-ids.constant';
+
+/**
+ * Tool to get the correct CoinGecko ID for a token symbol.
+ * This is critical for price lookups and technical analysis.
+ */
+export const getCoingeckoIdTool = createTool({
+  name: 'get_coingecko_id',
+  description: 'Get the correct CoinGecko API ID for a token symbol. ALWAYS use this before calling get_token_price, get_market_chart, or get_technical_analysis to ensure you have the correct ID. Examples: FET -> "fetch-ai", SOL -> "solana", ARB -> "arbitrum"',
+  schema: z.object({
+    symbol: z.string().describe('The token symbol (e.g. "FET", "SOL", "ARB", "BTC")'),
+  }) as any,
+  fn: async ({ symbol }: { symbol: string }) => {
+    const coingeckoId = getCoingeckoId(symbol);
+    const hasMapping = hasCoingeckoMapping(symbol);
+    return {
+      symbol: symbol.toUpperCase(),
+      coingecko_id: coingeckoId,
+      is_verified_mapping: hasMapping,
+      usage_hint: `Use "${coingeckoId}" as the tokenId parameter for price/chart tools`,
+    };
+  },
+});
 
 export const getTrendingCoinsTool = createTool({
   name: 'get_trending_coins',

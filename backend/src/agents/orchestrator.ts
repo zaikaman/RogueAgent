@@ -19,6 +19,7 @@ import { zImageService } from '../services/zimage.service';
 import { hyperliquidFuturesFilterService } from '../services/hyperliquid-filter.service';
 import { TIERS } from '../constants/tiers';
 import { scheduledPostService } from '../services/scheduled-post.service';
+import { getCoingeckoId } from '../constants/coingecko-ids.constant';
 import { signalExecutorService } from '../services/signal-executor.service';
 import { EventEmitter } from 'events';
 
@@ -236,8 +237,9 @@ export class Orchestrator extends EventEmitter {
         
         if (isLimitOrder) {
             // Validate required fields for pending signals
-            if (!analyzerResult.selected_token?.coingecko_id) {
-                logger.error('Cannot create pending signal: missing coingecko_id for price monitoring');
+            // Symbol is required - coingecko_id will be resolved from mapping
+            if (!analyzerResult.selected_token?.symbol) {
+                logger.error('Cannot create pending signal: missing symbol for price monitoring');
                 return;
             }
             if (!analyzerResult.signal_details.entry_price) {
@@ -282,8 +284,15 @@ export class Orchestrator extends EventEmitter {
         }
 
         // 4. Publisher (Tiered)
+        // Ensure coingecko_id is set correctly using our mapping
+        const tokenWithCorrectId = {
+          ...analyzerResult.selected_token,
+          coingecko_id: analyzerResult.selected_token?.symbol 
+            ? getCoingeckoId(analyzerResult.selected_token.symbol)
+            : analyzerResult.selected_token?.coingecko_id,
+        };
         const signalContent = {
-          token: analyzerResult.selected_token,
+          token: tokenWithCorrectId,
           ...analyzerResult.signal_details,
           formatted_tweet: content,
           log_message: generatorResult.log_message,
@@ -320,7 +329,7 @@ export class Orchestrator extends EventEmitter {
             signal: {
               token: {
                 symbol: signalContent.token.symbol,
-                name: signalContent.token.name,
+                name: signalContent.token.name || signalContent.token.symbol,
                 contract_address: (signalContent.token as any).address || (signalContent.token as any).contract_address || '',
               },
               direction,

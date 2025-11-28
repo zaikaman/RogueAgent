@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool } from './tools';
+import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
@@ -66,8 +66,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     2. For each promising candidate:
        a. Check 'check_recent_signals' to avoid duplicates.
        b. If new, perform INSTITUTIONAL-GRADE analysis:
-          - **Price Check**: Use 'get_token_price'
-          - **ADVANCED Technical Analysis**: Use 'get_technical_analysis' to get:
+          - **CRITICAL FIRST STEP**: Use 'get_coingecko_id' with the token symbol to get the correct CoinGecko ID. NEVER guess the ID!
+          - **Price Check**: Use 'get_token_price' with the coingecko_id from the previous step
+          - **ADVANCED Technical Analysis**: Use 'get_technical_analysis' with the correct tokenId to get:
             * **CVD (Cumulative Volume Delta)**: Accumulation vs Distribution
             * **ICT Order Blocks & FVG**: Institutional zones
             * **Volume Profile (VPFR)**: Key support/resistance levels
@@ -209,7 +210,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "analysis_summary": "Analyzed LINK: Choppy price action, conflicting signals on different timeframes. CVD neutral. No clear LONG or SHORT setup. Waiting for cleaner structure."
     }
   `)
-  .withTools(checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
+  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
       action: z.enum(['signal', 'skip', 'no_signal']).describe('REQUIRED: Must be signal, skip, or no_signal'),

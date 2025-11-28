@@ -265,10 +265,70 @@ export class HyperliquidService extends EventEmitter {
     const normalizedSymbol = this.normalizeSymbol(symbol);
     const baseSymbol = this.formatSymbol(symbol);
     
-    // Try with -PERP suffix first, then without
-    const price = mids[normalizedSymbol] || mids[baseSymbol];
-    if (!price) throw new Error(`Price not found for ${symbol}`);
+    // Try multiple formats: normalized, base, with -PERP, and without
+    const possibleKeys = [
+      normalizedSymbol,           // e.g., "KAS-PERP" on testnet, "KAS" on mainnet
+      baseSymbol,                 // e.g., "KAS"
+      `${baseSymbol}-PERP`,       // Force -PERP suffix
+      baseSymbol.replace(/-PERP$/, ''), // Force remove -PERP
+    ];
+    
+    let price: string | undefined;
+    for (const key of possibleKeys) {
+      if (mids[key]) {
+        price = mids[key];
+        break;
+      }
+    }
+    
+    if (!price) {
+      // Check if asset exists in meta
+      await this.getMeta();
+      const assetExists = this.assetInfoCache.has(baseSymbol) || this.assetInfoCache.has(normalizedSymbol);
+      
+      // Log available keys for debugging (only first 10)
+      const availableKeys = Object.keys(mids).slice(0, 10);
+      logger.error(`Price not found for ${symbol}`, {
+        triedKeys: possibleKeys,
+        assetExistsInMeta: assetExists,
+        sampleAvailableMids: availableKeys,
+        totalMidsCount: Object.keys(mids).length
+      });
+      
+      throw new Error(`Price not found for ${symbol}. Asset ${assetExists ? 'exists' : 'does not exist'} in Hyperliquid perpetuals.`);
+    }
+    
     return parseFloat(price);
+  }
+
+  /**
+   * Check if an asset is tradable (exists in meta and has a price)
+   */
+  async isAssetTradable(symbol: string): Promise<{ tradable: boolean; reason?: string }> {
+    try {
+      await this.getMeta();
+      const normalizedSymbol = this.normalizeSymbol(symbol);
+      const baseSymbol = this.formatSymbol(symbol);
+      
+      // Check if asset exists in meta
+      const assetExists = this.assetInfoCache.has(baseSymbol) || this.assetInfoCache.has(normalizedSymbol);
+      if (!assetExists) {
+        return { tradable: false, reason: `Asset ${symbol} not found in Hyperliquid perpetuals` };
+      }
+      
+      // Check if we can get a price
+      const mids = await this.getAllMids();
+      const possibleKeys = [normalizedSymbol, baseSymbol, `${baseSymbol}-PERP`, baseSymbol.replace(/-PERP$/, '')];
+      const hasPrice = possibleKeys.some(key => !!mids[key]);
+      
+      if (!hasPrice) {
+        return { tradable: false, reason: `No price available for ${symbol}` };
+      }
+      
+      return { tradable: true };
+    } catch (error: any) {
+      return { tradable: false, reason: error.message };
+    }
   }
 
   /**
@@ -648,12 +708,27 @@ export class HyperliquidService extends EventEmitter {
   }
 
   /**
-   * Check if a symbol is available for trading
+   * Check if a symbol is available for trading (exists in meta and has a price)
    */
   async isSymbolAvailable(symbol: string): Promise<boolean> {
     await this.getMeta();
     const normalizedSymbol = this.normalizeSymbol(symbol);
-    return this.assetInfoCache.has(normalizedSymbol);
+    const baseSymbol = this.formatSymbol(symbol);
+    
+    // First check if asset exists in meta
+    const assetExists = this.assetInfoCache.has(normalizedSymbol) || this.assetInfoCache.has(baseSymbol);
+    if (!assetExists) {
+      return false;
+    }
+    
+    // Also check if we can get a price (asset might exist but have no liquidity)
+    try {
+      const mids = await this.getAllMids();
+      const possibleKeys = [normalizedSymbol, baseSymbol, `${baseSymbol}-PERP`, baseSymbol.replace(/-PERP$/, '')];
+      return possibleKeys.some(key => !!mids[key]);
+    } catch (error) {
+      return false;
+    }
   }
 
   /**
