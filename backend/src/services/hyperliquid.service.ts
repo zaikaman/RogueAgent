@@ -265,10 +265,10 @@ export class HyperliquidService extends EventEmitter {
     const normalizedSymbol = this.normalizeSymbol(symbol);
     const baseSymbol = this.formatSymbol(symbol);
     
-    // Try multiple formats: normalized, base, with -PERP, and without
+    // Try multiple formats: normalized (with -PERP), base, and variations
     const possibleKeys = [
-      normalizedSymbol,           // e.g., "KAS-PERP" on testnet, "KAS" on mainnet
-      baseSymbol,                 // e.g., "KAS"
+      normalizedSymbol,           // e.g., "HYPE-PERP"
+      baseSymbol,                 // e.g., "HYPE"
       `${baseSymbol}-PERP`,       // Force -PERP suffix
       baseSymbol.replace(/-PERP$/, ''), // Force remove -PERP
     ];
@@ -333,7 +333,7 @@ export class HyperliquidService extends EventEmitter {
 
   /**
    * Normalize symbol to Hyperliquid format
-   * On testnet, symbols have -PERP suffix (e.g., ETH-PERP)
+   * The SDK uses -PERP suffix for perpetual symbols (e.g., ETH-PERP, BTC-PERP)
    */
   normalizeSymbol(tokenSymbol: string): string {
     const upper = tokenSymbol.toUpperCase().replace(/USDT$/, '');
@@ -343,12 +343,8 @@ export class HyperliquidService extends EventEmitter {
       return upper;
     }
     
-    // On testnet, add -PERP suffix
-    if (this.isTestnet) {
-      return `${upper}-PERP`;
-    }
-    
-    return upper;
+    // SDK expects -PERP suffix for perpetuals
+    return `${upper}-PERP`;
   }
 
   /**

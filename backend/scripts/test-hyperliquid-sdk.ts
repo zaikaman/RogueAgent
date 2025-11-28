@@ -93,7 +93,7 @@ async function testWithSDK() {
       console.log('\n🎯 Executing test trade...');
       console.log('   ⚠️  TESTNET order\n');
 
-      // SDK returns symbols WITH -PERP suffix on testnet
+      // SDK uses -PERP suffix for perpetual symbols
       // Find ETH in the metadata we already fetched
       const symbol = meta.universe.find((a: any) => 
         a.name === 'ETH-PERP' || a.name === 'ETH'
