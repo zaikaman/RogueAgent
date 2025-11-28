@@ -4,6 +4,40 @@ import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechn
 import { z } from 'zod';
 import dedent from 'dedent';
 
+// Complete list of Hyperliquid available perpetuals with CoinGecko IDs
+// Format: SYMBOL (coingecko_id)
+const HYPERLIQUID_PERPS_LIST = `
+**Major Coins:**
+BTC (bitcoin), ETH (ethereum), SOL (solana), BNB (binancecoin), XRP (ripple), ADA (cardano), AVAX (avalanche-2), DOGE (dogecoin), DOT (polkadot), LINK (chainlink), LTC (litecoin), BCH (bitcoin-cash), ETC (ethereum-classic), ATOM (cosmos), UNI (uniswap), AAVE (aave), MKR (maker), SNX (havven), COMP (compound-governance-token), CRV (curve-dao-token)
+
+**Layer 2 & Infrastructure:**
+ARB (arbitrum), OP (optimism), MATIC (matic-network), POL (matic-network), STRK (starknet), MANTA (manta-network), LINEA (linea), BLAST (blast), ZK (zksync), SCROLL (scroll), BASE (base), ZETA (zetachain), METIS (metis-token), CELO (celo), NEAR (near), ICP (internet-computer), FIL (filecoin), AR (arweave), RENDER (render-token), RNDR (render-token)
+
+**DeFi:**
+DYDX (dydx-chain), GMX (gmx), LDO (lido-dao), FXS (frax-share), PENDLE (pendle), EIGEN (eigenlayer), ETHFI (ether-fi), ENA (ethena), ONDO (ondo-finance), MORPHO (morpho), USUAL (usual), RESOLV (resolv), LISTA (lista-dao), AERO (aerodrome-finance), CAKE (pancakeswap-token), SUSHI (sushi), BADGER (badger-dao), RSR (reserve-rights-token), RDNT (radiant-capital)
+
+**Gaming & Metaverse:**
+IMX (immutable-x), GALA (gala), SAND (the-sandbox), APE (apecoin), ILV (illuvium), YGG (yield-guild-games), BIGTIME (bigtime), PIXEL (pixels), SUPER (superfarm), NFTI (nfti), MAVIA (heroes-of-mavia), PRIME (echelon-prime), XAI (xai-games), BEAM (beam-2), PORTAL (portal-2), ACE (fusionist), RON (ronin)
+
+**AI & Data:**
+FET (fetch-ai), TAO (bittensor), IO (io-net), GRASS (grass), AI16Z (ai16z), AIXBT (aixbt), VIRTUAL (virtual-protocol), GRIFFAIN (griffain), AI (sleepless-ai), PROMPT (wayfinder), KAITO (kaito)
+
+**Meme Coins:**
+SHIB (shiba-inu), PEPE (pepe), BONK (bonk), FLOKI (floki), WIF (dogwifcoin), POPCAT (popcat), BRETT (brett), NEIRO (neiro-3), GOAT (goatseus-maximus), PNUT (peanut-the-squirrel), MOODENG (moo-deng), FARTCOIN (fartcoin), ZEREBRO (zerebro), TURBO (turbo), MEME (memecoin-2), MYRO (myro), MEW (cat-in-a-dogs-world), BOME (book-of-meme), CHILLGUY (chill-guy), DOOD (doodles), SPX (spx6900), HPOS (ethereum-is-good), PURR (purr-2), NEIROETH (neiro-2), kBONK (bonk), kDOGS (dogs-2), kFLOKI (floki), kLUNC (terra-luna), kNEIRO (neiro-3), kPEPE (pepe), kSHIB (shiba-inu)
+
+**Political & Social:**
+TRUMP (official-trump), MELANIA (melania-meme), PEOPLE (constitutiondao), FRIEND (friend-tech), VINE (vine-coin), WLFI (world-liberty-financial)
+
+**New Ecosystems:**
+SUI (sui), SEI (sei-network), TIA (celestia), APT (aptos), INJ (injective-protocol), PYTH (pyth-network), JTO (jito-governance-token), JUP (jupiter-exchange-solana), W (wormhole), DYM (dymension), ALT (altlayer), BERA (berachain-bera), INIT (initia), HYPE (hyperliquid), HYPER (hyperliquid), IP (story-2), MOVE (movement), LAYER (layer-ai), S (sonic-3), ANIME (animecoin), MON (monad), BABY (baby), LAUNCHCOIN (believe-in-something), PUMP (pump)
+
+**Infrastructure & Utilities:**
+STX (blockstack), KAS (kaspa), TON (the-open-network), TRX (tron), XLM (stellar), ALGO (algorand), HBAR (hedera-hashgraph), NEO (neo), ZEC (zcash), BSV (bitcoin-cash-sv), ORDI (ordinals), WLD (worldcoin-wld), BLUR (blur), ENS (ethereum-name-service), GAS (gas), BLZ (bluzelle), OGN (origin-protocol), APEX (apex-token-2), CYBER (cyberconnect)
+
+**Others:**
+FTM (fantom), RUNE (thorchain), NOT (notcoin), HMSTR (hamster-kombat), CATI (catizen), DOGS (dogs-2), OM (mantra-dao), OMNI (omni-network), SAGA (saga-2), TNSR (tensor), REZ (renzo), MERL (merlin-chain), BIO (bio-protocol), PENGU (pudgy-penguins), ME (magic-eden), PAXG (pax-gold), RLB (rollbit-coin), UNIBOT (unibot), GMT (stepn), BANANA (apeswap-finance), MAV (maverick-protocol), TRB (tellor), STG (stargate-finance), UMA (uma), BNT (bancor), ARK (ark), NTRN (neutron-3), IOTA (iota), MINA (mina-protocol), CFX (conflux-token), CANTO (canto), MNT (mantle), LOOM (loom-network-new), REQ (request-network), USTC (terrausd), FTT (ftx-token), ZEN (horizen), ORBS (orbs), POLYX (polymesh), STRAX (stratis), PANDORA (pandora), OX (ox-coin), CC (canton-network), MEGA (mega-dice), SHIA (shia), 0G (og), 2Z (toadzcoins), ASTER (aster-protocol), AVNT (avant-network), HEMI (hemi), JELLY (jelly-meme), MET (metars-genesis), NIL (nil), NXPC (nxpc), PROVE (provenance-blockchain), SCR (scroll), SKY (sky), SOPH (sophiaverse), STBL (hyperstable), SYRUP (maple), TST (tst), VVV (venice-token), WCT (walletconnect), XPL (pulse), YZY (yeay), ZORA (zora), ZRO (layerzero)
+`.trim();
+
 export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
   .withModel(llm)
   .withDescription('Elite crypto analyst specializing in DAY TRADING with institutional-grade precision. Uses 2025 meta TA for high win-rate LONG and SHORT signals.')
@@ -12,17 +46,8 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     
     **IMPORTANT**: All tokens you receive have been pre-filtered to only include those available on Hyperliquid Perpetuals. You can proceed with analysis knowing all candidates are tradeable on Hyperliquid.
     
-    **HYPERLIQUID AVAILABLE TOKENS** (Full list for reference):
-    Major Coins: BTC, ETH, SOL, BNB, XRP, ADA, AVAX, DOGE, DOT, LINK, LTC, BCH, ETC, ATOM, UNI, AAVE, MKR, SNX, COMP, CRV
-    Layer 2 & Infrastructure: ARB, OP, MATIC, POL, STRK, MANTA, LINEA, BLAST, ZK, SCROLL, BASE, ZETA, METIS, CELO, NEAR, ICP, FIL, AR, RENDER, RNDR
-    DeFi: DYDX, GMX, LDO, FXS, PENDLE, EIGEN, ETHFI, ENA, ONDO, MORPHO, USUAL, RESOLV, LISTA, AERO, CAKE, SUSHI, BADGER, RSR, RDNT
-    Gaming & Metaverse: IMX, GALA, SAND, APE, ILV, YGG, BIGTIME, PIXEL, SUPER, NFTI, MAVIA, PRIME, XAI, BEAM, PORTAL, ACE, RON
-    AI & Data: FET, TAO, IO, GRASS, AI16Z, AIXBT, VIRTUAL, GRIFFAIN, AI, PROMPT, KAITO
-    Meme Coins: SHIB, PEPE, BONK, FLOKI, WIF, POPCAT, BRETT, NEIRO, GOAT, PNUT, MOODENG, FARTCOIN, ZEREBRO, TURBO, MEME, MYRO, MEW, BOME, CHILLGUY, DOOD, SPX, HPOS, PURR, NEIROETH, kBONK, kDOGS, kFLOKI, kLUNC, kNEIRO, kPEPE, kSHIB
-    Political & Social: TRUMP, MELANIA, PEOPLE, FRIEND, VINE, WLFI
-    New Ecosystems: SUI, SEI, TIA, APT, INJ, PYTH, JTO, JUP, W, DYM, ALT, BERA, INIT, HYPER, IP, MOVE, LAYER, S, ANIME, MON, BABY, LAUNCHCOIN, PUMP
-    Infrastructure & Utilities: STX, KAS, TON, TRX, XLM, ALGO, HBAR, NEO, ZEC, BSV, ORDI, WLD, BLUR, ENS, GAS, BLZ, OGN, APEX, CYBER
-    Others: FTM, RUNE, NOT, HMSTR, CATI, DOGS, OM, OMNI, SAGA, TNSR, REZ, MERL, BIO, PENGU, ME, PAXG, RLB, UNIBOT, GMT, BANANA, MAV, TRB, STG, UMA, BNT, ARK, NTRN, IOTA, MINA, CFX, CANTO, MNT, LOOM, REQ, USTC, FTT, ZEN, ORBS, POLYX, STRAX, PANDORA, OX, CC, MEGA, SHIA, 0G, 2Z, ASTER, AVNT, HEMI, JELLY, MET, NIL, NXPC, PROVE, SCR, SKY, SOPH, STBL, SYRUP, TST, VVV, WCT, XPL, YZY, ZORA, ZRO
+    **HYPERLIQUID AVAILABLE TOKENS WITH COINGECKO IDs** (Use the coingecko_id in parentheses for price lookups):
+    ${HYPERLIQUID_PERPS_LIST}
     
     **TRADING VENUE**: Hyperliquid Perpetual Futures (up to 50x leverage, testnet for now)
     **DIRECTIONS**: You can go LONG (profit when price rises) or SHORT (profit when price falls)

@@ -95,10 +95,10 @@ const HYPERLIQUID_PERPS = [
   'IMX', 'GALA', 'SAND', 'APE', 'ILV', 'YGG', 'BIGTIME', 'PIXEL', 'SUPER', 'NFTI',
   'MAVIA', 'PRIME', 'XAI', 'BEAM', 'PORTAL', 'ACE', 'RON',
   // AI & Data
-  'FET', 'TAO', 'RENDER', 'IO', 'GRASS', 'AI16Z', 'AIXBT', 'VIRTUAL', 'GRIFFAIN',
+  'FET', 'TAO', 'IO', 'GRASS', 'AI16Z', 'AIXBT', 'VIRTUAL', 'GRIFFAIN',
   'AI', 'PROMPT', 'KAITO',
   // Meme coins
-  'DOGE', 'SHIB', 'PEPE', 'BONK', 'FLOKI', 'WIF', 'POPCAT', 'BRETT', 'NEIRO',
+  'SHIB', 'PEPE', 'BONK', 'FLOKI', 'WIF', 'POPCAT', 'BRETT', 'NEIRO',
   'GOAT', 'PNUT', 'MOODENG', 'FARTCOIN', 'ZEREBRO', 'TURBO', 'MEME', 'MYRO',
   'MEW', 'BOME', 'CHILLGUY', 'DOOD', 'SPX', 'HPOS', 'PURR', 'NEIROETH',
   'kBONK', 'kDOGS', 'kFLOKI', 'kLUNC', 'kNEIRO', 'kPEPE', 'kSHIB',
@@ -106,8 +106,8 @@ const HYPERLIQUID_PERPS = [
   'TRUMP', 'MELANIA', 'PEOPLE', 'FRIEND', 'VINE', 'WLFI',
   // New ecosystems
   'SUI', 'SEI', 'TIA', 'APT', 'INJ', 'PYTH', 'JTO', 'JUP', 'W', 'DYM',
-  'MANTA', 'STRK', 'ALT', 'BERA', 'INIT', 'HYPE', 'HYPER', 'IP', 'MOVE',
-  'LAYER', 'S', 'ANIME', 'MON', 'BABY', 'KAITO', 'LAUNCHCOIN', 'PUMP',
+  'ALT', 'BERA', 'INIT', 'HYPE', 'HYPER', 'IP', 'MOVE',
+  'LAYER', 'S', 'ANIME', 'MON', 'BABY', 'LAUNCHCOIN', 'PUMP',
   // Infrastructure & Utilities
   'STX', 'KAS', 'TON', 'TRX', 'XLM', 'ALGO', 'HBAR', 'NEO', 'ZEC', 'BSV',
   'ORDI', 'WLD', 'BLUR', 'ENS', 'GAS', 'BLZ', 'OGN', 'APEX', 'CYBER',
