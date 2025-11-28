@@ -29,6 +29,9 @@ export const endpoints = {
   intelDetail: '/intel',
   yield: '/yield',
   airdrops: '/airdrops',
+  predictions: '/predictions',
+  predictionsStatus: '/predictions/status',
+  predictionsScan: '/predictions/scan',
   updateTelegram: '/users/telegram',
 };
 

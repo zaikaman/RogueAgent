@@ -8,6 +8,7 @@ import { signalMonitorService } from './services/signal-monitor.service';
 import { scheduledPostService } from './services/scheduled-post.service';
 import { iqAiService } from './services/iqai.service';
 import { signalExecutorService } from './services/signal-executor.service';
+import { predictionMarketsService } from './services/prediction-markets.service';
 
 const app = createServer();
 const port = config.PORT;
@@ -123,6 +124,12 @@ const server = app.listen(port, () => {
     }
   }).catch(err => logger.error('Failed to check airdrop count:', err));
 
+// Start Prediction Markets Scheduler (every 6 hours)
+logger.info('Starting Prediction Markets Scheduler (Interval: 6h)');
+predictionMarketsService.startScheduler().catch((err: Error) => 
+  logger.error('Failed to start prediction markets scheduler:', err)
+);
+
 // Graceful shutdown
 const shutdown = async (signal: string) => {
   logger.info(`${signal} received. Shutting down gracefully...`);
@@ -136,6 +143,10 @@ const shutdown = async (signal: string) => {
   // Stop Signal Job Processor
   logger.info('Stopping Signal Job Processor...');
   signalExecutorService.stopJobProcessor();
+
+  // Stop Prediction Markets Scheduler
+  logger.info('Stopping Prediction Markets Scheduler...');
+  predictionMarketsService.stopScheduler();
 
   // Close server
   server.close(() => {

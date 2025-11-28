@@ -18,6 +18,7 @@ import { MarketAnalytics } from './pages/analytics/MarketAnalytics';
 import { SignalAnalytics } from './pages/analytics/SignalAnalytics';
 import { AskRogue } from './pages/AskRogue';
 import { FuturesAgentsPage } from './pages/FuturesAgentsPage';
+import { PredictionsPage } from './pages/PredictionsPage';
 import Introduction from './pages/docs/Introduction';
 import Quickstart from './pages/docs/Quickstart';
 import Architecture from './pages/docs/Architecture';
@@ -103,6 +104,11 @@ function App() {
               <Route path="/app/futures" element={
                 <DashboardLayout>
                   <FuturesAgentsPage />
+                </DashboardLayout>
+              } />
+              <Route path="/app/predictions" element={
+                <DashboardLayout>
+                  <PredictionsPage />
                 </DashboardLayout>
               } />
             </Routes>

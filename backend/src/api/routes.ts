@@ -13,6 +13,7 @@ import { chatController } from './chat.controller';
 import { vapiController } from './vapi.controller';
 import { scanController } from './scan.controller';
 import { futuresController } from './futures.controller';
+import { predictionsController } from './predictions.controller';
 
 import * as healthController from './health.controller';
 
@@ -67,5 +68,8 @@ router.use('/custom-requests', customRequestsController);
 
 // Futures Agents (Diamond-only)
 router.use('/futures', futuresController);
+
+// Prediction Markets (Diamond-only, public demo for featured)
+router.use('/predictions', predictionsController);
 
 export default router;

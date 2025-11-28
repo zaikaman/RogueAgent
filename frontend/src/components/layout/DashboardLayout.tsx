@@ -169,6 +169,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: News01Icon, label: 'Intel', path: '/app/intel' },
     { icon: Coins01Icon, label: 'Yield', path: '/app/yield' },
     { icon: Rocket01Icon, label: 'Airdrops', path: '/app/airdrops' },
+    { icon: ChartHistogramIcon, label: 'Predictions', path: '/app/predictions' },
     { icon: ChartHistogramIcon, label: 'Analytics', path: '/app/analytics' },
     { icon: null, label: 'Futures Agents', path: '/app/futures', lucideIcon: Bot },
   ];
@@ -181,6 +182,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     '/app/yield': 'YIELD PROTOCOLS',
     '/app/futures': 'FUTURES TERMINAL',
     '/app/airdrops': 'AIRDROP TRACKER',
+    '/app/predictions': 'PREDICTION EDGE',
     '/app/analytics': 'DATA ANALYTICS',
   };
 
