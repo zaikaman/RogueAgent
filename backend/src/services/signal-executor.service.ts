@@ -157,6 +157,7 @@ class SignalExecutorService {
     const hyperliquid = await futuresAgentsService.getHyperliquidService(walletAddress);
     if (!hyperliquid) {
       result.error = 'No Hyperliquid service available';
+      logger.warn(`Trade skipped for agent ${agent.name}: ${result.error}`);
       return result;
     }
 
@@ -165,6 +166,7 @@ class SignalExecutorService {
     
     if (!isAvailable) {
       result.error = `Symbol ${futuresSymbol} not available on Hyperliquid`;
+      logger.warn(`Trade skipped for agent ${agent.name}: ${result.error}`);
       return result;
     }
 
@@ -172,6 +174,7 @@ class SignalExecutorService {
     const positions = await futuresAgentsService.getAgentPositions(agent.id);
     if (positions.length >= agent.max_concurrent_positions) {
       result.error = `Max concurrent positions reached (${agent.max_concurrent_positions})`;
+      logger.warn(`Trade skipped for agent ${agent.name}: ${result.error}`);
       return result;
     }
 
@@ -181,6 +184,7 @@ class SignalExecutorService {
       
       if (!evaluation.shouldTrade) {
         result.error = `Agent prompt evaluation: ${evaluation.reason}`;
+        logger.warn(`Trade skipped for agent ${agent.name}: ${result.error}`);
         return result;
       }
     }

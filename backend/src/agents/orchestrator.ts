@@ -338,6 +338,12 @@ export class Orchestrator extends EventEmitter {
           }).then(result => {
             if (result.executed > 0) {
               logger.info(`Futures: ${result.executed}/${result.processed} agents executed trades for signal ${runId}`);
+            } else if (result.processed > 0) {
+              // Log why trades failed
+              const errors = result.results.filter(r => !r.success && r.error);
+              if (errors.length > 0) {
+                logger.warn(`Futures: ${result.processed} agents processed but no trades executed. Errors: ${errors.map(e => `${e.agentName}: ${e.error}`).join('; ')}`);
+              }
             }
           }).catch(err => logger.error('Error processing signal for futures agents', err));
         } else {
