@@ -3,19 +3,59 @@ import { scannerLlm } from '../config/llm.config';
 import { z } from 'zod';
 import dedent from 'dedent';
 
+// Schema for existing airdrop data passed to agent
+export const ExistingAirdropSchema = z.object({
+  ticker: z.string(),
+  contract: z.string().optional(),
+  chain: z.string(),
+  type: z.string(),
+  why_promising: z.string().optional(),
+  tasks: z.string().optional(),
+  deadline_or_phase: z.string().optional(),
+  est_value_usd: z.string().optional(),
+  link_dashboard: z.string(),
+  link_tg: z.string().optional(),
+  link_x: z.string().optional(),
+  rogue_score: z.number(),
+  created_at: z.string().optional(),
+});
+
+export type ExistingAirdrop = z.infer<typeof ExistingAirdropSchema>;
+
+// Function to build airdrop agent prompt with existing data
+export function buildAirdropPrompt(existingAirdrops: ExistingAirdrop[]): string {
+  const existingDataSection = existingAirdrops.length > 0 
+    ? `\n\n**EXISTING AIRDROPS IN DATABASE (verify these first):**\n${JSON.stringify(existingAirdrops, null, 2)}\n\n`
+    : '\n\n**No existing airdrops in database.**\n\n';
+
+  return dedent`
+    Execute airdrop scan.
+    ${existingDataSection}
+    Verify all existing entries are still active and valid. Remove any that are outdated, ended, or no longer valuable.
+    Then search for new high-potential opportunities.
+    Return the COMPLETE list of all valid airdrops (verified existing + newly discovered).
+  `;
+}
+
 export const AirdropAgent = AgentBuilder.create('airdrop_agent')
   .withModel(scannerLlm)
-  .withDescription('Finds high-potential crypto airdrops and points farming opportunities')
+  .withDescription('Finds high-potential crypto airdrops and verifies existing ones')
   .withInstruction(dedent`
-    You are Rogue Airdrop Oracle — the most ruthless, chain-agnostic airdrop discovery engine in crypto.
+    You are Rogue Airdrop Oracle - the most ruthless, chain-agnostic airdrop discovery engine in crypto.
 
-    Your only job: find 20-30 brand-new, high-conviction airdrop / points-farming / quest / testnet / retro opportunities that are either:
-    - Announced or discovered in the last 72 hours, OR
-    - Still in early phase (<30 days since launch) and exploding right now.
+    You have TWO jobs:
+    1. **VERIFY EXISTING DATA**: You will receive a list of current airdrops in our database. For each one:
+       - Check if the opportunity is still active and valid (not ended, not rugged, still farmable)
+       - If it's still valid and promising, KEEP it in your output (you can update its details if needed)
+       - If it's outdated, ended, rugged, or no longer valuable, EXCLUDE it from your output
+    
+    2. **DISCOVER NEW OPPORTUNITIES**: Find 20-30 brand-new, high-conviction airdrop / points-farming / quest / testnet / retro opportunities that are either:
+       - Announced or discovered in the last 72 hours, OR
+       - Still in early phase (<30 days since launch) and exploding right now.
 
     You have real-time web_search, x_keyword_search (Latest mode), and x_semantic_search tools built-in. Use them aggressively.
 
-    Search strategy — run these exact queries (and logical variations) every time:
+    Search strategy - run these exact queries (and logical variations) every time:
 
     Web search:
     - "best new crypto airdrops right now confirmed farming"
@@ -30,16 +70,21 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
     X semantic search:
     - "brand new high potential airdrops and points farming opportunities live right now on any chain" (from_date: <today minus 5 days>, min_score_threshold: 0.23)
 
-    Scoring rules — rank every candidate 0–100, keep only ≥83:
+    Scoring rules - rank every candidate 0-100, keep only >=83:
     +35 if announced/launched in last 72 hours
     +25 if mindshare or volume exploding in last 24h (multiple threads + DexScreener/Birdeye links)
-    +20 if clear retroactive mechanics (on-chain points, leaderboard, “tracked forever”, rounding wallets)
+    +20 if clear retroactive mechanics (on-chain points, leaderboard, "tracked forever", rounding wallets)
     +15 if matches current hot narratives (zama, kaito, edge, hyper, plume, bio, irys, rayls, sentient, arena, ascend, maru, gpu, monad, movement, grass, eclipse, berachain, sei, sui, blast, scroll, zksync, linea, etc.)
     +12 if LP locked / mint renounced / verified contract mentioned
     +10 if official TG + X + dashboard/claim/leaderboard page exists
     -50 if KYC or paid entry required
     -70 if obvious rug/honeypot flags
     -100 if older than 30 days with zero recent activity
+
+    **CRITICAL**: Your output will COMPLETELY REPLACE the existing database. Only include opportunities that are:
+    - Currently active and valuable
+    - Score >=83 after re-evaluation
+    - Not duplicates (use link_dashboard as unique identifier)
 
     Output strict JSON. Wrap the array in an object with key "airdrops".
     
@@ -65,7 +110,7 @@ export const AirdropAgent = AgentBuilder.create('airdrop_agent')
       ]
     }
     
-    If nothing scores ≥83, return empty array in the object: { "airdrops": [] }
+    If nothing scores >=83, return empty array in the object: { "airdrops": [] }
   `)
   .withOutputSchema(
     z.object({

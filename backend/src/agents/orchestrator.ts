@@ -3,8 +3,8 @@ import { AnalyzerAgent } from './analyzer.agent';
 import { GeneratorAgent } from './generator.agent';
 import { WriterAgent } from './writer.agent';
 import { IntelAgent } from './intel.agent';
-import { YieldAgent } from './yield.agent';
-import { AirdropAgent } from './airdrop.agent';
+import { YieldAgent, buildYieldPrompt, ExistingYield } from './yield.agent';
+import { AirdropAgent, buildAirdropPrompt, ExistingAirdrop } from './airdrop.agent';
 import { logger } from '../utils/logger.util';
 import { cleanSignalText } from '../utils/text.util';
 import { supabaseService } from '../services/supabase.service';
@@ -703,14 +703,25 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
     logger.info(`Starting Yield Analysis run ${runId}`);
 
     try {
-      const { runner } = await YieldAgent.build();
-      const result = await runner.ask("Find the best yield farming opportunities.") as any;
+      // Step 1: Get all existing yield opportunities from database
+      const existingYields = await supabaseService.getAllYieldOpportunities();
+      logger.info(`Found ${existingYields.length} existing yield opportunities to verify`);
 
-      if (result.opportunities && result.opportunities.length > 0) {
-        logger.info(`Found ${result.opportunities.length} yield opportunities. Saving to DB...`);
-        await supabaseService.saveYieldOpportunities(result.opportunities);
+      // Step 2: Build prompt with existing data for verification
+      const prompt = buildYieldPrompt(existingYields as ExistingYield[]);
+
+      // Step 3: Run agent with existing data context
+      const { runner } = await YieldAgent.build();
+      const result = await runner.ask(prompt) as any;
+
+      // Step 4: Replace ALL data with verified + new opportunities
+      if (result.opportunities && Array.isArray(result.opportunities)) {
+        logger.info(`Agent returned ${result.opportunities.length} verified yield opportunities. Replacing DB...`);
+        await supabaseService.replaceAllYieldOpportunities(result.opportunities);
+        logger.info(`Successfully replaced yield opportunities in DB`);
       } else {
-        logger.info('No yield opportunities found.');
+        logger.warn('No yield opportunities returned. Clearing old data...');
+        await supabaseService.replaceAllYieldOpportunities([]);
       }
     } catch (error) {
       logger.error('Error in Yield Analysis run', error);
@@ -722,17 +733,25 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
     logger.info(`Starting Airdrop Analysis run ${runId}`);
 
     try {
-      const { runner } = await AirdropAgent.build();
-      // The prompt is already embedded in the agent instruction, but we need to trigger it.
-      // The instruction says "Search strategy — run these exact queries...".
-      // We can just ask it to "Execute scan."
-      const result = await runner.ask("Execute airdrop scan.") as any;
+      // Step 1: Get all existing airdrops from database
+      const existingAirdrops = await supabaseService.getAllAirdrops();
+      logger.info(`Found ${existingAirdrops.length} existing airdrops to verify`);
 
-      if (result.airdrops && result.airdrops.length > 0) {
-        logger.info(`Found ${result.airdrops.length} airdrop opportunities. Saving to DB...`);
-        await supabaseService.saveAirdrops(result.airdrops);
+      // Step 2: Build prompt with existing data for verification
+      const prompt = buildAirdropPrompt(existingAirdrops as ExistingAirdrop[]);
+
+      // Step 3: Run agent with existing data context
+      const { runner } = await AirdropAgent.build();
+      const result = await runner.ask(prompt) as any;
+
+      // Step 4: Replace ALL data with verified + new airdrops
+      if (result.airdrops && Array.isArray(result.airdrops)) {
+        logger.info(`Agent returned ${result.airdrops.length} verified airdrops. Replacing DB...`);
+        await supabaseService.replaceAllAirdrops(result.airdrops);
+        logger.info(`Successfully replaced airdrops in DB`);
       } else {
-        logger.info('No airdrop opportunities found.');
+        logger.warn('No airdrops returned. Clearing old data...');
+        await supabaseService.replaceAllAirdrops([]);
       }
     } catch (error) {
       logger.error('Error in Airdrop Analysis run', error);

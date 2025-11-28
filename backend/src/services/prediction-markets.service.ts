@@ -1,5 +1,5 @@
 import { supabaseService } from './supabase.service';
-import { PredictorAgent, PredictorOutput } from '../agents/predictor.agent';
+import { PredictorAgent, PredictorOutput, buildPredictorPrompt, ExistingPrediction } from '../agents/predictor.agent';
 import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
 
@@ -33,10 +33,11 @@ class PredictionMarketsService {
   private lastScanTime: Date | null = null;
 
   /**
-   * Call the predictor agent with retry logic
+   * Call the predictor agent with existing data for verification
    */
-  private async callPredictorAgent(): Promise<PredictorOutput> {
-    const prompt = `Find 8-15 high-edge Polymarket opportunities now. Search the site, get current YES prices, check X sentiment, and return markets with 12%+ edge. Return JSON only.`;
+  private async callPredictorAgent(existingMarkets: ExistingPrediction[]): Promise<PredictorOutput> {
+    // Build prompt with existing data for verification
+    const prompt = buildPredictorPrompt(existingMarkets);
     
     const { runner } = await PredictorAgent.build();
     const output = await runner.ask(prompt) as PredictorOutput;
@@ -50,15 +51,19 @@ class PredictionMarketsService {
 
   /**
    * Let the AI agent find and analyze prediction markets using web search and X
-   * No external API fetching - the agent does its own research
+   * Also verifies existing markets and removes outdated ones
    */
   async discoverAndAnalyzeMarkets(): Promise<AnalyzedMarket[]> {
-    logger.info('[PredictionMarkets] Starting AI market discovery...');
+    logger.info('[PredictionMarkets] Starting AI market discovery with verification...');
 
     try {
-      // Call agent with retry logic
+      // Step 1: Get all existing markets from database for verification
+      const existingMarkets = await supabaseService.getAllPredictionMarkets();
+      logger.info(`[PredictionMarkets] Found ${existingMarkets.length} existing markets to verify`);
+
+      // Call agent with retry logic and existing data
       const output = await retry(
-        () => this.callPredictorAgent(),
+        () => this.callPredictorAgent(existingMarkets as ExistingPrediction[]),
         MAX_RETRIES,
         2000, // 2s initial delay
         2,    // 2x backoff
@@ -116,16 +121,12 @@ class PredictionMarketsService {
   }
 
   /**
-   * Save analyzed markets to database
+   * Replace ALL markets in database with new verified list
    */
   async saveMarkets(markets: AnalyzedMarket[]): Promise<void> {
-    if (markets.length === 0) return;
-
     try {
-      const client = supabaseService.getClient();
-      
-      // Prepare data for upsert
-      const upsertData = markets.map(m => ({
+      // Prepare data for insert
+      const insertData = markets.map(m => ({
         market_id: m.market_id,
         platform: m.platform,
         title: m.title,
@@ -143,13 +144,10 @@ class PredictionMarketsService {
         last_analyzed_at: m.last_analyzed_at,
       }));
 
-      const { error } = await client
-        .from('prediction_markets_cache')
-        .upsert(upsertData, { onConflict: 'market_id' });
-
-      if (error) throw error;
+      // Replace all markets in database
+      await supabaseService.replaceAllPredictionMarkets(insertData);
       
-      logger.info(`[PredictionMarkets] Saved ${markets.length} markets to database`);
+      logger.info(`[PredictionMarkets] Replaced database with ${markets.length} verified markets`);
     } catch (error) {
       logger.error('[PredictionMarkets] Error saving markets:', error);
     }
@@ -226,7 +224,7 @@ class PredictionMarketsService {
   }
 
   /**
-   * Run a full scan: AI discovers and analyzes markets, then saves
+   * Run a full scan: AI verifies existing markets, discovers new ones, and replaces DB
    */
   async runScan(): Promise<AnalyzedMarket[]> {
     if (this.isScanning) {
@@ -235,22 +233,22 @@ class PredictionMarketsService {
     }
 
     this.isScanning = true;
-    logger.info('[PredictionMarkets] Starting AI prediction markets scan...');
+    logger.info('[PredictionMarkets] Starting AI prediction markets scan with verification...');
 
     try {
-      // Let AI discover and analyze markets
+      // Let AI verify existing and discover new markets
       const analyzedMarkets = await this.discoverAndAnalyzeMarkets();
 
-      if (analyzedMarkets.length === 0) {
-        logger.warn('[PredictionMarkets] No high-edge markets found by AI');
-        return [];
-      }
-
-      // Save to database
+      // Save to database (replaces all existing data)
       await this.saveMarkets(analyzedMarkets);
 
       this.lastScanTime = new Date();
-      logger.info(`[PredictionMarkets] Scan complete. Found ${analyzedMarkets.length} high-edge markets`);
+      
+      if (analyzedMarkets.length === 0) {
+        logger.warn('[PredictionMarkets] No high-edge markets found. Database cleared.');
+      } else {
+        logger.info(`[PredictionMarkets] Scan complete. Database now has ${analyzedMarkets.length} verified markets`);
+      }
       
       return analyzedMarkets;
     } catch (error) {

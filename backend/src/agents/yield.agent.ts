@@ -4,29 +4,74 @@ import { getYieldPoolsTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
+// Schema for existing yield opportunity data passed to agent
+export const ExistingYieldSchema = z.object({
+  pool_id: z.string(),
+  protocol: z.string(),
+  chain: z.string(),
+  symbol: z.string(),
+  apy: z.number(),
+  tvl: z.number(),
+  risk_level: z.enum(['Low', 'Medium', 'High', 'Degen']),
+  analysis: z.string().optional(),
+  url: z.string().optional(),
+  created_at: z.string().optional(),
+});
+
+export type ExistingYield = z.infer<typeof ExistingYieldSchema>;
+
+// Function to build yield agent prompt with existing data
+export function buildYieldPrompt(existingYields: ExistingYield[]): string {
+  const existingDataSection = existingYields.length > 0 
+    ? `\n\n**EXISTING YIELD OPPORTUNITIES IN DATABASE (verify these first):**\n${JSON.stringify(existingYields, null, 2)}\n\n`
+    : '\n\n**No existing yield opportunities in database.**\n\n';
+
+  return dedent`
+    Find the best yield farming opportunities.
+    ${existingDataSection}
+    First, verify all existing entries are still active, safe, and offer competitive yields.
+    Remove any that have been exploited, have significantly reduced APY, or are no longer recommended.
+    Then find new high-quality opportunities from fresh data.
+    Return the COMPLETE list of all valid yield opportunities (verified existing + newly discovered).
+  `;
+}
+
 export const YieldAgent = AgentBuilder.create('yield_agent')
   .withModel(scannerLlm)
-  .withDescription('Analyzes yield farming opportunities across all chains')
+  .withDescription('Analyzes yield farming opportunities and verifies existing ones')
   .withTools(getYieldPoolsTool)
   .withInstruction(dedent`
-    You are a DeFi Yield Farming expert powered by. Your job is to identify the best yield farming opportunities.
+    You are a DeFi Yield Farming expert. Your job is to identify the best yield farming opportunities AND verify existing ones.
 
-    1. **Fetch Yield Pools**: Use the 'get_yield_pools' tool to get the latest data.
-    2. **Analyze & Research**:
-       - For the top candidates, use your built-in X (Twitter) and web search capabilities to check for:
-         - Protocol safety/hacks.
-         - Sustainability of the yield (is it real yield or inflationary token printing?).
-         - Community sentiment.
-    3. **Select the Best**:
-       - Select at least 10 opportunities if possible.
-       - **Mix of Risk Levels**: Include a mix of 'Low' risk (stable, established), 'Medium' risk, and 'High/Degen' risk (high APY, newer protocols).
-       - **Don't just pick stablecoins**. Look for volatile pairs with high APY if the protocol seems legit.
-       - Look for "Real Yield" narratives.
-       - Diversify across chains if possible.
-    4. **Return**: A list of the best opportunities with a risk assessment.
+    You have TWO jobs:
+    1. **VERIFY EXISTING DATA**: You will receive a list of current yield opportunities in our database. For each one:
+       - Check if the protocol is still safe (no recent hacks/exploits)
+       - Verify the APY is still competitive and sustainable
+       - Confirm the pool still exists and has good TVL
+       - If it's still valid, KEEP it in your output (update APY/TVL if changed)
+       - If it's been exploited, APY crashed, or no longer recommended, EXCLUDE it
+    
+    2. **DISCOVER NEW OPPORTUNITIES**: 
+       a. **Fetch Yield Pools**: Use the 'get_yield_pools' tool to get the latest data.
+       b. **Analyze & Research**:
+          - For the top candidates, use your built-in X (Twitter) and web search capabilities to check for:
+            - Protocol safety/hacks.
+            - Sustainability of the yield (is it real yield or inflationary token printing?).
+            - Community sentiment.
+       c. **Select the Best**:
+          - Select at least 10 opportunities if possible.
+          - **Mix of Risk Levels**: Include a mix of 'Low' risk (stable, established), 'Medium' risk, and 'High/Degen' risk (high APY, newer protocols).
+          - **Don't just pick stablecoins**. Look for volatile pairs with high APY if the protocol seems legit.
+          - Look for "Real Yield" narratives.
+          - Diversify across chains if possible.
+
+    **CRITICAL**: Your output will COMPLETELY REPLACE the existing database. Only include opportunities that are:
+    - Currently active and safe
+    - Have competitive, sustainable yields
+    - Not duplicates (use pool_id as unique identifier)
 
     IMPORTANT: Return strict JSON matching the schema.
-    
+
     **Schema Requirements:**
     - 'pool_id': Must match the 'pool_id' from the tool data.
     - 'apy': Must be a number (e.g. 5.5, not "5.5%").

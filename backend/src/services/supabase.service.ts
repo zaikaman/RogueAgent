@@ -452,6 +452,126 @@ export class SupabaseService {
     return { airdrops: data, total: count };
   }
 
+  // ===== NEW METHODS FOR DATA VERIFICATION & REPLACEMENT =====
+
+  /**
+   * Get ALL airdrops from database (for agent verification)
+   */
+  async getAllAirdrops() {
+    const { data, error } = await this.client
+      .from('airdrops')
+      .select('*')
+      .order('rogue_score', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Replace ALL airdrops with new verified list
+   * Clears existing data and inserts new data
+   */
+  async replaceAllAirdrops(airdrops: any[]) {
+    // First, delete all existing airdrops
+    const { error: deleteError } = await this.client
+      .from('airdrops')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (workaround for no .deleteAll())
+
+    if (deleteError) throw deleteError;
+
+    // If no new airdrops, just return empty
+    if (!airdrops || airdrops.length === 0) {
+      return [];
+    }
+
+    // Insert new airdrops
+    const { data, error: insertError } = await this.client
+      .from('airdrops')
+      .insert(airdrops)
+      .select();
+
+    if (insertError) throw insertError;
+    return data;
+  }
+
+  /**
+   * Get ALL yield opportunities from database (for agent verification)
+   */
+  async getAllYieldOpportunities() {
+    const { data, error } = await this.client
+      .from('yield_opportunities')
+      .select('*')
+      .order('apy', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Replace ALL yield opportunities with new verified list
+   */
+  async replaceAllYieldOpportunities(opportunities: any[]) {
+    // Delete all existing
+    const { error: deleteError } = await this.client
+      .from('yield_opportunities')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (deleteError) throw deleteError;
+
+    if (!opportunities || opportunities.length === 0) {
+      return [];
+    }
+
+    const { data, error: insertError } = await this.client
+      .from('yield_opportunities')
+      .insert(opportunities)
+      .select();
+
+    if (insertError) throw insertError;
+    return data;
+  }
+
+  /**
+   * Get ALL prediction markets from database (for agent verification)
+   */
+  async getAllPredictionMarkets() {
+    const { data, error } = await this.client
+      .from('prediction_markets_cache')
+      .select('*')
+      .eq('is_active', true)
+      .order('confidence_score', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Replace ALL prediction markets with new verified list
+   */
+  async replaceAllPredictionMarkets(markets: any[]) {
+    // Delete all existing
+    const { error: deleteError } = await this.client
+      .from('prediction_markets_cache')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (deleteError) throw deleteError;
+
+    if (!markets || markets.length === 0) {
+      return [];
+    }
+
+    const { data, error: insertError } = await this.client
+      .from('prediction_markets_cache')
+      .insert(markets)
+      .select();
+
+    if (insertError) throw insertError;
+    return data;
+  }
+
   async getRunById(id: string) {
     const { data, error } = await this.client
       .from('runs')
