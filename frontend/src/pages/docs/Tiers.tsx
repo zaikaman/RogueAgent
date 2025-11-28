@@ -35,7 +35,7 @@ export default function Tiers() {
                         <ul className="space-y-2 text-gray-300">
                             <li className="flex items-start gap-2">
                                 <span className="text-teal-glow mt-1">✓</span>
-                                <span><strong className="text-white">100% signal coverage</strong> - Receive every signal and intel report via Telegram DM</span>
+                                <span><strong className="text-white">Up to 40% more signals</strong> - Receive every signal and intel report via Telegram DM</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="text-teal-glow mt-1">✓</span>
@@ -79,7 +79,7 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">100% signal coverage</strong> - Receive every signal and intel report via Telegram DM</span>
+                            <span><strong className="text-white">Up to 40% more signals</strong> - Receive every signal and intel report via Telegram DM</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
@@ -118,7 +118,7 @@ export default function Tiers() {
                     <ul className="space-y-2 text-gray-300">
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
-                            <span><strong className="text-white">100% signal coverage</strong> - Receive every signal and intel report via Telegram DM</span>
+                            <span><strong className="text-white">Up to 40% more signals</strong> - Receive every signal and intel report via Telegram DM</span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-teal-glow mt-1">✓</span>
@@ -171,7 +171,7 @@ export default function Tiers() {
 
                     <div className="mt-4 bg-white/5 border border-white/10 rounded-lg p-3">
                         <p className="text-gray-300 text-sm">
-                            Free tier with curated content. Upgrade to Silver+ for <strong className="text-teal-glow">100% signal coverage</strong> via Telegram.
+                            Free tier with curated content. Upgrade to Silver+ for <strong className="text-teal-glow">up to 40% more signals</strong> via Telegram.
                         </p>
                     </div>
                 </div>

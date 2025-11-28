@@ -191,8 +191,8 @@ export default function Introduction() {
                         <h3 className="text-white font-semibold text-lg mb-2">Tiered Distribution</h3>
                         <p className="text-gray-400 mb-2">Signals are distributed strategically based on user tier:</p>
                         <ul className="text-sm text-gray-400 space-y-1">
-                            <li>• <strong className="text-white">Diamond/Gold</strong> tier: Immediate alerts, 100% signal coverage via Telegram</li>
-                            <li>• <strong className="text-white">Silver</strong> tier: Signals after 15 minutes, 100% coverage via Telegram</li>
+                            <li>• <strong className="text-white">Diamond/Gold</strong> tier: Immediate alerts, up to 40% more signals via Telegram</li>
+                            <li>• <strong className="text-white">Silver</strong> tier: Signals after 15 minutes, up to 40% more via Telegram</li>
                             <li>• <strong className="text-white">Public</strong> (X): Curated highlights after 30 minutes</li>
                         </ul>
                     </div>

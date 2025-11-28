@@ -51,10 +51,10 @@ export default function Home() {
         {
             id: '03',
             title: 'Token-Gated Speed',
-            description: '$RGE holders receive 100% of signals via Telegram, up to 30 minutes before the curated public feed on X.',
+            description: '$RGE holders receive up to 40% more signals via Telegram, up to 30 minutes before the curated public feed on X.',
             icon: Shield02Icon,
             stats: [
-                { label: 'ADVANTAGE', value: '30m' },
+                { label: 'ADVANTAGE', value: '40%' },
                 { label: 'ACCESS', value: 'TIER 1' }
             ]
         },

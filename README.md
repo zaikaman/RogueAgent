@@ -69,7 +69,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 - **Diamond/Gold** tier users receive immediate alerts via Telegram DM
 - **Silver** tier receives signals after 15 minutes via Telegram DM
 - **Public** (X) receives select signals after 30 minutes
-- 💎 **Premium Advantage**: Paid tiers receive ALL signals and intel via Telegram—X only features curated highlights
+- 💎 **Premium Advantage**: Paid tiers receive **up to 40% more signals and intel** than public users—X only features curated highlights
 
 🔒 **Limit Order Intelligence**: Rogue doesn't just find opportunities—it determines optimal entry points. When a token is extended, it sets limit orders at key support levels and monitors the market, only activating when price reaches the ideal entry.
 
@@ -419,12 +419,12 @@ cvd divergence + poc support + network upgrade catalyst
 
 | Tier | Delivery Time | Channels | Coverage |
 |------|---------------|----------|----------|
-| 💎 Diamond | Immediate | Telegram DM | **100% of signals & intel** |
-| 🥇 Gold | Immediate | Telegram DM | **100% of signals & intel** |
-| 🥈 Silver | +15 minutes | Telegram DM | **100% of signals & intel** |
+| 💎 Diamond | Immediate | Telegram DM | **Up to 40% more signals & intel** |
+| 🥇 Gold | Immediate | Telegram DM | **Up to 40% more signals & intel** |
+| 🥈 Silver | +15 minutes | Telegram DM | **Up to 40% more signals & intel** |
 | 🌐 Public | +30 minutes | X + Dashboard | Curated highlights only |
 
-> 💡 **Premium Value**: Paid tier subscribers receive every signal and intel report directly to their Telegram. Public X posts feature only select highlights—ensuring premium users always have the full picture and the edge.
+> 💡 **Premium Value**: Paid tier subscribers receive **up to 40% more signals and intel** than public users. Public X posts feature only curated highlights—ensuring premium users always have the full picture and the edge.
 
 **Database Logging**:
 - Every signal stored with full metadata
