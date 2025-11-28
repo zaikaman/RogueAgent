@@ -458,53 +458,99 @@ export default function Home() {
             {/* Feature Showcase Section */}
             <section className="py-24 relative bg-noir-black">
                 <div className="max-w-7xl mx-auto px-4 sm:px-8">
-                    <div className="bg-noir-dark/40 border border-white/5 rounded-[2.5rem] p-8 md:p-12 backdrop-blur-sm overflow-hidden relative">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 0.8 }}
+                        className="bg-noir-dark/40 border border-white/5 rounded-[2.5rem] p-8 md:p-12 backdrop-blur-sm overflow-hidden relative"
+                    >
                         {/* Background Glow */}
                         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-teal-glow/5 rounded-full blur-[100px] pointer-events-none" />
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                             <div className="flex flex-col justify-between h-full">
                                 <div>
-                                    <span className="text-sm font-mono text-teal-glow tracking-wider uppercase">Platform</span>
-                                    <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight mt-4 mb-8 leading-[1.1]">
+                                    <motion.span 
+                                        initial={{ opacity: 0, x: -20 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.2 }}
+                                        className="text-sm font-mono text-teal-glow tracking-wider uppercase"
+                                    >
+                                        Platform
+                                    </motion.span>
+                                    <motion.h2 
+                                        initial={{ opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.3, duration: 0.6 }}
+                                        className="text-4xl md:text-6xl font-bold text-white tracking-tight mt-4 mb-8 leading-[1.1]"
+                                    >
                                         From analysis to execution. Fully autonomous.
-                                    </h2>
+                                    </motion.h2>
 
-                                    <div className="space-y-8 relative pl-6 border-l border-white/10">
-                                        <div className="relative">
-                                            <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-teal-glow shadow-[0_0_10px_rgba(0,212,255,0.5)]" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Ecosystem Scanner</h3>
-                                            <p className="text-gray-400">Monitors X, Telegram, and on-chain data 24/7 to surface opportunities before they trend.</p>
-                                        </div>
-                                        <div className="relative">
-                                            <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-teal-dark" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Signal Analyzer</h3>
-                                            <p className="text-gray-400">AI-powered analysis identifies high-conviction setups with precise entry, target, and stop-loss levels.</p>
-                                        </div>
-                                        <div className="relative">
-                                            <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-purple-500" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Autonomous Execution</h3>
-                                            <p className="text-gray-400">Executes LONG/SHORT futures trades on Hyperliquid with dynamic leverage. Mainnet & testnet supported.</p>
-                                        </div>
-                                        <div className="relative">
-                                            <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-gray-600" />
-                                            <h3 className="text-xl font-bold text-white mb-2">Alpha Publisher</h3>
-                                            <p className="text-gray-400">Broadcasts signals to $RGE holders instantly via Telegram. Curated highlights posted to X.</p>
-                                        </div>
+                                    <div className="space-y-8 relative pl-6">
+                                        {/* Animated Line */}
+                                        <motion.div 
+                                            initial={{ height: 0 }}
+                                            whileInView={{ height: '100%' }}
+                                            viewport={{ once: true }}
+                                            transition={{ duration: 1.5, ease: "easeInOut" }}
+                                            className="absolute left-0 top-3 w-[1px] bg-gradient-to-b from-teal-glow via-white/20 to-transparent"
+                                        />
+
+                                        {[
+                                            { title: "Ecosystem Scanner", desc: "Monitors X, Telegram, and on-chain data 24/7 to surface opportunities before they trend.", color: "bg-blue-500", shadow: "shadow-[0_0_10px_rgba(59,130,246,0.5)]" },
+                                            { title: "Signal Analyzer", desc: "AI-powered analysis identifies high-conviction setups with precise entry, target, and stop-loss levels.", color: "bg-purple-500", shadow: "shadow-[0_0_10px_rgba(168,85,247,0.5)]" },
+                                            { title: "Autonomous Execution", desc: "Executes LONG/SHORT futures trades on Hyperliquid with dynamic leverage. Mainnet & testnet supported.", color: "bg-teal-glow", shadow: "shadow-[0_0_10px_rgba(0,212,255,0.5)]" },
+                                            { title: "Alpha Publisher", desc: "Broadcasts signals to $RGE holders instantly via Telegram. Curated highlights posted to X.", color: "bg-orange-500", shadow: "shadow-[0_0_10px_rgba(249,115,22,0.5)]" }
+                                        ].map((item, index) => (
+                                            <motion.div 
+                                                key={index}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: 0.4 + (index * 0.2) }}
+                                                className="relative"
+                                            >
+                                                <motion.div 
+                                                    initial={{ scale: 0 }}
+                                                    whileInView={{ scale: 1 }}
+                                                    viewport={{ once: true }}
+                                                    transition={{ delay: 0.4 + (index * 0.2), type: "spring" }}
+                                                    className={`absolute -left-[29px] top-1.5 w-3 h-3 rounded-full ${item.color} ${item.shadow} ring-4 ring-noir-black`} 
+                                                />
+                                                <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                                                <p className="text-gray-400">{item.desc}</p>
+                                            </motion.div>
+                                        ))}
                                     </div>
                                 </div>
 
-                                <div className="mt-12">
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    whileInView={{ opacity: 1 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: 1.2 }}
+                                    className="mt-12"
+                                >
                                     <Link to="/app" className="inline-flex items-center gap-2 text-teal-glow font-bold hover:text-white transition-colors group">
                                         Open Terminal
                                         <HugeiconsIcon icon={ArrowRight01Icon} size={20} className="group-hover:translate-x-1 transition-transform" />
                                     </Link>
-                                </div>
+                                </motion.div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 relative">
                                 <div className="space-y-4 mt-12">
-                                    <div className="aspect-[4/5] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors">
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 40 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.4, duration: 0.6 }}
+                                        className="aspect-[4/5] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors"
+                                    >
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-noir-black/90 z-10" />
                                         <div className="absolute bottom-4 left-4 z-20">
                                             <div className="text-xs text-teal-glow font-mono mb-1">MONITORING</div>
@@ -512,37 +558,55 @@ export default function Home() {
                                         </div>
                                         {/* Abstract UI representation */}
                                         <img src="/live-tracking.webp" alt="Live Tracking" className="w-full h-full object-cover rounded-lg" />
-                                    </div>
-                                    <div className="aspect-[4/3] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors">
+                                    </motion.div>
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 40 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.6, duration: 0.6 }}
+                                        className="aspect-[4/3] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors"
+                                    >
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-noir-black/90 z-10" />
                                         <div className="absolute bottom-4 left-4 z-20">
                                             <div className="text-xs text-teal-glow font-mono mb-1">SECURITY</div>
                                             <div className="text-lg font-bold text-white">Risk Analysis</div>
                                         </div>
                                         <img src="/risk-analysis.webp" alt="Risk Analysis" className="w-full h-full object-cover rounded-lg" />
-                                    </div>
+                                    </motion.div>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="aspect-[4/3] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors">
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 40 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.5, duration: 0.6 }}
+                                        className="aspect-[4/3] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors"
+                                    >
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-noir-black/90 z-10" />
                                         <div className="absolute bottom-4 left-4 z-20">
                                             <div className="text-xs text-teal-glow font-mono mb-1">STRATEGY</div>
                                             <div className="text-lg font-bold text-white">Multi-Chain</div>
                                         </div>
                                         <img src="/multi-chain.webp" alt="Multi-Chain" className="w-full h-full object-cover rounded-lg" />
-                                    </div>
-                                    <div className="aspect-[4/5] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors">
+                                    </motion.div>
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 40 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.7, duration: 0.6 }}
+                                        className="aspect-[4/5] rounded-2xl bg-noir-black border border-white/10 p-4 relative overflow-hidden group hover:border-teal-glow/30 transition-colors"
+                                    >
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-noir-black/90 z-10" />
                                         <div className="absolute bottom-4 left-4 z-20">
                                             <div className="text-xs text-teal-glow font-mono mb-1">AI</div>
                                             <div className="text-lg font-bold text-white">Smart Optimization</div>
                                         </div>
                                         <img src="/smart-optimization.webp" alt="Smart Optimization" className="w-full h-full object-cover rounded-lg" />
-                                    </div>
+                                    </motion.div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
