@@ -90,6 +90,18 @@ export class HyperliquidService extends EventEmitter {
   private lastMetaFetch: number = 0;
   private META_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+  // Rate limiting and caching to prevent 429 errors
+  private userStateCache: { data: UserState | null; lastFetch: number } = { data: null, lastFetch: 0 };
+  private midsCache: { data: Record<string, string> | null; lastFetch: number } = { data: null, lastFetch: 0 };
+  private fillsCache: { data: any[] | null; lastFetch: number } = { data: null, lastFetch: 0 };
+  private positionsCache: { data: TradePosition[] | null; lastFetch: number } = { data: null, lastFetch: 0 };
+  
+  // Cache TTLs - short enough to be useful, long enough to prevent rate limits
+  private readonly USER_STATE_CACHE_TTL = 5000;    // 5 seconds - balance/positions update frequently
+  private readonly MIDS_CACHE_TTL = 3000;          // 3 seconds - prices need to be fairly fresh
+  private readonly FILLS_CACHE_TTL = 10000;        // 10 seconds - fills don't change that often
+  private readonly POSITIONS_CACHE_TTL = 5000;     // 5 seconds - positions need to sync
+
   constructor(credentials: HyperliquidCredentials, testnet: boolean = true) {
     super();
     this.credentials = credentials;
@@ -100,6 +112,16 @@ export class HyperliquidService extends EventEmitter {
       privateKey: credentials.privateKey,
       testnet,
     });
+  }
+
+  /**
+   * Clear all caches - useful when you need fresh data after an action
+   */
+  clearCache(): void {
+    this.userStateCache = { data: null, lastFetch: 0 };
+    this.midsCache = { data: null, lastFetch: 0 };
+    this.fillsCache = { data: null, lastFetch: 0 };
+    this.positionsCache = { data: null, lastFetch: 0 };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -183,20 +205,43 @@ export class HyperliquidService extends EventEmitter {
   }
 
   /**
-   * Get user's perpetual account state
+   * Get user's perpetual account state (cached)
    */
-  async getUserState(): Promise<UserState> {
+  async getUserState(forceRefresh: boolean = false): Promise<UserState> {
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (!forceRefresh && this.userStateCache.data && (now - this.userStateCache.lastFetch) < this.USER_STATE_CACHE_TTL) {
+      return this.userStateCache.data;
+    }
+    
     await this.ensureConnected();
     const state = await this.sdk.info.perpetuals.getClearinghouseState(this.credentials.walletAddress);
+    
+    // Update cache
+    this.userStateCache = { data: state as unknown as UserState, lastFetch: now };
+    
     return state as unknown as UserState;
   }
 
   /**
-   * Get mid prices for all coins
+   * Get mid prices for all coins (cached)
    */
-  async getAllMids(): Promise<Record<string, string>> {
+  async getAllMids(forceRefresh: boolean = false): Promise<Record<string, string>> {
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (!forceRefresh && this.midsCache.data && (now - this.midsCache.lastFetch) < this.MIDS_CACHE_TTL) {
+      return this.midsCache.data;
+    }
+    
     await this.ensureConnected();
-    return this.sdk.info.getAllMids();
+    const mids = await this.sdk.info.getAllMids();
+    
+    // Update cache
+    this.midsCache = { data: mids, lastFetch: now };
+    
+    return mids;
   }
 
   /**
@@ -362,13 +407,20 @@ export class HyperliquidService extends EventEmitter {
   }
 
   /**
-   * Get formatted positions with P&L
+   * Get formatted positions with P&L (cached)
    */
-  async getFormattedPositions(): Promise<TradePosition[]> {
+  async getFormattedPositions(forceRefresh: boolean = false): Promise<TradePosition[]> {
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (!forceRefresh && this.positionsCache.data && (now - this.positionsCache.lastFetch) < this.POSITIONS_CACHE_TTL) {
+      return this.positionsCache.data;
+    }
+    
     const positions = await this.getPositions();
     const mids = await this.getAllMids();
 
-    return positions.map(p => {
+    const formattedPositions = positions.map(p => {
       const szi = parseFloat(p.szi);
       const entryPrice = parseFloat(p.entryPx);
       const coin = p.coin.replace(/-PERP$/, '');
@@ -389,6 +441,11 @@ export class HyperliquidService extends EventEmitter {
         marginType: p.leverage.type,
       } as TradePosition;
     });
+    
+    // Update cache
+    this.positionsCache = { data: formattedPositions, lastFetch: now };
+    
+    return formattedPositions;
   }
 
   /**
@@ -499,6 +556,9 @@ export class HyperliquidService extends EventEmitter {
         order_type: orderType,
         reduce_only: params.reduceOnly || false,
       });
+
+      // Clear caches after placing order to ensure fresh data on next fetch
+      this.clearCache();
 
       logger.info(`Order placed: ${params.symbol} ${params.isBuy ? 'LONG' : 'SHORT'} ${roundedSize} @ ${orderPrice}`);
       return result as OrderResult;
@@ -695,11 +755,22 @@ export class HyperliquidService extends EventEmitter {
   }
 
   /**
-   * Get user fills (recent trades)
+   * Get user fills (recent trades) - cached
    */
-  async getFills(limit: number = 50): Promise<any[]> {
+  async getFills(limit: number = 50, forceRefresh: boolean = false): Promise<any[]> {
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (!forceRefresh && this.fillsCache.data && (now - this.fillsCache.lastFetch) < this.FILLS_CACHE_TTL) {
+      return this.fillsCache.data.slice(0, limit);
+    }
+    
     await this.ensureConnected();
     const fills = await this.sdk.info.getUserFills(this.credentials.walletAddress);
+    
+    // Update cache with full result
+    this.fillsCache = { data: fills, lastFetch: now };
+    
     return fills.slice(0, limit);
   }
 

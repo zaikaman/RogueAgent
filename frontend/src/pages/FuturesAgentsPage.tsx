@@ -54,7 +54,7 @@ export function FuturesAgentsPage() {
   useEffect(() => {
     if (!address) return;
     loadData();
-    const interval = setInterval(loadData, 10000); // Refresh every 10s
+    const interval = setInterval(loadData, 30000); // Refresh every 30s (reduced from 10s to prevent rate limits)
     return () => clearInterval(interval);
   }, [address]);
 
@@ -64,7 +64,7 @@ export function FuturesAgentsPage() {
     const fastPollInterval = setInterval(async () => {
       const jobs = await futuresService.getSignalJobs(address);
       setSignalJobs(jobs);
-    }, 2000); // Poll every 2s when jobs are active
+    }, 5000); // Poll every 5s when jobs are active (reduced from 2s)
     return () => clearInterval(fastPollInterval);
   }, [address, signalJobs.active.length]);
 

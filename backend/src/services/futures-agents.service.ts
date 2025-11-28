@@ -109,9 +109,13 @@ export interface FuturesPosition {
 // Encryption key from environment (should be 32 bytes for AES-256)
 const ENCRYPTION_KEY = process.env.FUTURES_ENCRYPTION_KEY || 'rogue-futures-encryption-key-32';
 
+// Rate limiting for sync operations (to prevent 429 errors from Hyperliquid)
+const SYNC_COOLDOWN_MS = 10000; // 10 seconds between sync operations per wallet
+
 class FuturesAgentsService {
   private supabase: SupabaseService;
   private hyperliquidServices: Map<string, HyperliquidService> = new Map();
+  private lastSyncTime: Map<string, number> = new Map(); // Track last sync per wallet
   
   constructor() {
     this.supabase = new SupabaseService();
@@ -503,11 +507,23 @@ class FuturesAgentsService {
     return data || [];
   }
 
-  async syncPositions(walletAddress: string): Promise<void> {
+  async syncPositions(walletAddress: string, force: boolean = false): Promise<void> {
+    // Rate limit sync operations to prevent 429 errors
+    const now = Date.now();
+    const lastSync = this.lastSyncTime.get(walletAddress) || 0;
+    
+    if (!force && (now - lastSync) < SYNC_COOLDOWN_MS) {
+      // Skip sync if we synced recently (unless forced)
+      return;
+    }
+    
     const hyperliquid = await this.getHyperliquidService(walletAddress);
     if (!hyperliquid) return;
 
     try {
+      // Update last sync time immediately to prevent concurrent syncs
+      this.lastSyncTime.set(walletAddress, now);
+      
       const positions = await hyperliquid.getFormattedPositions();
       
       // Update positions in database
@@ -548,6 +564,8 @@ class FuturesAgentsService {
       }
     } catch (error) {
       logger.error('Error syncing positions', error);
+      // Reset sync time on error so we can retry sooner
+      this.lastSyncTime.set(walletAddress, now - SYNC_COOLDOWN_MS + 2000); // Allow retry in 2s
     }
   }
 
@@ -725,9 +743,9 @@ class FuturesAgentsService {
 
     const result = await hyperliquid.closeAllPositions();
     
-    // Update database
+    // Update database (force sync since we just closed positions)
     if (result.closed.length > 0) {
-      await this.syncPositions(walletAddress);
+      await this.syncPositions(walletAddress, true);
     }
 
     return result;

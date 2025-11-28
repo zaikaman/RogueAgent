@@ -415,18 +415,28 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
 
     if (openTrades.length === 0) return;
 
-    // Get all fills once (more efficient)
-    const fills = await hyperliquid.getFills(100);
+    // Get all positions and fills once (more efficient than calling per trade)
+    const [positions, fills] = await Promise.all([
+      hyperliquid.getPositions(),
+      hyperliquid.getFills(100),
+    ]);
+    
+    // Create a map of positions by symbol for quick lookup
+    const positionsBySymbol = new Map<string, typeof positions[0]>();
+    for (const p of positions) {
+      const normalizedCoin = p.coin.toUpperCase().replace(/-PERP$/, '');
+      positionsBySymbol.set(normalizedCoin, p);
+      positionsBySymbol.set(p.coin, p);
+    }
     
     for (const trade of openTrades) {
       try {
-        // Check if position is still open
-        const position = await hyperliquid.getPosition(trade.symbol);
+        // Check if position is still open (using pre-fetched positions)
+        const tradeSymbol = trade.symbol.toUpperCase().replace(/-PERP$/, '');
+        const position = positionsBySymbol.get(tradeSymbol) || positionsBySymbol.get(`${tradeSymbol}-PERP`);
         
         if (!position || parseFloat(position.szi) === 0) {
           // Position is closed - get the actual close price from fills
-          // Normalize symbol for comparison (fills may use ETH-PERP or just ETH)
-          const tradeSymbol = trade.symbol.toUpperCase().replace(/-PERP$/, '');
           
           // Find fills for this symbol that happened after the trade opened
           const relevantFills = fills.filter((f: any) => {

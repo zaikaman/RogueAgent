@@ -174,6 +174,8 @@ router.delete('/api-keys', requireDiamondTier, async (req: Request, res: Respons
 /**
  * GET /futures/api-keys/status
  * Check if user has API keys configured
+ * Note: We no longer test the connection on every status check to avoid rate limits
+ * The balance is fetched from the account endpoint instead
  */
 router.get('/api-keys/status', async (req: Request, res: Response) => {
   try {
@@ -185,19 +187,12 @@ router.get('/api-keys/status', async (req: Request, res: Response) => {
     const keys = await futuresAgentsService.getApiKeys(walletAddress);
     const hasKeys = !!keys;
     
-    let balance: number | undefined;
-    let networkMode: 'mainnet' | 'testnet' | undefined;
-    if (hasKeys) {
-      const testResult = await futuresAgentsService.testApiKeys(walletAddress);
-      balance = testResult.balance;
-      networkMode = keys.networkMode;
-    }
-
+    // Just return if keys exist and the network mode - don't test connection every time
+    // to avoid rate limiting from Hyperliquid API
     res.json({ 
       success: true, 
       hasApiKeys: hasKeys,
-      balance,
-      networkMode,
+      networkMode: keys?.networkMode,
     });
   } catch (error) {
     logger.error('Error checking API keys status', error);
@@ -428,8 +423,8 @@ router.post('/positions/:symbol/close', requireDiamondTier, async (req: Request,
       return res.status(404).json({ success: false, error: 'No position found' });
     }
 
-    // Sync positions after close
-    await futuresAgentsService.syncPositions(walletAddress);
+    // Sync positions after close (force=true since we just modified positions)
+    await futuresAgentsService.syncPositions(walletAddress, true);
     
     // Update trade statuses (calculates and saves PnL)
     await signalExecutorService.updateTradeStatuses(walletAddress);
