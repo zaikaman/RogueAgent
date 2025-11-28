@@ -1,4 +1,4 @@
-import { ArrowUpRight, Activity, Target, ShieldAlert, Maximize2 } from 'lucide-react';
+import { ArrowUpRight, Activity, Target, ShieldAlert, Maximize2, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -26,7 +26,11 @@ export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
     );
   }
 
-  const { token, confidence, analysis, entry_price, target_price, stop_loss, status, pnl_percent, current_price } = signal.content;
+  const { token, confidence, analysis, entry_price, target_price, stop_loss, status, pnl_percent, current_price, direction } = signal.content;
+  
+  // Infer direction from price structure if not explicitly set
+  const tradeDirection = direction || (target_price > entry_price ? 'LONG' : 'SHORT');
+  const isLong = tradeDirection === 'LONG';
 
   const getStatusBadge = () => {
     switch (status) {
@@ -43,17 +47,34 @@ export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
     }
   };
 
+  const getDirectionBadge = () => {
+    if (isLong) {
+      return (
+        <Badge className="bg-green-500/20 text-green-400 border-green-500/50 font-bold flex items-center gap-1">
+          <TrendingUp className="w-3 h-3" /> LONG
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-red-500/20 text-red-400 border-red-500/50 font-bold flex items-center gap-1">
+          <TrendingDown className="w-3 h-3" /> SHORT
+        </Badge>
+      );
+    }
+  };
+
   const pnlColor = (pnl_percent || 0) >= 0 ? 'text-green-400' : 'text-red-400';
 
   return (
     <Card className="bg-gray-900/50 border-gray-800 overflow-hidden relative group">
-      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-purple-600" />
+      <div className={`absolute top-0 left-0 w-1 h-full ${isLong ? 'bg-gradient-to-b from-green-500 to-cyan-500' : 'bg-gradient-to-b from-red-500 to-orange-500'}`} />
       
       <CardHeader className="pb-2 pt-5 px-5">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
               {isLatest && <div className="text-xs text-gray-500 uppercase tracking-wider">Latest Signal</div>}
+              {getDirectionBadge()}
               {getStatusBadge()}
             </div>
             <CardTitle className="text-2xl font-bold text-white flex items-center gap-2">
@@ -118,6 +139,7 @@ export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                    <span className="text-3xl">{token?.symbol}</span>
+                   {getDirectionBadge()}
                    {getStatusBadge()}
                 </DialogTitle>
                 <div className="text-gray-400">{token?.name}</div>
