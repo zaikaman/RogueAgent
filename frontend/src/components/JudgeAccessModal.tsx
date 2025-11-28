@@ -22,7 +22,7 @@ export function JudgeAccessModal({ isOpen, onClose, onConfirm }: JudgeAccessModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border border-cyan-500/30 text-cyan-500 font-mono sm:max-w-[500px] p-0 overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+      <DialogContent className="bg-black border border-cyan-500/30 text-cyan-500 font-mono sm:max-w-[500px] p-0 overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.1)] [&_button[type='button']]:hidden">
         {/* Header Bar */}
         <div className="bg-cyan-950/20 border-b border-cyan-500/30 p-3 flex items-center justify-between">
            <div className="flex items-center gap-3">
