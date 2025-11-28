@@ -52,7 +52,7 @@ router.get('/intel/history', intelController.getIntelHistory);
 router.get('/intel/:id', intelController.getIntelById);
 
 // Yield
-router.get('/yield', yieldController.getOpportunities);
+router.use('/yield', yieldController);
 
 // Airdrops
 router.get('/airdrops', airdropsController.getAirdrops);

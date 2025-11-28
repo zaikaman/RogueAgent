@@ -1,44 +1,23 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { useConnect, useAccount } from 'wagmi';
-import { usePredictions, PredictionMarket, triggerManualScan } from '../hooks/usePredictions';
+import { useConnect } from 'wagmi';
+import { usePredictions, PredictionMarket } from '../hooks/usePredictions';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { TIERS } from '../constants/tiers';
-import { Loader2, ExternalLink, TrendingUp, TrendingDown, RefreshCw, AlertTriangle, Clock } from 'lucide-react';
+import { Loader2, ExternalLink, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ChartHistogramIcon } from '@hugeicons/core-free-icons';
-import { toast } from 'sonner';
 
 export function PredictionsPage() {
-  const { address } = useAccount();
-  const { data, isLoading, isError, refetch } = usePredictions();
+  const { data, isLoading, isError } = usePredictions();
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
-  const [isManualScanning, setIsManualScanning] = useState(false);
 
   const markets = data?.markets || [];
-  const isDiamond = tier === TIERS.DIAMOND;
 
   const handleConnect = () => {
     const connector = connectors[0];
     connect({ connector });
-  };
-
-  const handleManualScan = async () => {
-    if (!address) return;
-    
-    setIsManualScanning(true);
-    try {
-      await triggerManualScan(address);
-      toast.success('Scan initiated! Markets will update shortly.');
-      setTimeout(() => refetch(), 5000);
-    } catch (error: any) {
-      const message = error.response?.data?.error || 'Failed to start scan';
-      toast.error(message);
-    } finally {
-      setIsManualScanning(false);
-    }
   };
 
   if (isLoading) {
@@ -67,18 +46,6 @@ export function PredictionsPage() {
           </h2>
           <p className="text-gray-400 mt-1">High-edge betting opportunities with +12% edge or higher.</p>
         </div>
-        
-        {/* Manual Scan Button (Diamond only) */}
-        {isDiamond && (
-          <button
-            onClick={handleManualScan}
-            disabled={isManualScanning || data?.scan_status?.isScanning}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-4 h-4 ${(isManualScanning || data?.scan_status?.isScanning) ? 'animate-spin' : ''}`} />
-            {isManualScanning || data?.scan_status?.isScanning ? 'Scanning...' : 'Refresh'}
-          </button>
-        )}
       </div>
 
       {/* First Market - Visible to all */}
@@ -108,27 +75,15 @@ export function PredictionsPage() {
         </GatedContent>
       )}
 
-      {/* No Markets Fallback */}
+      {/* No Markets Fallback - Auto scan triggered by backend */}
       {markets.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-8 bg-gray-900/50 border border-gray-800 rounded-xl">
-          <div className="p-3 bg-gray-800 rounded-full mb-4">
-            <AlertTriangle className="w-6 h-6 text-red-400" />
-          </div>
-          <h3 className="text-lg font-bold text-white mb-2">No High-Edge Markets Right Now</h3>
-          <p className="text-gray-400 text-center max-w-md mb-6">
-            The AI is actively scanning but hasn't found any markets with +12% edge. 
-            Check back soon — edges appear and disappear quickly.
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-500 mb-4" />
+          <h3 className="text-lg font-bold text-white mb-2">Scanning for High-Edge Markets</h3>
+          <p className="text-gray-400 text-center max-w-md">
+            The AI is actively scanning prediction markets for opportunities with +12% edge or higher.
+            This page will update automatically once data is available.
           </p>
-          {isDiamond && (
-            <button
-              onClick={handleManualScan}
-              disabled={isManualScanning}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${isManualScanning ? 'animate-spin' : ''}`} />
-              {isManualScanning ? 'Scanning...' : 'Scan Now'}
-            </button>
-          )}
         </div>
       )}
     </div>

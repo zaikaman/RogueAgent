@@ -13,6 +13,14 @@ export interface YieldOpportunity {
   url?: string;
 }
 
+export interface ScanStatus {
+  isScanning: boolean;
+  lastScanTime: string | null;
+  nextScanTime: string | null;
+  scanIntervalHours: number;
+  hasOpportunities?: boolean;
+}
+
 interface YieldResponse {
   opportunities: YieldOpportunity[];
   pagination?: {
@@ -21,6 +29,7 @@ interface YieldResponse {
     total: number;
     pages: number;
   };
+  scan_status?: ScanStatus;
 }
 
 export function useYield(page = 1, limit = 10) {
@@ -28,7 +37,6 @@ export function useYield(page = 1, limit = 10) {
     queryKey: ['yield', page, limit],
     queryFn: async () => {
       const response = await api.get<YieldResponse>(endpoints.yield, { params: { page, limit } });
-      // Backend may return { opportunities: [], pagination: { page, limit, total, pages } }
       return response.data;
     },
     refetchInterval: 1000 * 60 * 15, // 15 minutes

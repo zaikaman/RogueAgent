@@ -120,6 +120,18 @@ export function YieldFarming() {
           </div>
         </GatedContent>
       )}
+
+      {/* No Opportunities Fallback - Auto scan triggered by backend */}
+      {opportunities.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 px-8 bg-gray-900/50 border border-gray-800 rounded-xl">
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-500 mb-4" />
+          <h3 className="text-lg font-bold text-white mb-2">Scanning for Yield Opportunities</h3>
+          <p className="text-gray-400 text-center max-w-md">
+            The AI is actively scanning DeFi protocols for high-quality opportunities. 
+            This page will update automatically once data is available.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
