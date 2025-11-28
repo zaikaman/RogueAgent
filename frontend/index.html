@@ -7,9 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rogue - Crypto Alpha Oracle</title>
 
-  <!-- UnicornStudio Script -->
-  <link rel="preload" as="script" href="/unicornStudio.umd.js" />
-  <script src="/unicornStudio.umd.js"></script>
+  <!-- UnicornStudio Script - Loaded lazily via JS for performance -->
+  <!-- Using modulepreload for the main bundle which loads faster than blocking script -->
+  <link rel="preload" as="script" href="/unicornStudio.umd.js" crossorigin />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { WalletConnect } from '../components/WalletConnect'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
@@ -15,6 +15,7 @@ import {
     Menu01Icon,
     Cancel01Icon
 } from '@hugeicons/core-free-icons'
+import { useLazyUnicornStudio } from '../hooks/useLazyUnicornStudio'
 
 export default function Home() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -70,51 +71,12 @@ export default function Home() {
         }
     ];
 
-    useEffect(() => {
-        console.log('Home mounted, checking for UnicornStudio...');
-        // Script is already loaded in HTML, just initialize
-        const initUnicorn = () => {
-            console.log('Initializing UnicornStudio...');
-            const UnicornStudio = (window as any).UnicornStudio;
-            if (UnicornStudio) {
-                try {
-                    UnicornStudio.init();
-                    console.log('UnicornStudio initialized successfully');
-                } catch (error) {
-                    console.error('Error initializing UnicornStudio:', error);
-                }
-            } else {
-                console.error('UnicornStudio object not found on window during init');
-            }
-        };
-
-        // Check if already loaded
-        if ((window as any).UnicornStudio) {
-            console.log('UnicornStudio found immediately');
-            initUnicorn();
-        } else {
-            console.log('UnicornStudio not found immediately, starting interval check...');
-            // Wait for script to load (it's in HTML head)
-            const checkLoaded = setInterval(() => {
-                if ((window as any).UnicornStudio) {
-                    console.log('UnicornStudio found via interval');
-                    clearInterval(checkLoaded);
-                    initUnicorn();
-                }
-            }, 50);
-
-            // Timeout after 5 seconds
-            setTimeout(() => {
-                clearInterval(checkLoaded);
-                if (!(window as any).UnicornStudio) {
-                    console.error('UnicornStudio load timed out after 5s');
-                }
-            }, 5000);
-
-            return () => clearInterval(checkLoaded);
-        }
-
-    }, [])
+    // Use lazy loading hook for UnicornStudio - loads during browser idle time
+    // and only initializes when hero section is near viewport
+    const { isInitialized: unicornReady, containerRef: unicornContainerRef } = useLazyUnicornStudio({
+        rootMargin: '100px', // Start loading 100px before visible
+        enabled: true,
+    });
 
     const { scrollY } = useScroll()
     const y1 = useTransform(scrollY, [0, 500], [0, 200])
@@ -200,9 +162,14 @@ export default function Home() {
 
             {/* Hero Section with Animated Background */}
             <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-                {/* UnicornStudio Animated Background */}
+                {/* UnicornStudio Animated Background - Lazy loaded for performance */}
                 <div
+                    ref={unicornContainerRef}
                     data-us-project="4gq2Yrv2p0bIa0hdLPQx"
+                    data-us-scale="1"
+                    data-us-dpi="1.5"
+                    data-us-lazyload="true"
+                    data-us-production="true"
                     className="absolute inset-0 w-full h-full"
                     style={{
                         position: 'absolute',
@@ -211,9 +178,43 @@ export default function Home() {
                         width: '100%',
                         height: '100%',
                         zIndex: 0,
-                        background: 'radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.1) 0%, rgba(9, 10, 10, 0) 50%)',
                     }}
-                />
+                >
+                    {/* Elegant placeholder shown while UnicornStudio loads */}
+                    <AnimatePresence>
+                        {!unicornReady && (
+                            <motion.div
+                                initial={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.8, ease: 'easeOut' }}
+                                className="absolute inset-0 overflow-hidden"
+                                style={{
+                                    background: 'radial-gradient(ellipse 80% 50% at 50% 50%, rgba(0, 212, 255, 0.15) 0%, rgba(0, 180, 220, 0.05) 40%, transparent 70%)',
+                                }}
+                            >
+                                {/* Animated glow pulse */}
+                                <div 
+                                    className="absolute inset-0"
+                                    style={{
+                                        background: 'radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%)',
+                                        animation: 'pulse-glow 3s ease-in-out infinite',
+                                    }}
+                                />
+                                {/* Subtle grid pattern */}
+                                <div 
+                                    className="absolute inset-0 opacity-[0.03]"
+                                    style={{
+                                        backgroundImage: `
+                                            linear-gradient(rgba(0, 212, 255, 0.5) 1px, transparent 1px),
+                                            linear-gradient(90deg, rgba(0, 212, 255, 0.5) 1px, transparent 1px)
+                                        `,
+                                        backgroundSize: '50px 50px',
+                                    }}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 {/* Animated Background Elements - Fallback/Additional */}
                 <div className="absolute inset-0 -z-20 overflow-hidden pointer-events-none">
@@ -717,14 +718,4 @@ export default function Home() {
             </footer>
         </div>
     )
-}
-
-// Add type declaration for UnicornStudio
-declare global {
-    interface Window {
-        UnicornStudio?: {
-            init: () => void;
-            isInitialized?: boolean;
-        };
-    }
 }
