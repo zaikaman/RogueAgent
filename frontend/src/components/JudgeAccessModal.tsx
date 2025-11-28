@@ -1,8 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { Button } from './ui/button';
+import { Dialog, DialogContent } from './ui/dialog';
 import { motion } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Crown02Icon, SparklesIcon } from '@hugeicons/core-free-icons';
+import { Crown02Icon, SecurityCheckIcon } from '@hugeicons/core-free-icons';
 
 interface JudgeAccessModalProps {
   isOpen: boolean;
@@ -23,69 +22,71 @@ export function JudgeAccessModal({ isOpen, onClose, onConfirm }: JudgeAccessModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gradient-to-br from-gray-900 via-gray-900 to-indigo-950/40 border-indigo-500/30 text-gray-100 sm:max-w-[480px] overflow-hidden">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
-          <motion.div 
-            className="absolute top-4 right-4 text-yellow-400/20"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          >
-            <HugeiconsIcon icon={SparklesIcon} className="w-24 h-24" />
-          </motion.div>
+      <DialogContent className="bg-black border border-cyan-500/30 text-cyan-500 font-mono sm:max-w-[500px] p-0 overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+        {/* Header Bar */}
+        <div className="bg-cyan-950/20 border-b border-cyan-500/30 p-3 flex items-center justify-between">
+           <div className="flex items-center gap-3">
+             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+             <span className="text-xs uppercase tracking-widest text-cyan-400/80">System Override // IQAI Protocol</span>
+           </div>
+           <div className="text-[10px] text-cyan-500/40">V.2.0.4</div>
         </div>
-        
-        <DialogHeader className="relative z-10">
-          <motion.div 
-            className="mx-auto mb-4 w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/20"
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", duration: 0.8, bounce: 0.5 }}
-          >
-            <HugeiconsIcon icon={Crown02Icon} className="w-8 h-8 text-white" />
-          </motion.div>
-          <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-yellow-200 via-amber-300 to-yellow-200 bg-clip-text text-transparent">
-            Welcome to Rogue
-          </DialogTitle>
-          <DialogDescription className="text-center text-gray-300 text-base mt-2">
-            Hey! Are you a judge from the <span className="text-indigo-400 font-semibold">IQAI team</span>?
-          </DialogDescription>
-        </DialogHeader>
-        
-        <motion.div 
-          className="relative z-10 py-6"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 text-center">
-            <p className="text-gray-200 text-sm leading-relaxed">
-              Confirm to get <span className="text-yellow-400 font-bold">full Diamond access</span> to Rogue for <span className="text-cyan-400 font-bold">24 hours</span>!
-            </p>
-            <p className="text-gray-500 text-xs mt-2">
-              This includes all premium features, real-time signals, and advanced analytics.
-            </p>
-          </div>
-        </motion.div>
 
-        <DialogFooter className="relative z-10 flex gap-3 sm:gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleNo} 
-            className="flex-1 border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-gray-200 hover:border-gray-600 transition-all duration-200"
-          >
-            No, thanks
-          </Button>
-          <Button 
-            onClick={handleYes} 
-            className="flex-1 bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 hover:from-yellow-400 hover:via-amber-400 hover:to-orange-400 text-black font-bold shadow-lg shadow-amber-500/20 transition-all duration-200 hover:shadow-amber-500/40"
-          >
-            <HugeiconsIcon icon={Crown02Icon} className="w-4 h-4 mr-2" />
-            Yes, I'm a judge!
-          </Button>
-        </DialogFooter>
+        <div className="p-8 space-y-8">
+            {/* Icon & Title */}
+            <div className="flex flex-col items-center text-center space-y-5">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full" />
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0.5 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                    >
+                      <HugeiconsIcon icon={SecurityCheckIcon} className="w-16 h-16 text-cyan-400 relative z-10" />
+                    </motion.div>
+                </div>
+                
+                <div>
+                    <h2 className="text-xl font-bold tracking-[0.2em] text-white uppercase mb-1">Identity Verification</h2>
+                    <p className="text-cyan-500/60 text-xs uppercase tracking-widest">Clearance Level Request</p>
+                </div>
+            </div>
+
+            {/* Message Box */}
+            <div className="bg-cyan-950/10 border border-cyan-500/20 p-5 relative group">
+                {/* Corner Accents */}
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan-500/50 group-hover:border-cyan-400 transition-colors" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-cyan-500/50 group-hover:border-cyan-400 transition-colors" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-cyan-500/50 group-hover:border-cyan-400 transition-colors" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-500/50 group-hover:border-cyan-400 transition-colors" />
+                
+                <p className="text-sm leading-relaxed text-gray-400 font-light">
+                  <span className="text-cyan-400 font-bold mr-2">&gt;&gt; DETECTED:</span>
+                  Potential IQAI Judge signature found in active session.
+                  <br /><br />
+                  Confirm identity to bypass standard security protocols and receive temporary <span className="text-white font-bold bg-cyan-500/10 px-1">DIAMOND TIER</span> clearance for 24 hours.
+                </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={handleNo} 
+                  className="border border-gray-800 hover:border-gray-600 text-gray-600 hover:text-gray-400 py-3 px-4 text-[10px] uppercase tracking-[0.2em] transition-all duration-300"
+                >
+                    [ Decline ]
+                </button>
+                <button 
+                  onClick={handleYes} 
+                  className="relative overflow-hidden bg-cyan-500/5 border border-cyan-500/50 hover:bg-cyan-500 hover:text-black text-cyan-400 py-3 px-4 text-[10px] uppercase tracking-[0.2em] font-bold transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.1)] hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2 group"
+                >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <HugeiconsIcon icon={Crown02Icon} className="w-4 h-4" />
+                      Confirm Identity
+                    </span>
+                </button>
+            </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
