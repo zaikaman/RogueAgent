@@ -5,6 +5,7 @@ import { TIERS, Tier } from '../constants/tiers';
 
 const JUDGE_ACCESS_KEY = 'rogue_judge_access';
 const JUDGE_MODAL_SHOWN_KEY = 'rogue_judge_modal_shown';
+const TELEGRAM_MODAL_SHOWN_KEY = 'rogue_telegram_modal_shown';
 
 interface JudgeAccess {
   expiresAt: number;
@@ -50,6 +51,30 @@ function markJudgeModalShown(walletAddress: string): void {
   }
 }
 
+function hasTelegramModalBeenShown(walletAddress: string): boolean {
+  try {
+    const stored = localStorage.getItem(TELEGRAM_MODAL_SHOWN_KEY);
+    if (!stored) return false;
+    const shown: string[] = JSON.parse(stored);
+    return shown.includes(walletAddress.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+function markTelegramModalShownStorage(walletAddress: string): void {
+  try {
+    const stored = localStorage.getItem(TELEGRAM_MODAL_SHOWN_KEY);
+    const shown: string[] = stored ? JSON.parse(stored) : [];
+    if (!shown.includes(walletAddress.toLowerCase())) {
+      shown.push(walletAddress.toLowerCase());
+      localStorage.setItem(TELEGRAM_MODAL_SHOWN_KEY, JSON.stringify(shown));
+    }
+  } catch {
+    localStorage.setItem(TELEGRAM_MODAL_SHOWN_KEY, JSON.stringify([walletAddress.toLowerCase()]));
+  }
+}
+
 export function useUserTier() {
   const { address, isConnected } = useAccount();
   const [tier, setTier] = useState<Tier>(TIERS.NONE);
@@ -60,6 +85,7 @@ export function useUserTier() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasTemporaryAccess, setHasTemporaryAccess] = useState(false);
   const [shouldShowJudgeModal, setShouldShowJudgeModal] = useState(false);
+  const [shouldShowTelegramModal, setShouldShowTelegramModal] = useState(false);
 
   // Check for temporary diamond access
   const checkTemporaryAccess = useCallback((walletAddr: string) => {
@@ -91,6 +117,14 @@ export function useUserTier() {
     }
   }, [address]);
 
+  // Mark telegram modal as shown for this wallet
+  const markTelegramModalShown = useCallback(() => {
+    if (address) {
+      markTelegramModalShownStorage(address);
+      setShouldShowTelegramModal(false);
+    }
+  }, [address]);
+
   useEffect(() => {
     if (isConnected && address) {
       setIsLoading(true);
@@ -98,6 +132,10 @@ export function useUserTier() {
       // Check if modal should be shown (first time for this wallet)
       const modalShown = hasJudgeModalBeenShown(address);
       setShouldShowJudgeModal(!modalShown);
+      
+      // Check if telegram modal should be shown
+      const telegramModalShown = hasTelegramModalBeenShown(address);
+      setShouldShowTelegramModal(!telegramModalShown);
       
       // Check for existing temporary access
       const hasTempAccess = checkTemporaryAccess(address);
@@ -119,6 +157,7 @@ export function useUserTier() {
       setTelegramConnected(false);
       setHasTemporaryAccess(false);
       setShouldShowJudgeModal(false);
+      setShouldShowTelegramModal(false);
       // Only set loading to false when we know there's no wallet connected
       setIsLoading(false);
     }
@@ -142,7 +181,9 @@ export function useUserTier() {
     isConnected,
     hasTemporaryAccess,
     shouldShowJudgeModal,
+    shouldShowTelegramModal,
     grantTemporaryAccess,
-    markModalShown
+    markModalShown,
+    markTelegramModalShown
   };
 }

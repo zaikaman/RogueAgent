@@ -25,8 +25,10 @@ export function DashboardHome() {
     balance, 
     telegramConnected,
     shouldShowJudgeModal,
+    shouldShowTelegramModal,
     grantTemporaryAccess,
-    markModalShown
+    markModalShown,
+    markTelegramModalShown
   } = useUserTier();
   const [showTelegramModal, setShowTelegramModal] = useState(false);
   const [showJudgeModal, setShowJudgeModal] = useState(false);
@@ -38,12 +40,12 @@ export function DashboardHome() {
     }
   }, [isConnected, shouldShowJudgeModal]);
 
-  // Show telegram modal after judge modal is closed (if user has a tier and telegram not connected)
+  // Show telegram modal after judge modal is closed (if user has a tier, telegram not connected, and modal not shown before)
   useEffect(() => {
-    if (userTier !== TIERS.NONE && !telegramConnected && !showJudgeModal) {
+    if (userTier !== TIERS.NONE && !telegramConnected && !showJudgeModal && shouldShowTelegramModal) {
        setShowTelegramModal(true);
     }
-  }, [userTier, telegramConnected, showJudgeModal]);
+  }, [userTier, telegramConnected, showJudgeModal, shouldShowTelegramModal]);
 
   const handleJudgeConfirm = (isJudge: boolean) => {
     if (isJudge) {
@@ -51,10 +53,15 @@ export function DashboardHome() {
     }
     markModalShown();
     setShowJudgeModal(false);
-    // If they confirmed as judge, show telegram modal after
-    if (isJudge && !telegramConnected) {
+    // If they confirmed as judge, show telegram modal after (if not shown before)
+    if (isJudge && !telegramConnected && shouldShowTelegramModal) {
       setShowTelegramModal(true);
     }
+  };
+
+  const handleTelegramModalClose = () => {
+    markTelegramModalShown();
+    setShowTelegramModal(false);
   };
 
   const latestSignal = runStatus?.latest_signal;
@@ -74,7 +81,7 @@ export function DashboardHome() {
       
       <TelegramModal 
         isOpen={showTelegramModal} 
-        onClose={() => setShowTelegramModal(false)} 
+        onClose={handleTelegramModalClose} 
         walletAddress={address || ''} 
       />
 
