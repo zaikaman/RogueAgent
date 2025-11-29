@@ -24,6 +24,7 @@
 - [The Problem We Solve](#-the-problem-we-solve)
 - [Core Architecture](#-the-swarm-architecture)
 - [Futures Agents](#-futures-agents---autonomous-perpetual-trading)
+- [How We Used ADK-TS](#️-how-we-used-adk-ts)
 - [Key Features](#-key-features)
 - [How It Works](#-how-it-works)
 - [Tech Stack](#️-tech-stack)
@@ -620,6 +621,232 @@ IF signal.status == 'active':
 - Take Profit notifications
 - Stop Loss warnings
 - Real-time P&L calculations
+
+---
+
+## 🛠️ How We Used ADK-TS
+
+Rogue is built on the **IQ.AI Agent Development Kit (ADK-TS)**, a TypeScript framework for building sophisticated AI agents. Here's how we leveraged its core features to create our multi-agent trading system:
+
+### 🏗️ AgentBuilder Pattern
+
+Every agent in Rogue is created using ADK's fluent `AgentBuilder` API, which provides a clean, declarative way to define agent behavior:
+
+```typescript
+import { AgentBuilder } from '@iqai/adk';
+
+export const ScannerAgent = AgentBuilder.create('scanner_agent')
+  .withModel(scannerLlm)                    // LLM configuration
+  .withDescription('Scans crypto markets...')
+  .withInstruction(dedent`...`)              // System prompt
+  .withOutputSchema(z.object({...}))         // Structured output
+  .build();
+```
+
+**Key Builder Methods Used**:
+
+| Method | Purpose | How Rogue Uses It |
+|--------|---------|-------------------|
+| `.withModel()` | Attach an LLM | Different models per agent (GPT-4o for analysis, Grok for web search) |
+| `.withDescription()` | Agent purpose metadata | Helps with logging and debugging |
+| `.withInstruction()` | System prompt definition | Detailed trading rules, analysis frameworks, output formats |
+| `.withTools()` | Attach callable functions | Price lookups, TA calculations, database queries, social posting |
+| `.withOutputSchema()` | Enforce structured JSON | Zod schemas for type-safe signal/intel objects |
+
+---
+
+### 🔧 Tool System with `createTool`
+
+ADK's `createTool` function allows agents to interact with external APIs and services. Rogue defines **25+ custom tools** that agents can call:
+
+```typescript
+import { createTool } from '@iqai/adk';
+import { z } from 'zod';
+
+export const getTechnicalAnalysisTool = createTool({
+  name: 'get_technical_analysis',
+  description: 'Advanced TA with CVD, Order Blocks, Volume Profile...',
+  schema: z.object({
+    tokenId: z.string().optional(),
+    chain: z.string().optional(),
+    address: z.string().optional(),
+    days: z.number().default(30),
+  }),
+  fn: async ({ tokenId, chain, address, days }) => {
+    // Fetch OHLCV data, calculate indicators
+    return { indicators, signals, confidence };
+  },
+});
+```
+
+**Tool Categories in Rogue**:
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| **Market Data** | `get_token_price`, `get_market_chart`, `get_trending_coins` | Real-time price and chart data from CoinGecko/Birdeye |
+| **Technical Analysis** | `get_technical_analysis`, `get_coingecko_id` | 2025 meta indicators (CVD, Order Blocks, etc.) |
+| **Fundamentals** | `get_fundamental_analysis`, `get_yield_pools` | Market cap, FDV, DeFi yields |
+| **Sentiment** | `search_tavily` | News and X/Twitter sentiment analysis |
+| **Database** | `check_recent_signals`, `get_recent_intel` | Supabase queries for history |
+| **Publishing** | `post_tweet`, `send_telegram` | Social media distribution |
+| **User Actions** | `request_custom_scan` | On-demand token analysis |
+
+---
+
+### 🔄 AiSdkLlm Wrapper for Custom Providers
+
+ADK provides `AiSdkLlm` to wrap any AI SDK-compatible model, enabling us to use multiple LLM providers:
+
+```typescript
+import { AiSdkLlm } from '@iqai/adk';
+import { createOpenAI } from '@ai-sdk/openai';
+
+const openaiProvider = createOpenAI({
+  apiKey: config.OPENAI_API_KEY,
+  baseURL: config.OPENAI_BASE_URL,  // Custom endpoint support
+});
+
+// GPT-4o for complex analysis
+export const llm = new AiSdkLlm(openaiProvider.chat('gpt-5-nano-2025-08-07'));
+
+// Grok for real-time web/X search
+const grokProvider = createOpenAI({
+  apiKey: config.XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1',
+});
+export const scannerLlm = new AiSdkLlm(grokProvider.chat('grok-4-fast'));
+```
+
+**Multi-Model Strategy**:
+- **GPT-4o**: Analyzer, Generator, Writer agents (reasoning-heavy tasks)
+- **Grok**: Scanner, Intel, Chat agents (real-time X/web search required)
+
+---
+
+### 📋 Structured Output with Zod Schemas
+
+ADK integrates with Zod for type-safe, validated agent outputs. Every agent returns structured JSON:
+
+```typescript
+const signalSchema = z.object({
+  action: z.enum(['signal', 'skip', 'no_signal']),
+  selected_token: z.object({
+    symbol: z.string(),
+    name: z.string(),
+    chain: z.string().optional(),
+  }).nullable(),
+  signal_details: z.object({
+    direction: z.enum(['LONG', 'SHORT']),
+    entry_price: z.number(),
+    target_price: z.number(),
+    stop_loss: z.number(),
+    confidence: z.number().min(1).max(100),
+    analysis: z.string(),
+  }).nullable(),
+});
+
+// Agent uses schema for guaranteed structure
+export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
+  .withOutputSchema(signalSchema)
+  .build();
+```
+
+**Benefits**:
+- ✅ TypeScript inference for agent outputs
+- ✅ Runtime validation prevents malformed responses
+- ✅ Clear contracts between agents in the pipeline
+- ✅ LLM guided to produce correct structure
+
+---
+
+### 🏃 Agent Runner for Execution
+
+ADK agents expose a `.runner` interface for invocation. The Orchestrator calls each agent sequentially:
+
+```typescript
+// Build the agent (one-time)
+const { runner: scanner } = await ScannerAgent.build();
+
+// Execute with a prompt
+const result = await scanner.ask(
+  `Scan the market for top trending tokens. 
+   Market data: ${JSON.stringify(marketData)}`
+);
+
+// Result is typed according to output schema
+console.log(result.candidates);
+```
+
+**Orchestration Pattern**:
+```
+Orchestrator.runSwarm()
+  │
+  ├── ScannerAgent.runner.ask(marketData)
+  │        └── returns: candidates[]
+  │
+  ├── AnalyzerAgent.runner.ask(candidates)
+  │        └── calls tools: get_technical_analysis, etc.
+  │        └── returns: signal_details
+  │
+  ├── GeneratorAgent.runner.ask(signal)
+  │        └── returns: formatted_content
+  │
+  └── WriterAgent.runner.ask(intel)
+           └── returns: blog_post
+```
+
+---
+
+### 🔗 Agent-Tool Integration Pattern
+
+Each specialized agent is equipped with the exact tools it needs:
+
+```typescript
+// Analyzer has trading analysis tools
+export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
+  .withTools(
+    getCoingeckoIdTool,      // Token ID lookup
+    checkRecentSignalsTool,  // Avoid duplicate signals
+    getTokenPriceTool,       // Current price
+    getMarketChartTool,      // OHLCV history
+    getTechnicalAnalysisTool, // 2025 meta indicators
+    getFundamentalAnalysisTool,
+    searchTavilyTool         // Sentiment check
+  )
+  .build();
+
+// Chat agent has database query tools
+export const InitialChatAgent = AgentBuilder.create('initial_chat_agent')
+  .withTools(
+    getRecentSignalsTool,
+    getRecentIntelTool,
+    getYieldOpportunitiesTool,
+    getAirdropsTool,
+    getPredictionMarketsTool
+  )
+  .build();
+```
+
+---
+
+### 📊 Summary: ADK-TS Features Used
+
+| ADK Feature | Rogue Implementation |
+|-------------|---------------------|
+| `AgentBuilder` | 10+ specialized agents with fluent configuration |
+| `createTool` | 25+ custom tools for market data, TA, publishing |
+| `AiSdkLlm` | Multi-provider setup (OpenAI, X.AI/Grok) |
+| Zod integration | Type-safe structured outputs for all agents |
+| `.withInstruction()` | Detailed system prompts with trading rules |
+| `.withOutputSchema()` | Enforced JSON structure for signals/intel |
+| Agent runner | Sequential orchestration in swarm pipeline |
+
+**Why ADK-TS?**
+- 🚀 **Rapid Development**: Builder pattern enables quick agent prototyping
+- 🔒 **Type Safety**: Full TypeScript support with Zod validation
+- 🔧 **Extensible Tools**: Easy integration with any API or service
+- 🤖 **Model Agnostic**: Swap LLMs without changing agent logic
+- 📦 **Production Ready**: Built for real-world agent deployments
 
 ---
 
