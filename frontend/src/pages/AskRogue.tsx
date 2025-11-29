@@ -88,6 +88,12 @@ export function AskRogue() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(() => loadCurrentConversationId());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
+  // Use a ref to track current conversation ID for callbacks
+  const currentConversationIdRef = useRef(currentConversationId);
+  useEffect(() => {
+    currentConversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
+  
   // Get current conversation or create a new one
   const currentConversation = conversations.find(c => c.id === currentConversationId);
   const messages = currentConversation?.messages || [{
@@ -114,13 +120,13 @@ export function AskRogue() {
     saveCurrentConversationId(currentConversationId);
   }, [currentConversationId]);
 
-  const setMessages = useCallback((updater: Message[] | ((prev: Message[]) => Message[])) => {
-    const newMessages = typeof updater === 'function' ? updater(messages) : updater;
+  const updateMessages = useCallback((newMessages: Message[]) => {
+    const convId = currentConversationIdRef.current;
     
-    if (currentConversationId) {
+    if (convId) {
       // Update existing conversation
       setConversations(prev => prev.map(conv => 
-        conv.id === currentConversationId 
+        conv.id === convId 
           ? { 
               ...conv, 
               messages: newMessages, 
@@ -140,8 +146,22 @@ export function AskRogue() {
       };
       setConversations(prev => [newConv, ...prev]);
       setCurrentConversationId(newConv.id);
+      currentConversationIdRef.current = newConv.id; // Update ref immediately
     }
-  }, [currentConversationId, messages]);
+  }, []);
+
+  const addMessage = useCallback((message: Message) => {
+    const convId = currentConversationIdRef.current;
+    const currentConv = convId ? conversations.find(c => c.id === convId) : null;
+    const currentMessages = currentConv?.messages || [{
+      role: 'assistant' as const,
+      content: "Hey there! I'm Rogue, your crypto intelligence assistant. What can I help you with today?",
+      timestamp: Date.now()
+    }];
+    
+    const newMessages = [...currentMessages, message];
+    updateMessages(newMessages);
+  }, [conversations, updateMessages]);
 
   const createNewConversation = () => {
     setCurrentConversationId(null);
@@ -226,16 +246,16 @@ export function AskRogue() {
       // Check if user is DIAMOND tier
       if (tier !== TIERS.DIAMOND) {
         setInput('');
-        setMessages(prev => [
-          ...prev, 
-          { role: 'user', content: userMessage, timestamp: Date.now() },
-          { role: 'assistant', content: `⛔ Custom scans are exclusive to DIAMOND tier users (1,000+ $RGE).\n\nYour current tier: ${tier}`, timestamp: Date.now() }
-        ]);
+        addMessage({ role: 'user', content: userMessage, timestamp: Date.now() });
+        // Small delay to ensure user message is saved first
+        setTimeout(() => {
+          addMessage({ role: 'assistant', content: `⛔ Custom scans are exclusive to DIAMOND tier users (1,000+ $RGE).\n\nYour current tier: ${tier}`, timestamp: Date.now() });
+        }, 50);
         return;
       }
       
       setInput('');
-      setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }]);
+      addMessage({ role: 'user', content: userMessage, timestamp: Date.now() });
       setIsLoading(true);
       
       try {
@@ -253,27 +273,27 @@ export function AskRogue() {
         const data = await response.json();
 
         if (data.success) {
-          setMessages(prev => [...prev, { 
+          addMessage({ 
             role: 'assistant', 
             content: `🔍 ${data.message}`, 
             timestamp: Date.now() 
-          }]);
+          });
           toast.success(`Scan initiated for ${tokenSymbol.toUpperCase()}`);
         } else {
-          setMessages(prev => [...prev, { 
+          addMessage({ 
             role: 'assistant', 
             content: `❌ ${data.error}`, 
             timestamp: Date.now() 
-          }]);
+          });
           toast.error(data.error);
         }
       } catch (error) {
         console.error('Scan error:', error);
-        setMessages(prev => [...prev, { 
+        addMessage({ 
           role: 'assistant', 
           content: '❌ Failed to process scan request. Please try again.', 
           timestamp: Date.now() 
-        }]);
+        });
         toast.error('Failed to process scan request');
       } finally {
         setIsLoading(false);
@@ -283,7 +303,7 @@ export function AskRogue() {
     
     // Regular chat message
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }]);
+    addMessage({ role: 'user', content: userMessage, timestamp: Date.now() });
     setIsLoading(true);
 
     try {
@@ -309,7 +329,7 @@ export function AskRogue() {
       const data = await response.json();
 
       if (data.message) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message, timestamp: Date.now() }]);
+        addMessage({ role: 'assistant', content: data.message, timestamp: Date.now() });
       } else {
         toast.error('Failed to get response');
       }
