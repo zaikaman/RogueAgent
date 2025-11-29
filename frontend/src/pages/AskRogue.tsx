@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { useUserTier } from '../hooks/useUserTier';
 import { TIERS } from '../constants/tiers';
@@ -7,7 +7,7 @@ import {
   Message01Icon, 
   Loading03Icon
 } from '@hugeicons/core-free-icons';
-import { Mic, Square, Send, X } from 'lucide-react';
+import { Mic, Square, Send, X, Plus, History, Trash2, MessageSquare, ChevronLeft } from 'lucide-react';
 import Vapi from '@vapi-ai/web';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,16 +20,82 @@ interface Message {
   timestamp: number;
 }
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+const STORAGE_KEY = 'rogue-chat-history';
+const CURRENT_CONVERSATION_KEY = 'rogue-current-conversation';
+
+const generateId = () => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+const getConversationTitle = (messages: Message[]): string => {
+  const firstUserMessage = messages.find(m => m.role === 'user');
+  if (firstUserMessage) {
+    const title = firstUserMessage.content.slice(0, 40);
+    return title.length < firstUserMessage.content.length ? `${title}...` : title;
+  }
+  return 'New Conversation';
+};
+
+const loadConversations = (): Conversation[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveConversations = (conversations: Conversation[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+  } catch (e) {
+    console.error('Failed to save conversations:', e);
+  }
+};
+
+const loadCurrentConversationId = (): string | null => {
+  try {
+    return localStorage.getItem(CURRENT_CONVERSATION_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const saveCurrentConversationId = (id: string | null) => {
+  try {
+    if (id) {
+      localStorage.setItem(CURRENT_CONVERSATION_KEY, id);
+    } else {
+      localStorage.removeItem(CURRENT_CONVERSATION_KEY);
+    }
+  } catch (e) {
+    console.error('Failed to save current conversation ID:', e);
+  }
+};
+
 export function AskRogue() {
   const { address } = useAccount();
   const { tier } = useUserTier();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: "Hey there! I'm Rogue, your crypto intelligence assistant. What can I help you with today?",
-      timestamp: Date.now()
-    }
-  ]);
+  
+  // Conversation state
+  const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations());
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(() => loadCurrentConversationId());
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  
+  // Get current conversation or create a new one
+  const currentConversation = conversations.find(c => c.id === currentConversationId);
+  const messages = currentConversation?.messages || [{
+    role: 'assistant' as const,
+    content: "Hey there! I'm Rogue, your crypto intelligence assistant. What can I help you with today?",
+    timestamp: Date.now()
+  }];
+  
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
@@ -37,6 +103,71 @@ export function AskRogue() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isSilverOrAbove = tier === TIERS.SILVER || tier === TIERS.GOLD || tier === TIERS.DIAMOND;
+
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    saveConversations(conversations);
+  }, [conversations]);
+
+  // Save current conversation ID whenever it changes
+  useEffect(() => {
+    saveCurrentConversationId(currentConversationId);
+  }, [currentConversationId]);
+
+  const setMessages = useCallback((updater: Message[] | ((prev: Message[]) => Message[])) => {
+    const newMessages = typeof updater === 'function' ? updater(messages) : updater;
+    
+    if (currentConversationId) {
+      // Update existing conversation
+      setConversations(prev => prev.map(conv => 
+        conv.id === currentConversationId 
+          ? { 
+              ...conv, 
+              messages: newMessages, 
+              updatedAt: Date.now(),
+              title: getConversationTitle(newMessages)
+            }
+          : conv
+      ));
+    } else {
+      // Create new conversation
+      const newConv: Conversation = {
+        id: generateId(),
+        title: getConversationTitle(newMessages),
+        messages: newMessages,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      setConversations(prev => [newConv, ...prev]);
+      setCurrentConversationId(newConv.id);
+    }
+  }, [currentConversationId, messages]);
+
+  const createNewConversation = () => {
+    setCurrentConversationId(null);
+    setIsHistoryOpen(false);
+    toast.success('Started new conversation');
+  };
+
+  const selectConversation = (id: string) => {
+    setCurrentConversationId(id);
+    setIsHistoryOpen(false);
+  };
+
+  const deleteConversation = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConversations(prev => prev.filter(conv => conv.id !== id));
+    if (currentConversationId === id) {
+      setCurrentConversationId(null);
+    }
+    toast.success('Conversation deleted');
+  };
+
+  const clearAllHistory = () => {
+    setConversations([]);
+    setCurrentConversationId(null);
+    toast.success('All conversations cleared');
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -233,7 +364,130 @@ export function AskRogue() {
           </h2>
           <p className="text-gray-400 mt-1">Chat with Rogue for real-time insights and analysis.</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={createNewConversation}
+            className="p-2.5 rounded-lg bg-gray-800 text-gray-400 hover:text-cyan-400 hover:bg-gray-700 border border-gray-700 transition-all flex items-center justify-center"
+            title="New Conversation"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            className={`p-2.5 rounded-lg transition-all flex items-center justify-center ${
+              isHistoryOpen 
+                ? 'bg-cyan-600 text-white' 
+                : 'bg-gray-800 text-gray-400 hover:text-cyan-400 hover:bg-gray-700 border border-gray-700'
+            }`}
+            title="Chat History"
+          >
+            <History className="w-5 h-5" />
+          </button>
+        </div>
       </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex gap-4 overflow-hidden">
+        {/* History Sidebar */}
+        <AnimatePresence>
+          {isHistoryOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-gray-900/80 border border-gray-800 rounded-xl overflow-hidden flex flex-col"
+            >
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-cyan-500" />
+                  <span className="font-semibold text-white text-sm">Chat History</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {conversations.length > 0 && (
+                    <button
+                      onClick={clearAllHistory}
+                      className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                      title="Clear all history"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsHistoryOpen(false)}
+                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {conversations.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No conversations yet</p>
+                    <p className="text-xs mt-1">Start chatting to save history</p>
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1">
+                    {conversations.map((conv) => (
+                      <motion.div
+                        key={conv.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`group p-3 rounded-lg cursor-pointer transition-all ${
+                          currentConversationId === conv.id
+                            ? 'bg-cyan-600/20 border border-cyan-500/30'
+                            : 'hover:bg-gray-800/50 border border-transparent'
+                        }`}
+                        onClick={() => selectConversation(conv.id)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${
+                              currentConversationId === conv.id ? 'text-cyan-400' : 'text-gray-200'
+                            }`}>
+                              {conv.title}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(conv.updatedAt).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => deleteConversation(conv.id, e)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-400 transition-all"
+                            title="Delete conversation"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {conv.messages.length} messages
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border-t border-gray-800">
+                <button
+                  onClick={createNewConversation}
+                  className="w-full py-2 px-4 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Conversation
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       {/* Chat Area */}
       <div className="flex-1 bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden flex flex-col relative">
@@ -396,6 +650,7 @@ export function AskRogue() {
             Rogue can make mistakes. Always verify important information.
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
