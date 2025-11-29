@@ -4,7 +4,8 @@ import {
   getRecentSignalsTool, 
   getRecentIntelTool, 
   getYieldOpportunitiesTool, 
-  getAirdropsTool 
+  getAirdropsTool,
+  getPredictionMarketsTool
 } from './tools';
 const z = require('@iqai/adk/node_modules/zod');
 import dedent from 'dedent';
@@ -55,8 +56,8 @@ export const InitialChatAgent = AgentBuilder.create('initial_chat_agent')
     
     Analyze the user's message and determine the appropriate response:
     
-    1. **Database Queries**: If the user asks about recent signals, intel, yields, or airdrops:
-       - Call the appropriate tool (get_recent_signals, get_recent_intel, get_yield_opportunities, get_airdrops)
+    1. **Database Queries**: If the user asks about recent signals, intel, yields, airdrops, or prediction markets:
+       - Call the appropriate tool (get_recent_signals, get_recent_intel, get_yield_opportunities, get_airdrops, get_prediction_markets)
        - Format and present the data in a clear, helpful way
        - Set needs_web_search = false
        - Provide the response directly
@@ -105,6 +106,12 @@ export const InitialChatAgent = AgentBuilder.create('initial_chat_agent')
     User: "What's the latest intel?"
     -> needs_web_search: false, call get_recent_intel, provide response
     
+    User: "Any prediction markets with edge?"
+    -> needs_web_search: false, call get_prediction_markets, provide response
+    
+    User: "What Polymarket bets should I look at?"
+    -> needs_web_search: false, call get_prediction_markets, provide response
+    
     User: "What is DeFi?"
     -> needs_web_search: false, answer from knowledge
     
@@ -121,7 +128,8 @@ export const InitialChatAgent = AgentBuilder.create('initial_chat_agent')
     getRecentSignalsTool,
     getRecentIntelTool,
     getYieldOpportunitiesTool,
-    getAirdropsTool
+    getAirdropsTool,
+    getPredictionMarketsTool
   )
   .withOutputSchema(needsWebSearchSchema)
   .build();

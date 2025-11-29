@@ -804,3 +804,41 @@ export const getAirdropsTool = createTool({
     };
   },
 });
+
+export const getPredictionMarketsTool = createTool({
+  name: 'get_prediction_markets',
+  description: 'Get high-edge prediction market opportunities from Polymarket. Use this when the user asks about prediction markets, bets, betting, Polymarket, or market predictions with edge. These are markets where Rogue has identified a 12%+ edge.',
+  schema: z.object({
+    limit: z.number().optional().describe('Number of prediction markets to fetch (default 5)'),
+  }) as any,
+  fn: async ({ limit = 5 }) => {
+    const client = supabaseService.getClient();
+    const { data, error } = await client
+      .from('prediction_markets_cache')
+      .select('*')
+      .eq('is_active', true)
+      .gte('edge_percent', 12)
+      .order('confidence_score', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return {
+      prediction_markets: (data || []).map((m: any) => ({
+        title: m.title,
+        platform: m.platform,
+        category: m.category,
+        yes_price: m.yes_price,
+        implied_probability: m.implied_probability,
+        rogue_probability: m.rogue_probability,
+        edge_percent: m.edge_percent,
+        recommended_bet: m.recommended_bet,
+        confidence_score: m.confidence_score,
+        volume_usd: m.volume_usd,
+        reasoning: m.analysis_reasoning,
+        market_url: m.market_url,
+        last_analyzed: m.last_analyzed_at
+      }))
+    };
+  },
+});
