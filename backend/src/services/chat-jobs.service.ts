@@ -131,6 +131,8 @@ class ChatJobsService {
       source?: string;
     }
   ): Promise<boolean> {
+    logger.info(`Marking chat job ${jobId} as completed with response length: ${result.response?.length || 0}`);
+    
     const { error } = await this.supabase.getClient()
       .from('chat_jobs')
       .update({

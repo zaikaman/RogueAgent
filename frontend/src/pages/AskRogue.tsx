@@ -411,6 +411,7 @@ export function AskRogue() {
         try {
           const statusResponse = await fetch(`${import.meta.env.VITE_API_URL}/chat/status/${jobId}`);
           const statusData = await statusResponse.json();
+          console.log(`Poll attempt ${attempts}:`, statusData);
 
           if (statusData.status === 'completed') {
             addMessage({ 

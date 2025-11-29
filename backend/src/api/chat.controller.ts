@@ -36,7 +36,6 @@ export const chatController = {
       res.json({
         success: true,
         job_id: job.id,
-        message: 'Chat request queued for processing',
       });
     } catch (error: any) {
       logger.error('Error in Chat Controller', error);
@@ -54,6 +53,7 @@ export const chatController = {
       }
 
       const job = await chatJobsService.getJob(jobId);
+      logger.info(`Chat job status check: ${jobId} -> ${job?.status}, response length: ${job?.response?.length || 0}`);
 
       if (!job) {
         return res.status(404).json({
@@ -120,6 +120,8 @@ USER MESSAGE: ${message}
     // Step 1: Call InitialChatAgent (GPT-4o with database tools)
     const initialAgent = await InitialChatAgent;
     const initialResult: any = await initialAgent.runner.ask(agentInput);
+    
+    logger.info(`InitialChatAgent result for job ${jobId}:`, JSON.stringify(initialResult));
 
     // Step 2: Check if web search is needed
     if (initialResult.needs_web_search) {
@@ -144,13 +146,14 @@ USER MESSAGE: ${message}
       const grokResult = await grokAgent.runner.ask(grokInput);
 
       await chatJobsService.markCompleted(jobId, {
-        response: grokResult,
+        response: grokResult || 'Sorry, I could not generate a response.',
         source: 'grok',
       });
     } else {
       // Use the direct response from InitialChatAgent
+      const responseText = initialResult.response || initialResult.reasoning || 'Sorry, I could not generate a response.';
       await chatJobsService.markCompleted(jobId, {
-        response: initialResult.response,
+        response: responseText,
         source: 'gpt4o',
       });
     }
