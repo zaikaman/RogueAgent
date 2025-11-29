@@ -27,6 +27,7 @@ router.post('/chat', chatController.chat);
 
 // Scan (DIAMOND tier only)
 router.post('/scan', scanController.requestScan);
+router.get('/scan/status/:requestId', scanController.getScanStatus);
 
 // VAPI Tools
 router.post('/vapi/tools/signals', vapiController.getRecentSignals);

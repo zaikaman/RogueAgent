@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.util';
 import { TIERS } from '../constants/tiers';
 
 export const scanController = {
+  // Async scan - triggers background processing and returns request ID for polling
   async requestScan(req: Request, res: Response) {
     try {
       const { tokenSymbol, walletAddress } = req.body;
@@ -54,6 +55,60 @@ export const scanController = {
     } catch (error: any) {
       logger.error('Error in Scan Controller', error);
       res.status(500).json({ error: 'Failed to process scan request' });
+    }
+  },
+
+  // Get scan status - for frontend polling
+  async getScanStatus(req: Request, res: Response) {
+    try {
+      const { requestId } = req.params;
+
+      if (!requestId) {
+        return res.status(400).json({ error: 'requestId is required' });
+      }
+
+      const request = await supabaseService.getCustomRequest(requestId);
+      
+      if (!request) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Request not found'
+        });
+      }
+
+      // Return status and result if completed
+      if (request.status === 'completed') {
+        const content = request.analysis_result?.formatted_content || 
+                        request.analysis_result?.blog_post || 
+                        'Analysis completed.';
+        res.json({
+          success: true,
+          status: 'completed',
+          message: content,
+          token: request.token_symbol
+        });
+      } else if (request.status === 'failed') {
+        res.json({
+          success: false,
+          status: 'failed',
+          error: request.error_message || 'Scan failed. Please try again.',
+          token: request.token_symbol
+        });
+      } else {
+        // Still processing
+        res.json({
+          success: true,
+          status: request.status,
+          token: request.token_symbol
+        });
+      }
+
+    } catch (error: any) {
+      logger.error('Error in getScanStatus', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to get scan status'
+      });
     }
   }
 };

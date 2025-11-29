@@ -291,6 +291,17 @@ export class SupabaseService {
     return data;
   }
 
+  async getCustomRequest(id: string) {
+    const { data, error } = await this.client
+      .from('custom_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   async getLatestSignal(cutoffTime?: string) {
     let query = this.client
       .from('runs')

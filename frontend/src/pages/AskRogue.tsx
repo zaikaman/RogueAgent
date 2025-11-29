@@ -259,6 +259,7 @@ export function AskRogue() {
       setIsLoading(true);
       
       try {
+        // Start the scan (async background job)
         const response = await fetch(`${import.meta.env.VITE_API_URL}/scan`, {
           method: 'POST',
           headers: {
@@ -272,21 +273,81 @@ export function AskRogue() {
 
         const data = await response.json();
 
-        if (data.success) {
-          addMessage({ 
-            role: 'assistant', 
-            content: `🔍 ${data.message}`, 
-            timestamp: Date.now() 
-          });
-          toast.success(`Scan initiated for ${tokenSymbol.toUpperCase()}`);
-        } else {
+        if (!data.success) {
           addMessage({ 
             role: 'assistant', 
             content: `❌ ${data.error}`, 
             timestamp: Date.now() 
           });
           toast.error(data.error);
+          setIsLoading(false);
+          return;
         }
+
+        const requestId = data.request_id;
+        toast.info(`Scanning ${tokenSymbol.toUpperCase()}... This may take a minute.`);
+
+        // Poll for completion
+        const pollInterval = 3000; // 3 seconds
+        const maxAttempts = 60; // 3 minutes max
+        let attempts = 0;
+
+        const pollForResult = async () => {
+          attempts++;
+          
+          try {
+            const statusResponse = await fetch(`${import.meta.env.VITE_API_URL}/scan/status/${requestId}`);
+            const statusData = await statusResponse.json();
+
+            if (statusData.status === 'completed') {
+              addMessage({ 
+                role: 'assistant', 
+                content: statusData.message, 
+                timestamp: Date.now() 
+              });
+              toast.success(`Scan complete for ${tokenSymbol.toUpperCase()}`);
+              setIsLoading(false);
+              return;
+            } else if (statusData.status === 'failed') {
+              addMessage({ 
+                role: 'assistant', 
+                content: `❌ ${statusData.error || 'Scan failed. Please try again.'}`, 
+                timestamp: Date.now() 
+              });
+              toast.error('Scan failed');
+              setIsLoading(false);
+              return;
+            } else if (attempts >= maxAttempts) {
+              addMessage({ 
+                role: 'assistant', 
+                content: '⏱️ Scan is taking longer than expected. Please check back later or try again.', 
+                timestamp: Date.now() 
+              });
+              toast.warning('Scan timed out');
+              setIsLoading(false);
+              return;
+            }
+
+            // Still processing, continue polling
+            setTimeout(pollForResult, pollInterval);
+          } catch (pollError) {
+            console.error('Poll error:', pollError);
+            if (attempts >= maxAttempts) {
+              addMessage({ 
+                role: 'assistant', 
+                content: '❌ Failed to get scan results. Please try again.', 
+                timestamp: Date.now() 
+              });
+              setIsLoading(false);
+            } else {
+              setTimeout(pollForResult, pollInterval);
+            }
+          }
+        };
+
+        // Start polling after a short delay
+        setTimeout(pollForResult, pollInterval);
+
       } catch (error) {
         console.error('Scan error:', error);
         addMessage({ 
@@ -295,7 +356,6 @@ export function AskRogue() {
           timestamp: Date.now() 
         });
         toast.error('Failed to process scan request');
-      } finally {
         setIsLoading(false);
       }
       return;

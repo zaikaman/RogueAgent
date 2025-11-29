@@ -668,28 +668,27 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         'Generator Agent'
       );
 
-      // 4. Deliver via Telegram DM
+      // 4. Deliver via Telegram DM (if available) and always store result
+      const content = generatorResult.formatted_content || generatorResult.blog_post || "Analysis generation failed.";
+      
+      // Always store the result in the database for web polling
+      await supabaseService.updateCustomRequest(requestId, { 
+        status: 'completed',
+        analysis_result: generatorResult,
+        delivered_at: new Date().toISOString(),
+        completed_at: new Date().toISOString()
+      });
+
+      // Also send to Telegram if user has it linked
       const user = await supabaseService.getUser(walletAddress);
       if (user && user.telegram_user_id) {
-        const content = generatorResult.formatted_content || generatorResult.blog_post || "Analysis generation failed.";
         await telegramService.sendMessage(
           `**Custom Analysis for ${tokenSymbol}**\n\n${content}`,
           user.telegram_user_id.toString()
         );
-        
-        await supabaseService.updateCustomRequest(requestId, { 
-          status: 'completed',
-          analysis_result: generatorResult,
-          delivered_at: new Date().toISOString(),
-          completed_at: new Date().toISOString()
-        });
+        logger.info(`Custom scan delivered to Telegram for ${walletAddress}`);
       } else {
-        logger.warn(`User ${walletAddress} has no Telegram ID linked. Cannot deliver.`);
-        await supabaseService.updateCustomRequest(requestId, { 
-          status: 'completed',
-          error_message: 'User has no Telegram ID linked',
-          completed_at: new Date().toISOString()
-        });
+        logger.info(`Custom scan completed for ${walletAddress} (no Telegram linked - web only)`);
       }
 
     } catch (error: any) {
