@@ -120,48 +120,47 @@ export function AskRogue() {
     saveCurrentConversationId(currentConversationId);
   }, [currentConversationId]);
 
-  const updateMessages = useCallback((newMessages: Message[]) => {
-    const convId = currentConversationIdRef.current;
-    
-    if (convId) {
-      // Update existing conversation
-      setConversations(prev => prev.map(conv => 
-        conv.id === convId 
-          ? { 
-              ...conv, 
-              messages: newMessages, 
-              updatedAt: Date.now(),
-              title: getConversationTitle(newMessages)
-            }
-          : conv
-      ));
-    } else {
-      // Create new conversation
-      const newConv: Conversation = {
-        id: generateId(),
-        title: getConversationTitle(newMessages),
-        messages: newMessages,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-      setConversations(prev => [newConv, ...prev]);
-      setCurrentConversationId(newConv.id);
-      currentConversationIdRef.current = newConv.id; // Update ref immediately
-    }
-  }, []);
-
   const addMessage = useCallback((message: Message) => {
     const convId = currentConversationIdRef.current;
-    const currentConv = convId ? conversations.find(c => c.id === convId) : null;
-    const currentMessages = currentConv?.messages || [{
-      role: 'assistant' as const,
-      content: "Hey there! I'm Rogue, your crypto intelligence assistant. What can I help you with today?",
-      timestamp: Date.now()
-    }];
     
-    const newMessages = [...currentMessages, message];
-    updateMessages(newMessages);
-  }, [conversations, updateMessages]);
+    setConversations(prev => {
+      const currentConv = convId ? prev.find(c => c.id === convId) : null;
+      const currentMessages = currentConv?.messages || [{
+        role: 'assistant' as const,
+        content: "Hey there! I'm Rogue, your crypto intelligence assistant. What can I help you with today?",
+        timestamp: Date.now()
+      }];
+      
+      const newMessages = [...currentMessages, message];
+      
+      if (convId) {
+        // Update existing conversation
+        return prev.map(conv => 
+          conv.id === convId 
+            ? { 
+                ...conv, 
+                messages: newMessages, 
+                updatedAt: Date.now(),
+                title: getConversationTitle(newMessages)
+              }
+            : conv
+        );
+      } else {
+        // Create new conversation
+        const newConv: Conversation = {
+          id: generateId(),
+          title: getConversationTitle(newMessages),
+          messages: newMessages,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+        // Update ref immediately for subsequent calls
+        currentConversationIdRef.current = newConv.id;
+        setCurrentConversationId(newConv.id);
+        return [newConv, ...prev];
+      }
+    });
+  }, []);
 
   const createNewConversation = () => {
     setCurrentConversationId(null);
