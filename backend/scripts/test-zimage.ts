@@ -1,5 +1,6 @@
 /**
  * Test script to verify Z-Image-Turbo image generation via Gradio.
+ * Uses mrfakename/Z-Image-Turbo space.
  * 
  * Usage:
  *   cd backend
@@ -17,8 +18,8 @@ import { zImageService } from '../src/services/zimage.service';
 const TEST_PROMPT = 'A futuristic cyberpunk trading dashboard with glowing neon charts, cryptocurrency symbols floating in holographic displays, dark background with teal and purple accents';
 
 async function testZImageGeneration(): Promise<void> {
-  console.log('🎨 Z-Image-Turbo Test Script');
-  console.log('============================\n');
+  console.log('🎨 Z-Image-Turbo Test Script (mrfakename/Z-Image-Turbo)');
+  console.log('========================================================\n');
 
   const hfToken = process.env.HF_TOKEN;
   

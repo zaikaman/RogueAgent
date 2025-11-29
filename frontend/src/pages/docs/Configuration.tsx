@@ -241,7 +241,7 @@ export default function Configuration() {
                             <span className="ml-3 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">Optional</span>
                         </div>
                         <div className="p-4">
-                            <p className="text-gray-300 mb-2 text-sm">Hugging Face token for AI image generation (uses Z-Image-Turbo). Works without token using public quota.</p>
+                            <p className="text-gray-300 mb-2 text-sm">Hugging Face token for AI image generation (uses mrfakename/Z-Image-Turbo). Works without token using public quota.</p>
                             <p className="text-gray-400 text-xs">Get from: <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-teal-glow hover:underline">huggingface.co/settings/tokens</a></p>
                         </div>
                     </div>
