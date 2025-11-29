@@ -632,8 +632,20 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
             orderType: 'limit',
             timeInForce: 'Gtc',
           });
-          tpOid = tpOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
-          logger.info(`TP order placed for ${trade.symbol} at $${trade.pending_tp_price}, OID: ${tpOid}`);
+          
+          // Check for error in response first
+          const tpStatus = tpOrder.response?.data?.statuses?.[0];
+          if (tpStatus?.error) {
+            logger.error(`TP order returned error for ${trade.symbol}: ${tpStatus.error}`);
+            errors.push(`Trade ${trade.id}: TP order failed - ${tpStatus.error}`);
+          } else {
+            tpOid = tpStatus?.resting?.oid?.toString() || null;
+            if (tpOid) {
+              logger.info(`TP order placed for ${trade.symbol} at $${trade.pending_tp_price}, OID: ${tpOid}`);
+            } else {
+              logger.warn(`TP order placed for ${trade.symbol} but no OID returned. Response: ${JSON.stringify(tpOrder.response)}`);
+            }
+          }
         } catch (tpError: any) {
           logger.error(`Failed to place TP order for trade ${trade.id}`, tpError);
           errors.push(`Trade ${trade.id}: TP order failed - ${tpError.message}`);
@@ -650,8 +662,20 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
             reduceOnly: true,
             triggerType: 'sl',
           });
-          slOid = slOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
-          logger.info(`SL trigger order placed for ${trade.symbol} at $${trade.pending_sl_price}, OID: ${slOid}`);
+          
+          // Check for error in response first
+          const slStatus = slOrder.response?.data?.statuses?.[0];
+          if (slStatus?.error) {
+            logger.error(`SL trigger order returned error for ${trade.symbol}: ${slStatus.error}`);
+            errors.push(`Trade ${trade.id}: SL order failed - ${slStatus.error}`);
+          } else {
+            slOid = slStatus?.resting?.oid?.toString() || null;
+            if (slOid) {
+              logger.info(`SL trigger order placed for ${trade.symbol} at $${trade.pending_sl_price}, OID: ${slOid}`);
+            } else {
+              logger.warn(`SL trigger order placed for ${trade.symbol} but no OID returned. Response: ${JSON.stringify(slOrder.response)}`);
+            }
+          }
         } catch (slError: any) {
           logger.error(`Failed to place SL order for trade ${trade.id}`, slError);
           errors.push(`Trade ${trade.id}: SL order failed - ${slError.message}`);
@@ -750,9 +774,19 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
               orderType: 'limit',
               timeInForce: 'Gtc',
             });
-            tpOid = tpOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
-            if (tpOid) {
-              logger.info(`TP order placed for ${trade.symbol} at $${trade.pending_tp_price}, OID: ${tpOid}`);
+            
+            // Check for error in response first
+            const tpStatus = tpOrder.response?.data?.statuses?.[0];
+            if (tpStatus?.error) {
+              logger.error(`TP order returned error for ${trade.symbol}: ${tpStatus.error}`);
+              errors.push(`Trade ${trade.id}: TP order failed - ${tpStatus.error}`);
+            } else {
+              tpOid = tpStatus?.resting?.oid?.toString() || null;
+              if (tpOid) {
+                logger.info(`TP order placed for ${trade.symbol} at $${trade.pending_tp_price}, OID: ${tpOid}`);
+              } else {
+                logger.warn(`TP order placed for ${trade.symbol} but no OID returned. Response: ${JSON.stringify(tpOrder.response)}`);
+              }
             }
           } catch (tpError: any) {
             logger.error(`Failed to place TP order for trade ${trade.id}`, tpError);
@@ -772,9 +806,19 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
               reduceOnly: true,
               triggerType: 'sl',
             });
-            slOid = slOrder.response?.data?.statuses?.[0]?.resting?.oid?.toString() || null;
-            if (slOid) {
-              logger.info(`SL trigger order placed for ${trade.symbol} at $${trade.pending_sl_price}, OID: ${slOid}`);
+            
+            // Check for error in response first
+            const slStatus = slOrder.response?.data?.statuses?.[0];
+            if (slStatus?.error) {
+              logger.error(`SL trigger order returned error for ${trade.symbol}: ${slStatus.error}`);
+              errors.push(`Trade ${trade.id}: SL order failed - ${slStatus.error}`);
+            } else {
+              slOid = slStatus?.resting?.oid?.toString() || null;
+              if (slOid) {
+                logger.info(`SL trigger order placed for ${trade.symbol} at $${trade.pending_sl_price}, OID: ${slOid}`);
+              } else {
+                logger.warn(`SL trigger order placed for ${trade.symbol} but no OID returned. Response: ${JSON.stringify(slOrder.response)}`);
+              }
             }
           } catch (slError: any) {
             logger.error(`Failed to place SL order for trade ${trade.id}`, slError);

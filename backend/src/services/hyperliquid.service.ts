@@ -898,6 +898,7 @@ export class HyperliquidService extends EventEmitter {
   }> {
     // Place take-profit order (limit, reduce-only)
     let tpOrder: OrderResult | undefined;
+    let tpError: string | undefined;
     try {
       tpOrder = await this.placeOrder({
         symbol,
@@ -908,12 +909,25 @@ export class HyperliquidService extends EventEmitter {
         orderType: 'limit',
         timeInForce: 'Gtc',
       });
+      
+      // Check for error in response
+      const tpStatus = tpOrder?.response?.data?.statuses?.[0];
+      if (tpStatus?.error) {
+        tpError = tpStatus.error;
+        logger.warn(`TP order returned error for ${symbol}: ${tpError}`);
+        tpOrder = undefined;
+      }
     } catch (error: any) {
+      tpError = error.message;
       logger.warn(`Failed to place TP order for ${symbol}`, { error: error.message });
     }
 
+    // Small delay between orders to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Place stop-loss order (trigger order, reduce-only)
     let slOrder: OrderResult | undefined;
+    let slError: string | undefined;
     try {
       slOrder = await this.placeTriggerOrder({
         symbol,
@@ -923,8 +937,28 @@ export class HyperliquidService extends EventEmitter {
         reduceOnly: true,
         triggerType: 'sl',
       });
+      
+      // Check for error in response  
+      const slStatus = slOrder?.response?.data?.statuses?.[0];
+      if (slStatus?.error) {
+        slError = slStatus.error;
+        logger.warn(`SL order returned error for ${symbol}: ${slError}`);
+        slOrder = undefined;
+      }
     } catch (error: any) {
+      slError = error.message;
       logger.warn(`Failed to place SL order for ${symbol}`, { error: error.message });
+    }
+
+    // Log summary
+    if (tpOrder && slOrder) {
+      logger.info(`Bracket orders placed for ${symbol}: TP @ ${takeProfitPrice}, SL @ ${stopLossPrice}`);
+    } else if (tpOrder) {
+      logger.warn(`Only TP order placed for ${symbol}. SL failed: ${slError}`);
+    } else if (slOrder) {
+      logger.warn(`Only SL order placed for ${symbol}. TP failed: ${tpError}`);
+    } else {
+      logger.error(`Both bracket orders failed for ${symbol}. TP: ${tpError}, SL: ${slError}`);
     }
 
     return {
@@ -939,6 +973,11 @@ export class HyperliquidService extends EventEmitter {
    * Place a trigger order (stop-loss or take-profit with trigger)
    * Note: This uses the SDK's trigger order functionality if available,
    * otherwise falls back to a limit order at trigger price
+   * 
+   * IMPORTANT: For trigger orders on Hyperliquid:
+   * - isMarket=true: The order executes as market when trigger is hit. limit_px should be 
+   *   very aggressive (far from trigger) to ensure fill
+   * - isMarket=false: The order becomes a limit order at limit_px when trigger is hit
    */
   async placeTriggerOrder(params: {
     symbol: string;
@@ -964,33 +1003,72 @@ export class HyperliquidService extends EventEmitter {
     const szDecimals = assetInfo.szDecimals;
     const roundedSize = Math.floor(params.size * Math.pow(10, szDecimals)) / Math.pow(10, szDecimals);
 
-    // Round trigger price and limit price
+    // Round trigger price
     const roundedTriggerPrice = this.roundToValidPrice(params.triggerPrice);
-    const roundedLimitPrice = params.limitPrice ? this.roundToValidPrice(params.limitPrice) : roundedTriggerPrice;
+    
+    // Determine if this is a market or limit trigger order
+    const isMarketTrigger = !params.limitPrice;
+    
+    // For market trigger orders, we need a limit price that ensures fill
+    // The limit price acts as the worst acceptable price when trigger fires
+    // Use 10% slippage from trigger price to ensure execution
+    let limitPx: number;
+    if (isMarketTrigger) {
+      // For buying (closing short or TP on long), use higher price
+      // For selling (closing long or SL on long), use lower price
+      const slippageMultiplier = params.isBuy ? 1.10 : 0.90; // 10% slippage for market triggers
+      limitPx = this.roundToValidPrice(params.triggerPrice * slippageMultiplier);
+    } else {
+      limitPx = this.roundToValidPrice(params.limitPrice!);
+    }
 
     try {
-      // Try to use the SDK's trigger order method
+      // Use the SDK's order placement with trigger order type
+      // triggerPx must be a string in the format the SDK expects
       const orderType = {
         trigger: {
-          isMarket: !params.limitPrice,
-          triggerPx: roundedTriggerPrice.toString(),
+          isMarket: isMarketTrigger,
+          triggerPx: roundedTriggerPrice,  // SDK handles conversion
           tpsl: params.triggerType || 'sl',
         },
       };
+
+      logger.debug(`Placing trigger order: ${normalizedSymbol} ${params.isBuy ? 'BUY' : 'SELL'} size=${roundedSize} trigger=${roundedTriggerPrice} limit=${limitPx} type=${params.triggerType} isMarket=${isMarketTrigger}`);
 
       const result = await this.sdk.exchange.placeOrder({
         coin: normalizedSymbol,
         is_buy: params.isBuy,
         sz: roundedSize,
-        limit_px: roundedLimitPrice,
+        limit_px: limitPx,
         order_type: orderType as any,
         reduce_only: params.reduceOnly || false,
       });
 
-      logger.info(`Trigger order placed: ${params.symbol} ${params.isBuy ? 'BUY' : 'SELL'} @ trigger ${params.triggerPrice}`);
+      // Check for errors in the response
+      const status = result?.response?.data?.statuses?.[0];
+      if (status?.error) {
+        logger.error(`Trigger order error: ${status.error}`, { 
+          symbol: normalizedSymbol, 
+          triggerPrice: roundedTriggerPrice,
+          limitPx,
+          isBuy: params.isBuy,
+          triggerType: params.triggerType 
+        });
+        throw new Error(`Trigger order failed: ${status.error}`);
+      }
+
+      logger.info(`Trigger order placed: ${params.symbol} ${params.isBuy ? 'BUY' : 'SELL'} @ trigger ${roundedTriggerPrice} (limit ${limitPx})`);
       return result as OrderResult;
     } catch (error: any) {
-      logger.error('Trigger order placement failed', { error: error.message, symbol: params.symbol });
+      logger.error('Trigger order placement failed', { 
+        error: error.message, 
+        symbol: params.symbol,
+        triggerPrice: roundedTriggerPrice,
+        limitPx,
+        isBuy: params.isBuy,
+        size: roundedSize,
+        triggerType: params.triggerType
+      });
       throw error;
     }
   }
