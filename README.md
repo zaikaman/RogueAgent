@@ -1840,9 +1840,7 @@ We welcome contributions from the community! Here's how you can help:
 
 ### Community
 
-- **Discord**: [Join our server](#) (coming soon)
 - **Twitter/X**: [@Rogue_IQAI](https://x.com/Rogue_IQAI)
-- **Telegram**: [Community Group](#)
 
 ---
 
@@ -1867,7 +1865,7 @@ This software is provided for **educational and informational purposes only**. R
 
 ### Reporting Vulnerabilities
 
-If you discover a security vulnerability, please email: **security@rogue-agent.com**
+If you discover a security vulnerability, please email: **zaikaman123@gmail.com**
 
 **Please do not** open public issues for security vulnerabilities.
 
