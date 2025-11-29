@@ -46,7 +46,7 @@
 
 > *"Connect your wallet to unlock tiered access. The more RGE tokens you hold, the faster and more exclusive your signals."*
 
-Here is a custom modal made only for the hackathon judges, so they can interact with our app easier without having to buy RGE, click Yes to get diamond access to the app. And here's the telegram modal that help us connect with the telegram bot, which sends us the intels and signals privately for tiered users only. Now, let's have a look at the tier breakdown. You can pause the video to look at this comparison real quick. Let's continue now. This is the dashboard, it shows you your tier, the latest signal, the lastest intel, the system status and its logs.
+Here is a custom modal made only for the hackathon judges, so they can interact with our app easier without having to buy RGE, click Yes to get diamond access to the app. And here's the telegram modal that help us connect with the telegram bot, which sends us the intels and signals privately for tiered users only. I'll show you how to connect with my main wallet here. It recognizes I have diamond access and it will now send me private DMs for signals and intels. Now, let's have a look at the tier breakdown. You can pause the video to look at this comparison real quick. Let's continue now. This is the dashboard, it shows you your tier, the latest signal, the lastest intel, the system status and its logs.
 
 *Visual: Show tier breakdown briefly (Diamond → Gold → Silver → Public)*
 

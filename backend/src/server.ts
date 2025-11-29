@@ -9,7 +9,7 @@ import { logger } from './utils/logger.util';
 export const createServer = () => {
   const app = express();
 
-  // CORS Configuration
+  // CORS Configuration - must be before other middleware
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl requests, or server-to-server)
@@ -19,11 +19,19 @@ export const createServer = () => {
       // VAPI makes requests from various IPs/domains that are hard to whitelist
       callback(null, true);
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
   }));
 
+  // Handle preflight requests explicitly
+  app.options('*', cors());
+
   // Middleware
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'unsafe-none' }
+  }));
   app.use(express.json());
   app.use(morgan(config.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
