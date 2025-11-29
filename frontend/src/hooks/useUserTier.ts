@@ -101,11 +101,22 @@ export function useUserTier() {
   }, []);
 
   // Grant temporary diamond access
-  const grantTemporaryAccess = useCallback(() => {
+  const grantTemporaryAccess = useCallback(async () => {
     if (address) {
-      setJudgeAccess(address);
-      setHasTemporaryAccess(true);
-      setTier(TIERS.DIAMOND);
+      try {
+        // Call backend to persist temporary access
+        await walletService.grantTemporaryAccess(address);
+        // Also store locally for immediate UI updates
+        setJudgeAccess(address);
+        setHasTemporaryAccess(true);
+        setTier(TIERS.DIAMOND);
+      } catch (error) {
+        console.error('Failed to grant temporary access:', error);
+        // Still set local access even if backend fails
+        setJudgeAccess(address);
+        setHasTemporaryAccess(true);
+        setTier(TIERS.DIAMOND);
+      }
     }
   }, [address]);
 

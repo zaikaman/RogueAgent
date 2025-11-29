@@ -12,14 +12,14 @@ export const getLogs = async (req: Request, res: Response) => {
 
     let cutoffTime: string | undefined;
 
-    // Check tier if address is provided
+    // Check tier if address is provided (respects temporary diamond access)
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
       
-      if (user && user.tier) {
-        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+      if (effectiveTier) {
+        if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {
           cutoffTime = undefined;
-        } else if (user.tier === TIERS.SILVER) {
+        } else if (effectiveTier === TIERS.SILVER) {
           cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         } else {
           cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();

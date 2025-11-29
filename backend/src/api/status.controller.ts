@@ -10,11 +10,12 @@ export const getLatestStatus = async (req: Request, res: Response) => {
     let cutoffTime: string | undefined;
 
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
-      if (user && user.tier) {
-        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+      // Use getEffectiveTier to respect temporary diamond access
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+      if (effectiveTier) {
+        if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {
           cutoffTime = undefined;
-        } else if (user.tier === TIERS.SILVER) {
+        } else if (effectiveTier === TIERS.SILVER) {
           cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         } else {
           cutoffTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();

@@ -18,14 +18,15 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const { walletAddress, tokenSymbol, tokenContract } = requestSchema.parse(req.body);
 
-    // 1. Verify User Tier
+    // 1. Verify User Tier (respects temporary diamond access)
     const user = await supabaseService.getUser(walletAddress);
     if (!user) {
       res.status(404).json({ success: false, error: 'User not found' });
       return;
     }
 
-    if (user.tier !== TIERS.DIAMOND) {
+    const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+    if (effectiveTier !== TIERS.DIAMOND) {
       res.status(403).json({ success: false, error: 'Only Diamond tier users can make custom requests' });
       return;
     }

@@ -16,11 +16,11 @@ router.get('/', async (req: Request, res: Response) => {
     const walletAddress = req.query.wallet as string | undefined;
     const limit = parseInt(req.query.limit as string) || 15;
     
-    // Check user tier if wallet provided
+    // Check user tier if wallet provided (respects temporary diamond access)
     let isDiamond = false;
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
-      isDiamond = user?.tier === 'DIAMOND';
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+      isDiamond = effectiveTier === 'DIAMOND';
     }
 
     if (isDiamond) {
@@ -80,10 +80,10 @@ router.post('/scan', async (req: Request, res: Response) => {
   try {
     const walletAddress = req.body.wallet as string | undefined;
     
-    // Only Diamond users can trigger manual scans
+    // Only Diamond users can trigger manual scans (respects temporary access)
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
-      if (user?.tier !== 'DIAMOND') {
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+      if (effectiveTier !== 'DIAMOND') {
         return res.status(403).json({ error: 'Diamond tier required to trigger manual scan' });
       }
     }

@@ -15,13 +15,13 @@ export const getIntelHistory = async (req: Request, res: Response) => {
     let requirePublicPosted = false;
 
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
-      userTier = user?.tier;
-      if (user && user.tier) {
-        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+      // Use getEffectiveTier to respect temporary diamond access
+      userTier = await supabaseService.getEffectiveTier(walletAddress);
+      if (userTier) {
+        if (userTier === TIERS.GOLD || userTier === TIERS.DIAMOND) {
           // Gold/Diamond see everything immediately
           cutoffTime = undefined;
-        } else if (user.tier === TIERS.SILVER) {
+        } else if (userTier === TIERS.SILVER) {
           // Silver sees after 15 min delay
           cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         } else {
@@ -118,12 +118,13 @@ export const getIntelById = async (req: Request, res: Response) => {
     let hasAccess = false;
     
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
-      if (user && user.tier) {
-        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+      // Use getEffectiveTier to respect temporary diamond access
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+      if (effectiveTier) {
+        if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {
           // Gold/Diamond can see everything
           hasAccess = true;
-        } else if (user.tier === TIERS.SILVER) {
+        } else if (effectiveTier === TIERS.SILVER) {
           // Silver can see after 15 min delay
           const createdAt = new Date(run.created_at).getTime();
           const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
@@ -144,8 +145,8 @@ export const getIntelById = async (req: Request, res: Response) => {
     // Deep dives are Gold/Diamond only
     if (run.type === 'deep_dive') {
       if (walletAddress) {
-        const user = await supabaseService.getUser(walletAddress);
-        if (!user || (user.tier !== TIERS.GOLD && user.tier !== TIERS.DIAMOND)) {
+        const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+        if (effectiveTier !== TIERS.GOLD && effectiveTier !== TIERS.DIAMOND) {
           hasAccess = false;
         }
       } else {

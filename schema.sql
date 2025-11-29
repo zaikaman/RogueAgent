@@ -219,6 +219,7 @@ CREATE TABLE public.users (
   last_verified_at timestamp with time zone,
   joined_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  temp_diamond_expires_at timestamp with time zone,
   CONSTRAINT users_pkey PRIMARY KEY (wallet_address)
 );
 CREATE TABLE public.yield_opportunities (

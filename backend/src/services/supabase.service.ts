@@ -241,6 +241,7 @@ export class SupabaseService {
     last_verified_at?: string;
     telegram_user_id?: number;
     telegram_username?: string;
+    temp_diamond_expires_at?: string | null;
   }) {
     const { data, error } = await this.client
       .from('users')
@@ -250,6 +251,48 @@ export class SupabaseService {
 
     if (error) throw error;
     return data;
+  }
+
+  /**
+   * Grant temporary diamond access to a wallet for 24 hours (for hackathon judges)
+   */
+  async grantTemporaryDiamondAccess(walletAddress: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours from now
+    
+    await this.upsertUser({
+      wallet_address: walletAddress,
+      temp_diamond_expires_at: expiresAt,
+    });
+  }
+
+  /**
+   * Check if a wallet has temporary diamond access that hasn't expired
+   */
+  async hasTemporaryDiamondAccess(walletAddress: string): Promise<boolean> {
+    const user = await this.getUser(walletAddress);
+    if (!user || !user.temp_diamond_expires_at) return false;
+    
+    const expiresAt = new Date(user.temp_diamond_expires_at).getTime();
+    return expiresAt > Date.now();
+  }
+
+  /**
+   * Get the effective tier for a user (considering temporary diamond access)
+   * Returns the user's actual tier, or DIAMOND if they have temporary access
+   */
+  async getEffectiveTier(walletAddress: string): Promise<string> {
+    const user = await this.getUser(walletAddress);
+    if (!user) return 'NONE';
+    
+    // Check for temporary diamond access
+    if (user.temp_diamond_expires_at) {
+      const expiresAt = new Date(user.temp_diamond_expires_at).getTime();
+      if (expiresAt > Date.now()) {
+        return 'DIAMOND';
+      }
+    }
+    
+    return user.tier || 'NONE';
   }
 
   async getCustomRequestsCount(walletAddress: string, since: string) {

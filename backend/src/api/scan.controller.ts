@@ -13,7 +13,7 @@ export const scanController = {
         return res.status(400).json({ error: 'tokenSymbol and walletAddress are required' });
       }
 
-      // Validate user exists and is DIAMOND tier
+      // Validate user exists and is DIAMOND tier (respects temporary access)
       const user = await supabaseService.getUser(walletAddress);
       
       if (!user) {
@@ -24,7 +24,8 @@ export const scanController = {
         });
       }
       
-      if (user.tier !== TIERS.DIAMOND) {
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+      if (effectiveTier !== TIERS.DIAMOND) {
         return res.status(403).json({ 
           success: false,
           error: `Custom scans are exclusive to DIAMOND tier users (1,000+ $RGE). Your current tier: ${user.tier}`,

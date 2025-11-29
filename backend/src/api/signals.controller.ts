@@ -22,12 +22,13 @@ export const getSignalHistory = async (req: Request, res: Response) => {
     let requirePublicPosted = false;
 
     if (walletAddress) {
-      const user = await supabaseService.getUser(walletAddress);
-      if (user && user.tier) {
-        if (user.tier === TIERS.GOLD || user.tier === TIERS.DIAMOND) {
+      // Use getEffectiveTier to respect temporary diamond access
+      const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+      if (effectiveTier) {
+        if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {
           // Gold/Diamond see everything immediately
           cutoffTime = undefined;
-        } else if (user.tier === TIERS.SILVER) {
+        } else if (effectiveTier === TIERS.SILVER) {
           // Silver sees after 15 min delay
           cutoffTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         } else {

@@ -174,9 +174,10 @@ _Note: Custom scans are currently limited to Diamond tier users._
           return;
         }
 
-        // Check tier
+        // Check tier (respects temporary diamond access)
         const { TIERS } = await import('../constants/tiers');
-        if (user.tier !== TIERS.DIAMOND) {
+        const effectiveTier = await supabaseService.getEffectiveTier(user.wallet_address);
+        if (effectiveTier !== TIERS.DIAMOND) {
           await this.bot?.sendMessage(chatId, `⛔ Custom scans are exclusive to DIAMOND tier users (1,000+ $RGE).\n\nYour current tier: ${user.tier}`, { parse_mode: 'Markdown' });
           return;
         }

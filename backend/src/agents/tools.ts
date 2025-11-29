@@ -670,7 +670,7 @@ export const requestCustomScanTool = createTool({
     const userId = typeof telegramUserId === 'string' ? parseInt(telegramUserId, 10) : telegramUserId;
     console.log('Parsed userId:', userId);
     
-    // Validate user exists and is DIAMOND tier
+    // Validate user exists and is DIAMOND tier (or has temporary access)
     console.log('Fetching user from DB:', walletAddress);
     const user = await supabaseService.getUser(walletAddress);
     console.log('User fetched:', user ? `${user.wallet_address} (${user.tier})` : 'NOT FOUND');
@@ -683,7 +683,11 @@ export const requestCustomScanTool = createTool({
       };
     }
     
-    if (user.tier !== TIERS.DIAMOND) {
+    // Check for effective tier (respects temporary diamond access)
+    const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
+    console.log('Effective tier:', effectiveTier);
+    
+    if (effectiveTier !== TIERS.DIAMOND) {
       return { 
         success: false, 
         error: `This feature is exclusive to DIAMOND tier users (1,000+ $RGE). Your current tier: ${user.tier}`,

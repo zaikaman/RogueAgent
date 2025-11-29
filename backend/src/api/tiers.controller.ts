@@ -18,7 +18,7 @@ router.post('/verify', async (req: Request, res: Response) => {
 
     logger.info(`Verifying tier for ${walletAddress}`);
 
-    const { tier, balance } = await tierManager.verifyTier(walletAddress);
+    const { tier, balance, hasTemporaryAccess } = await tierManager.verifyTier(walletAddress);
 
     // Save to Supabase
     const user = await supabaseService.upsertUser({
@@ -34,10 +34,40 @@ router.post('/verify', async (req: Request, res: Response) => {
         balance,
         telegram_connected: !!user.telegram_user_id,
         telegram_username: user.telegram_username,
+        hasTemporaryAccess,
       },
     });
   } catch (error) {
     logger.error('Error in /verify endpoint', error);
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: error.errors });
+    } else {
+      res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+  }
+});
+
+/**
+ * POST /tiers/grant-temporary-access
+ * Grant temporary 24h DIAMOND tier access (for hackathon judges)
+ */
+router.post('/grant-temporary-access', async (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = verifySchema.parse(req.body);
+
+    logger.info(`Granting temporary diamond access for ${walletAddress}`);
+
+    await supabaseService.grantTemporaryDiamondAccess(walletAddress);
+
+    res.json({
+      success: true,
+      data: {
+        message: 'Temporary diamond access granted for 24 hours',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('Error in /grant-temporary-access endpoint', error);
     if (error instanceof z.ZodError) {
       res.status(400).json({ success: false, error: error.errors });
     } else {
