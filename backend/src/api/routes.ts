@@ -24,6 +24,7 @@ router.get('/health', healthController.healthCheck);
 
 // Chat
 router.post('/chat', chatController.chat);
+router.get('/chat/status/:jobId', chatController.getChatStatus);
 
 // Scan (DIAMOND tier only)
 router.post('/scan', scanController.requestScan);

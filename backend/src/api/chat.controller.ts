@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import { InitialChatAgent } from '../agents/initial-chat.agent';
 import { ChatAgent } from '../agents/chat.agent';
 import { logger } from '../utils/logger.util';
+import { chatJobsService } from '../services/chat-jobs.service';
 
 export const chatController = {
+  // Async chat - creates a job and returns job ID for polling
   async chat(req: Request, res: Response) {
     try {
       const { message, context, history } = req.body;
@@ -12,8 +14,98 @@ export const chatController = {
         return res.status(400).json({ error: 'Message is required' });
       }
 
-      // Format the input for the agent
-      const agentInput = `
+      // Create a chat job for background processing
+      const job = await chatJobsService.createJob({
+        user_wallet_address: context?.walletAddress || 'anonymous',
+        message,
+        context: context || {},
+        history: history || [],
+      });
+
+      if (!job) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Failed to create chat job' 
+        });
+      }
+
+      // Process the job asynchronously in the background
+      processChatJob(job.id, message, context, history)
+        .catch((err) => logger.error('Error processing chat job:', err));
+
+      res.json({
+        success: true,
+        job_id: job.id,
+        message: 'Chat request queued for processing',
+      });
+    } catch (error: any) {
+      logger.error('Error in Chat Controller', error);
+      res.status(500).json({ error: 'Failed to process chat request' });
+    }
+  },
+
+  // Get chat job status - for frontend polling
+  async getChatStatus(req: Request, res: Response) {
+    try {
+      const { jobId } = req.params;
+
+      if (!jobId) {
+        return res.status(400).json({ error: 'jobId is required' });
+      }
+
+      const job = await chatJobsService.getJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({
+          success: false,
+          error: 'Job not found',
+        });
+      }
+
+      // Return status and response if completed
+      if (job.status === 'completed') {
+        res.json({
+          success: true,
+          status: 'completed',
+          message: job.response,
+          source: job.source,
+        });
+      } else if (job.status === 'failed') {
+        res.json({
+          success: false,
+          status: 'failed',
+          error: job.error_message || 'Chat processing failed. Please try again.',
+        });
+      } else {
+        // Still processing (pending or processing)
+        res.json({
+          success: true,
+          status: job.status,
+        });
+      }
+    } catch (error: any) {
+      logger.error('Error in getChatStatus', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get chat status',
+      });
+    }
+  },
+};
+
+// Background job processor
+async function processChatJob(
+  jobId: string,
+  message: string,
+  context: any,
+  history: any[]
+): Promise<void> {
+  try {
+    // Mark as processing
+    await chatJobsService.markProcessing(jobId);
+
+    // Format the input for the agent
+    const agentInput = `
 USER CONTEXT:
 - Wallet: ${context?.walletAddress || 'Unknown'}
 - Tier: ${context?.tier || 'NONE'}
@@ -23,16 +115,16 @@ CHAT HISTORY:
 ${history?.map((h: any) => `User: ${h.user}\nAssistant: ${h.assistant}`).join('\n') || 'None'}
 
 USER MESSAGE: ${message}
-      `.trim();
+    `.trim();
 
-      // Step 1: Call InitialChatAgent (GPT-4o with database tools)
-      const initialAgent = await InitialChatAgent;
-      const initialResult: any = await initialAgent.runner.ask(agentInput);
+    // Step 1: Call InitialChatAgent (GPT-4o with database tools)
+    const initialAgent = await InitialChatAgent;
+    const initialResult: any = await initialAgent.runner.ask(agentInput);
 
-      // Step 2: Check if web search is needed
-      if (initialResult.needs_web_search) {
-        // Route to ChatAgent (Grok) with context
-        const grokInput = `
+    // Step 2: Check if web search is needed
+    if (initialResult.needs_web_search) {
+      // Route to ChatAgent (Grok) with context
+      const grokInput = `
 USER CONTEXT:
 - Wallet: ${context?.walletAddress || 'Unknown'}
 - Tier: ${context?.tier || 'NONE'}
@@ -46,19 +138,24 @@ CHAT HISTORY:
 ${history?.map((h: any) => `User: ${h.user}\nAssistant: ${h.assistant}`).join('\n') || 'None'}
 
 USER MESSAGE: ${message}
-        `.trim();
+      `.trim();
 
-        const grokAgent = await ChatAgent;
-        const grokResult = await grokAgent.runner.ask(grokInput);
+      const grokAgent = await ChatAgent;
+      const grokResult = await grokAgent.runner.ask(grokInput);
 
-        res.json({ message: grokResult, source: 'grok' });
-      } else {
-        // Use the direct response from InitialChatAgent
-        res.json({ message: initialResult.response, source: 'gpt4o' });
-      }
-    } catch (error: any) {
-      logger.error('Error in Chat Controller', error);
-      res.status(500).json({ error: 'Failed to process chat request' });
+      await chatJobsService.markCompleted(jobId, {
+        response: grokResult,
+        source: 'grok',
+      });
+    } else {
+      // Use the direct response from InitialChatAgent
+      await chatJobsService.markCompleted(jobId, {
+        response: initialResult.response,
+        source: 'gpt4o',
+      });
     }
+  } catch (error: any) {
+    logger.error(`Error processing chat job ${jobId}:`, error);
+    await chatJobsService.markFailed(jobId, error.message || 'Unknown error');
   }
-};
+}

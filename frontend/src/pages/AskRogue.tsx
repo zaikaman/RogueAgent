@@ -366,6 +366,7 @@ export function AskRogue() {
     setIsLoading(true);
 
     try {
+      // Start the chat job (async background processing)
       const response = await fetch(`${import.meta.env.VITE_API_URL}/chat`, {
         method: 'POST',
         headers: {
@@ -387,15 +388,86 @@ export function AskRogue() {
 
       const data = await response.json();
 
-      if (data.message) {
-        addMessage({ role: 'assistant', content: data.message, timestamp: Date.now() });
-      } else {
-        toast.error('Failed to get response');
+      if (!data.success || !data.job_id) {
+        addMessage({ 
+          role: 'assistant', 
+          content: `❌ ${data.error || 'Failed to process message'}`, 
+          timestamp: Date.now() 
+        });
+        setIsLoading(false);
+        return;
       }
+
+      const jobId = data.job_id;
+
+      // Poll for completion
+      const pollInterval = 1000; // 1 second
+      const maxAttempts = 120; // 2 minutes max
+      let attempts = 0;
+
+      const pollForResult = async () => {
+        attempts++;
+
+        try {
+          const statusResponse = await fetch(`${import.meta.env.VITE_API_URL}/chat/status/${jobId}`);
+          const statusData = await statusResponse.json();
+
+          if (statusData.status === 'completed') {
+            addMessage({ 
+              role: 'assistant', 
+              content: statusData.message, 
+              timestamp: Date.now() 
+            });
+            setIsLoading(false);
+            return;
+          } else if (statusData.status === 'failed') {
+            addMessage({ 
+              role: 'assistant', 
+              content: `❌ ${statusData.error || 'Failed to get response. Please try again.'}`, 
+              timestamp: Date.now() 
+            });
+            toast.error('Chat failed');
+            setIsLoading(false);
+            return;
+          } else if (attempts >= maxAttempts) {
+            addMessage({ 
+              role: 'assistant', 
+              content: '⏱️ Response is taking longer than expected. Please try again.', 
+              timestamp: Date.now() 
+            });
+            toast.warning('Response timed out');
+            setIsLoading(false);
+            return;
+          }
+
+          // Still processing, continue polling
+          setTimeout(pollForResult, pollInterval);
+        } catch (pollError) {
+          console.error('Poll error:', pollError);
+          if (attempts >= maxAttempts) {
+            addMessage({ 
+              role: 'assistant', 
+              content: '❌ Failed to get response. Please try again.', 
+              timestamp: Date.now() 
+            });
+            setIsLoading(false);
+          } else {
+            setTimeout(pollForResult, pollInterval);
+          }
+        }
+      };
+
+      // Start polling after a short delay
+      setTimeout(pollForResult, pollInterval);
+
     } catch (error) {
       console.error('Chat error:', error);
+      addMessage({ 
+        role: 'assistant', 
+        content: '❌ Failed to send message. Please try again.', 
+        timestamp: Date.now() 
+      });
       toast.error('Failed to send message');
-    } finally {
       setIsLoading(false);
     }
   };

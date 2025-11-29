@@ -19,6 +19,21 @@ CREATE TABLE public.airdrops (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT airdrops_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.chat_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_wallet_address text NOT NULL,
+  message text NOT NULL,
+  context jsonb,
+  history jsonb,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text])),
+  response text,
+  source text,
+  error_message text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  CONSTRAINT chat_jobs_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.custom_requests (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_wallet_address text NOT NULL,
