@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
-import { useAirdrops, Airdrop } from '../hooks/useAirdrops';
+import { useAllAirdrops, Airdrop } from '../hooks/useAirdrops';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
@@ -9,6 +9,8 @@ import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink, Send } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Rocket01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+
+const ITEMS_PER_PAGE = 9;
 
 const SORT_OPTIONS: SortOption[] = [
   { value: 'newest', label: 'Newest First' },
@@ -51,13 +53,15 @@ export function AirdropsPage() {
     type: 'all',
   });
 
-  const limit = page === 1 ? 10 : 9;
-  const { data: airdropData, isLoading, isError } = useAirdrops(page, limit);
-  const airdrops = airdropData?.airdrops || [];
-  const pagination = airdropData?.pagination;
-  const totalPages = pagination?.pages || 1;
+  const { data: airdropData, isLoading, isError } = useAllAirdrops();
+  const allAirdrops = airdropData?.airdrops || [];
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
+
+  // Reset to page 1 when search/sort/filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sortBy, filters]);
 
   const handleConnect = () => {
     const connector = connectors[0];
@@ -68,13 +72,12 @@ export function AirdropsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Filter and sort logic
-  const { featuredAirdrop, processedAirdrops } = useMemo(() => {
-    const featured = page === 1 ? airdrops[0] : null;
+  // Filter, sort, and paginate logic
+  const { featuredAirdrop, paginatedAirdrops, totalPages, totalFiltered } = useMemo(() => {
+    // First one is always featured
+    const featured = allAirdrops[0] || null;
     const latestId = featured?.id;
-    let list = page === 1
-      ? airdrops.filter((o: Airdrop) => o.id !== latestId)
-      : [...airdrops];
+    let list = allAirdrops.filter((o: Airdrop) => o.id !== latestId);
 
     // Search filter
     if (searchQuery.trim()) {
@@ -122,8 +125,13 @@ export function AirdropsPage() {
       }
     });
 
-    return { featuredAirdrop: featured, processedAirdrops: list.slice(0, 9) };
-  }, [airdrops, searchQuery, sortBy, filters, page]);
+    const totalFiltered = list.length;
+    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const paginatedAirdrops = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    return { featuredAirdrop: featured, paginatedAirdrops, totalPages, totalFiltered };
+  }, [allAirdrops, searchQuery, sortBy, filters, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -170,7 +178,7 @@ export function AirdropsPage() {
       )}
 
       {/* Remaining Opportunities - Gated for Silver+ */}
-      {airdrops && (page === 1 ? airdrops.length > 1 : airdrops.length > 0) && (
+      {allAirdrops && allAirdrops.length > 1 && (
         <GatedContent 
           userTier={tier} 
           requiredTier={TIERS.SILVER}
@@ -193,10 +201,10 @@ export function AirdropsPage() {
               />
             </div>
 
-            {processedAirdrops.length > 0 ? (
+            {paginatedAirdrops.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {processedAirdrops.map((drop: Airdrop, index: number) => (
+                  {paginatedAirdrops.map((drop: Airdrop, index: number) => (
                     <AirdropCard key={drop.id || index + 1} airdrop={drop} index={index + 1} />
                   ))}
                 </div>
@@ -213,6 +221,7 @@ export function AirdropsPage() {
                     </button>
                     <span className="text-sm text-gray-500">
                       Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                      <span className="text-gray-600 ml-2">({totalFiltered} total)</span>
                     </span>
                     <button
                       onClick={handleNextPage}

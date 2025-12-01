@@ -43,6 +43,21 @@ export function useIntelHistory(page = 1, limit = 10) {
   });
 }
 
+// Fetch all intel for client-side filtering
+export function useAllIntelHistory() {
+  const { address } = useAccount();
+  return useQuery({
+    queryKey: ['allIntelHistory', address],
+    queryFn: async () => {
+      const response = await api.get<IntelResponse>(endpoints.intelHistory, {
+        params: { page: 1, limit: 1000, address }
+      });
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+}
+
 export function useIntelDetail(id?: string) {
   const { address } = useAccount();
   return useQuery({

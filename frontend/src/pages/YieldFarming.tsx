@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
-import { useYield, YieldOpportunity } from '../hooks/useYield';
+import { useAllYield, YieldOpportunity } from '../hooks/useYield';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
@@ -9,6 +9,8 @@ import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Coins01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+
+const ITEMS_PER_PAGE = 9;
 
 const SORT_OPTIONS: SortOption[] = [
   { value: 'apy-high', label: 'APY (High)' },
@@ -52,13 +54,15 @@ export function YieldFarming() {
     chain: 'all',
   });
 
-  const limit = page === 1 ? 10 : 9; // page 1 total including featured = 10, pages 2+ = 9
-  const { data: yieldData, isLoading, isError } = useYield(page, limit);
-  const opportunities = yieldData?.opportunities || [];
-  const pagination = yieldData?.pagination;
-  const totalPages = pagination?.pages || 1;
+  const { data: yieldData, isLoading, isError } = useAllYield();
+  const allOpportunities = yieldData?.opportunities || [];
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
+
+  // Reset to page 1 when search/sort/filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sortBy, filters]);
 
   const handleConnect = () => {
     const connector = connectors[0];
@@ -69,13 +73,12 @@ export function YieldFarming() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Filter and sort logic
-  const { featuredOpportunity, processedOpportunities } = useMemo(() => {
-    const featured = page === 1 ? opportunities[0] : null;
+  // Filter, sort, and paginate logic
+  const { featuredOpportunity, paginatedOpportunities, totalPages, totalFiltered } = useMemo(() => {
+    // First one is always featured
+    const featured = allOpportunities[0] || null;
     const latestId = featured?.pool_id;
-    let list = page === 1
-      ? opportunities.filter((o: YieldOpportunity) => o.pool_id !== latestId)
-      : [...opportunities];
+    let list = allOpportunities.filter((o: YieldOpportunity) => o.pool_id !== latestId);
 
     // Search filter
     if (searchQuery.trim()) {
@@ -118,8 +121,13 @@ export function YieldFarming() {
       }
     });
 
-    return { featuredOpportunity: featured, processedOpportunities: list.slice(0, 9) };
-  }, [opportunities, searchQuery, sortBy, filters, page]);
+    const totalFiltered = list.length;
+    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const paginatedOpportunities = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    return { featuredOpportunity: featured, paginatedOpportunities, totalPages, totalFiltered };
+  }, [allOpportunities, searchQuery, sortBy, filters, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -157,8 +165,8 @@ export function YieldFarming() {
         </div>
       </div>
 
-      {/* First Opportunity - Visible only on page 1 */}
-      {page === 1 && featuredOpportunity && (
+      {/* First Opportunity - Always visible */}
+      {featuredOpportunity && (
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Featured Opportunity</h3>
           <YieldCard opportunity={featuredOpportunity} index={0} />
@@ -166,7 +174,7 @@ export function YieldFarming() {
       )}
 
       {/* Remaining Opportunities - Gated for Silver+ */}
-      {opportunities && (page === 1 ? opportunities.length > 1 : opportunities.length > 0) && (
+      {allOpportunities && allOpportunities.length > 1 && (
         <GatedContent 
           userTier={tier} 
           requiredTier={TIERS.SILVER}
@@ -190,10 +198,10 @@ export function YieldFarming() {
               />
             </div>
 
-            {processedOpportunities.length > 0 ? (
+            {paginatedOpportunities.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {processedOpportunities.map((opp: YieldOpportunity, index: number) => (
+                  {paginatedOpportunities.map((opp: YieldOpportunity, index: number) => (
                     <YieldCard key={opp.pool_id || index + 1} opportunity={opp} index={index + 1} />
                   ))}
                 </div>
@@ -210,6 +218,7 @@ export function YieldFarming() {
                     </button>
                     <span className="text-sm text-gray-500">
                       Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                      <span className="text-gray-600 ml-2">({totalFiltered} total)</span>
                     </span>
                     <button
                       onClick={handleNextPage}
@@ -237,7 +246,7 @@ export function YieldFarming() {
       )}
 
       {/* No Opportunities Fallback - Auto scan triggered by backend */}
-      {opportunities.length === 0 && (
+      {allOpportunities.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-8 bg-gray-900/50 border border-gray-800 rounded-xl">
           <Loader2 className="w-8 h-8 animate-spin text-cyan-500 mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">Scanning for Yield Opportunities</h3>

@@ -50,3 +50,18 @@ export function useSignalsHistory(page = 1, limit = 10) {
     refetchInterval: 30000, // Poll every 30 seconds
   });
 }
+
+// Fetch all signals for client-side filtering
+export function useAllSignalsHistory() {
+  const { address } = useAccount();
+  return useQuery({
+    queryKey: ['allSignalsHistory', address],
+    queryFn: async () => {
+      const response = await api.get<SignalsResponse>(endpoints.signalsHistory, {
+        params: { page: 1, limit: 1000, address }
+      });
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+}

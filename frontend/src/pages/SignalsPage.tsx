@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
 import { useRunStatus } from '../hooks/useRunStatus';
-import { useSignalsHistory, Signal } from '../hooks/useSignals';
+import { useAllSignalsHistory, Signal } from '../hooks/useSignals';
 import { useUserTier } from '../hooks/useUserTier';
 import { SignalCard } from '../components/SignalCard';
 import { GatedContent } from '../components/GatedContent';
@@ -9,6 +9,8 @@ import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/Search
 import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { GpsSignal01Icon, Loading03Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+
+const ITEMS_PER_PAGE = 10;
 
 const SORT_OPTIONS: SortOption[] = [
   { value: 'newest', label: 'Newest First' },
@@ -52,9 +54,14 @@ export function SignalsPage() {
   });
 
   const { data: runStatus, isLoading: isStatusLoading } = useRunStatus();
-  const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory(page, page === 1 ? 11 : 10);
+  const { data: historyData, isLoading: isHistoryLoading } = useAllSignalsHistory();
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
+
+  // Reset page when filters/search change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sortBy, filters]);
 
   const handleConnect = () => {
     const connector = connectors[0];
@@ -67,11 +74,9 @@ export function SignalsPage() {
 
   const latestSignal = runStatus?.latest_signal;
   const historySignals = historyData?.data || [];
-  const pagination = historyData?.pagination;
-  const totalPages = pagination?.pages || 1;
 
-  // Filter and sort logic
-  const processedSignals = useMemo(() => {
+  // Filter, sort, and paginate
+  const { paginatedSignals, totalPages, totalFiltered } = useMemo(() => {
     const latestId = latestSignal?.id;
     let list = historySignals.filter((s: Signal) => s.id !== latestId);
 
@@ -120,10 +125,12 @@ export function SignalsPage() {
       }
     });
 
-    // Limit to 10 on page 1
-    if (page === 1) list = list.slice(0, 10);
+    const totalFiltered = list.length;
+    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const paginatedSignals = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-    return list;
+    return { paginatedSignals, totalPages, totalFiltered };
   }, [historySignals, latestSignal, searchQuery, sortBy, filters, page]);
 
   const handlePrevPage = () => {
@@ -181,10 +188,10 @@ export function SignalsPage() {
             />
           </div>
 
-          {processedSignals.length > 0 ? (
+          {paginatedSignals.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {processedSignals.map((signal: Signal) => (
+                {paginatedSignals.map((signal: Signal) => (
                   <SignalCard key={signal.id} signal={signal} />
                 ))}
               </div>
@@ -201,6 +208,7 @@ export function SignalsPage() {
                   </button>
                   <span className="text-sm text-gray-500">
                     Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                    <span className="text-gray-600 ml-2">({totalFiltered} results)</span>
                   </span>
                   <button
                     onClick={handleNextPage}

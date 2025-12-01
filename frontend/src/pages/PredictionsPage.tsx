@@ -1,14 +1,16 @@
 import { motion } from 'framer-motion';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
-import { usePredictions, PredictionMarket } from '../hooks/usePredictions';
+import { useAllPredictions, PredictionMarket } from '../hooks/usePredictions';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ChartHistogramIcon } from '@hugeicons/core-free-icons';
+import { ChartHistogramIcon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+
+const ITEMS_PER_PAGE = 9;
 
 const SORT_OPTIONS: SortOption[] = [
   { value: 'edge-high', label: 'Edge (High)' },
@@ -44,6 +46,7 @@ const FILTER_CONFIG: FilterConfig[] = [
 ];
 
 export function PredictionsPage() {
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('edge-high');
   const [filters, setFilters] = useState<Record<string, string>>({
@@ -51,11 +54,16 @@ export function PredictionsPage() {
     bet: 'all',
   });
 
-  const { data, isLoading, isError } = usePredictions();
+  const { data, isLoading, isError } = useAllPredictions();
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
-  const markets = data?.markets || [];
+  const allMarkets = data?.markets || [];
+
+  // Reset to page 1 when search/sort/filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sortBy, filters]);
 
   const handleConnect = () => {
     const connector = connectors[0];
@@ -66,11 +74,20 @@ export function PredictionsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Filter and sort logic
-  const { featuredMarket, processedMarkets } = useMemo(() => {
-    const featured = markets.length > 0 ? markets[0] : null;
+  const handlePrevPage = () => {
+    if (page > 1) setPage(p => p - 1);
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) setPage(p => p + 1);
+  };
+
+  // Filter, sort, and paginate logic
+  const { featuredMarket, paginatedMarkets, totalPages, totalFiltered } = useMemo(() => {
+    // First one is always featured
+    const featured = allMarkets.length > 0 ? allMarkets[0] : null;
     const latestId = featured?.market_id;
-    let list = markets.filter((m: PredictionMarket) => m.market_id !== latestId);
+    let list = allMarkets.filter((m: PredictionMarket) => m.market_id !== latestId);
 
     // Search filter
     if (searchQuery.trim()) {
@@ -117,8 +134,13 @@ export function PredictionsPage() {
       }
     });
 
-    return { featuredMarket: featured, processedMarkets: list };
-  }, [markets, searchQuery, sortBy, filters]);
+    const totalFiltered = list.length;
+    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const paginatedMarkets = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    return { featuredMarket: featured, paginatedMarkets, totalPages, totalFiltered };
+  }, [allMarkets, searchQuery, sortBy, filters, page]);
 
   if (isLoading) {
     return (
@@ -157,7 +179,7 @@ export function PredictionsPage() {
       )}
 
       {/* Remaining Markets - Gated for Diamond */}
-      {markets && markets.length > 1 && (
+      {allMarkets && allMarkets.length > 1 && (
         <GatedContent 
           userTier={tier} 
           requiredTier={TIERS.DIAMOND}
@@ -181,12 +203,38 @@ export function PredictionsPage() {
               />
             </div>
 
-            {processedMarkets.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {processedMarkets.map((market: PredictionMarket, index: number) => (
-                  <MarketCard key={market.market_id || index + 1} market={market} index={index + 1} />
-                ))}
-              </div>
+            {paginatedMarkets.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedMarkets.map((market: PredictionMarket, index: number) => (
+                    <MarketCard key={market.market_id || index + 1} market={market} index={index + 1} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={page === 1}
+                      className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                    >
+                      <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm text-gray-500">
+                      Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                      <span className="text-gray-600 ml-2">({totalFiltered} total)</span>
+                    </span>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={page === totalPages}
+                      className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                    >
+                      <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-12 text-center">
                 <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -203,7 +251,7 @@ export function PredictionsPage() {
       )}
 
       {/* No Markets Fallback - Auto scan triggered by backend */}
-      {markets.length === 0 && (
+      {allMarkets.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-8 bg-gray-900/50 border border-gray-800 rounded-xl">
           <Loader2 className="w-8 h-8 animate-spin text-cyan-500 mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">Scanning for High-Edge Markets</h3>

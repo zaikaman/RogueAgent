@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useConnect } from 'wagmi';
-import { useIntelHistory, useIntelDetail, IntelItem } from '../hooks/useIntel';
+import { useAllIntelHistory, useIntelDetail, IntelItem } from '../hooks/useIntel';
 import { useUserTier } from '../hooks/useUserTier';
 import { IntelBlog } from '../components/IntelBlog';
 import { IntelCard } from '../components/IntelCard';
@@ -11,6 +11,8 @@ import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { News01Icon, ArrowLeft01Icon, ArrowRight01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 import { Button } from '../components/ui/button';
+
+const ITEMS_PER_PAGE = 9;
 
 const SORT_OPTIONS: SortOption[] = [
   { value: 'newest', label: 'Newest First' },
@@ -39,10 +41,15 @@ export function IntelPage() {
     type: 'all',
   });
 
-  const { data: historyData, isLoading: isHistoryLoading } = useIntelHistory(page, page === 1 ? 10 : 9);
+  const { data: historyData, isLoading: isHistoryLoading } = useAllIntelHistory();
   const { data: detailData, isLoading: isDetailLoading } = useIntelDetail(id);
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
+
+  // Reset page when filters/search change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sortBy, filters]);
 
   const isLoading = id ? isDetailLoading : isHistoryLoading;
 
@@ -56,20 +63,14 @@ export function IntelPage() {
   };
 
   const intelItems = historyData?.data || [];
-  const pagination = historyData?.pagination;
-  const totalPages = pagination?.pages || 1;
   
-  // latestIntel: on page 1 the backend is asked to include the latest report
-  // as the first item. Use that as the Latest Report and remove it from
-  // the archive rendering to avoid duplication.
-  const latestIntel = page === 1 ? intelItems[0] : null;
+  // latestIntel: the first item is the Latest Report
+  const latestIntel = intelItems.length > 0 ? intelItems[0] : null;
 
-  // Filter and sort logic for archive
-  const processedArchive = useMemo(() => {
+  // Filter, sort, and paginate archive
+  const { paginatedArchive, totalPages, totalFiltered } = useMemo(() => {
     const latestId = latestIntel?.id;
-    let list = page === 1
-      ? intelItems.filter((it: IntelItem) => it.id !== latestId)
-      : [...intelItems];
+    let list = intelItems.filter((it: IntelItem) => it.id !== latestId);
 
     // Search filter
     if (searchQuery.trim()) {
@@ -100,8 +101,12 @@ export function IntelPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-    // Limit
-    return list.slice(0, 9);
+    const totalFiltered = list.length;
+    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const paginatedArchive = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    return { paginatedArchive, totalPages, totalFiltered };
   }, [intelItems, latestIntel, searchQuery, sortBy, filters, page]);
 
   const selectedIntel = id ? detailData : null;
@@ -164,8 +169,8 @@ export function IntelPage() {
         )}
       </div>
 
-      {/* Latest Intel - Always Visible on Page 1 */}
-      {page === 1 && latestIntel && (
+      {/* Latest Intel - Always Visible */}
+      {latestIntel && (
         <div className="mb-8">
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Latest Report</h3>
           <IntelCard intel={latestIntel} onClick={() => navigate(`/app/intel/${latestIntel.id}`)} />
@@ -195,10 +200,10 @@ export function IntelPage() {
           onConnect={!isConnected ? handleConnect : undefined}
           isLoading={isTierLoading}
         >
-          {processedArchive.length > 0 ? (
+          {paginatedArchive.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {processedArchive.map((intel: IntelItem) => (
+                {paginatedArchive.map((intel: IntelItem) => (
                   <IntelCard 
                     key={intel.id} 
                     intel={intel} 
@@ -219,6 +224,7 @@ export function IntelPage() {
                   </button>
                   <span className="text-sm text-gray-500">
                     Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                    <span className="text-gray-600 ml-2">({totalFiltered} results)</span>
                   </span>
                   <button
                     onClick={handleNextPage}

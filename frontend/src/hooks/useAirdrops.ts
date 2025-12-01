@@ -39,3 +39,16 @@ export function useAirdrops(page = 1, limit = 10) {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
+
+// Fetch all airdrops for client-side filtering
+export function useAllAirdrops() {
+  return useQuery({
+    queryKey: ['allAirdrops'],
+    queryFn: async () => {
+      const response = await api.get<AirdropResponse>(endpoints.airdrops, { params: { page: 1, limit: 1000 } });
+      return response.data;
+    },
+    refetchInterval: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 5,
+  });
+}

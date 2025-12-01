@@ -59,6 +59,23 @@ export function usePredictions() {
   });
 }
 
+// Fetch all predictions for client-side filtering/sorting/pagination
+export function useAllPredictions() {
+  const { address } = useAccount();
+
+  return useQuery({
+    queryKey: ['predictions-all', address],
+    queryFn: async () => {
+      const response = await api.get<PredictionsResponse>('/predictions', {
+        params: { wallet: address, limit: 1000 },
+      });
+      return response.data;
+    },
+    refetchInterval: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
 export function usePredictionStatus() {
   return useQuery({
     queryKey: ['predictions-status'],

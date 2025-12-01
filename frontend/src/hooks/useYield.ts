@@ -43,3 +43,16 @@ export function useYield(page = 1, limit = 10) {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
+
+// Fetch all yield opportunities for client-side filtering
+export function useAllYield() {
+  return useQuery({
+    queryKey: ['allYield'],
+    queryFn: async () => {
+      const response = await api.get<YieldResponse>(endpoints.yield, { params: { page: 1, limit: 1000 } });
+      return response.data;
+    },
+    refetchInterval: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 5,
+  });
+}
