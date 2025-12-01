@@ -8,7 +8,10 @@ import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/Search
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Coins01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { Coins01Icon, ArrowLeft01Icon, ArrowRight01Icon, Calendar01Icon } from '@hugeicons/core-free-icons';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+
+const AGENT_AVATAR = '/logo.webp';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -271,12 +274,19 @@ function YieldCard({ opportunity, index }: { opportunity: YieldOpportunity; inde
     }
   };
 
+  const date = new Date(opportunity.created_at).toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 hover:border-cyan-500/30 transition-colors group"
+      className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 hover:border-cyan-500/30 transition-colors group flex flex-col"
     >
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -308,7 +318,7 @@ function YieldCard({ opportunity, index }: { opportunity: YieldOpportunity; inde
         </div>
       </div>
 
-      <p className="text-sm text-gray-400 mb-4 line-clamp-3">
+      <p className="text-sm text-gray-400 mb-4 line-clamp-3 flex-grow">
         {opportunity.analysis}
       </p>
 
@@ -317,11 +327,28 @@ function YieldCard({ opportunity, index }: { opportunity: YieldOpportunity; inde
           href={opportunity.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-cyan-500 hover:text-cyan-400 transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-cyan-500 hover:text-cyan-400 transition-colors mb-4"
         >
           View Pool <ExternalLink className="w-3 h-3" />
         </a>
       )}
+
+      {/* Timestamp Footer */}
+      <div className="flex items-center pt-3 border-t border-gray-800 mt-auto">
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-7 w-7 border border-gray-700">
+            <AvatarImage src={AGENT_AVATAR} />
+            <AvatarFallback className="bg-cyan-950 text-cyan-400 text-[10px]">RA</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-white">Rogue Agent</span>
+            <span className="text-[10px] text-gray-500 flex items-center gap-1">
+              <HugeiconsIcon icon={Calendar01Icon} className="w-3 h-3" />
+              {date}
+            </span>
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 }

@@ -3,6 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Calendar01Icon } from '@hugeicons/core-free-icons';
+
+const AGENT_AVATAR = '/logo.webp';
 
 interface SignalCardProps {
   signal: any;
@@ -27,6 +32,14 @@ export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
   }
 
   const { token, confidence, analysis, entry_price, target_price, stop_loss, status, pnl_percent, current_price, direction } = signal.content;
+  
+  // Format the timestamp
+  const date = new Date(signal.created_at).toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
   
   // Infer direction from price structure if not explicitly set
   const tradeDirection = direction || (target_price > entry_price ? 'LONG' : 'SHORT');
@@ -190,6 +203,23 @@ export function SignalCard({ signal, isLoading, isLatest }: SignalCardProps) {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Timestamp Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-gray-800">
+            <div className="flex items-center gap-2.5">
+              <Avatar className="h-7 w-7 border border-gray-700">
+                <AvatarImage src={AGENT_AVATAR} />
+                <AvatarFallback className="bg-cyan-950 text-cyan-400 text-[10px]">RA</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-white">Rogue Agent</span>
+                <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                  <HugeiconsIcon icon={Calendar01Icon} className="w-3 h-3" />
+                  {date}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

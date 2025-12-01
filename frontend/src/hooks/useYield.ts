@@ -11,6 +11,7 @@ export interface YieldOpportunity {
   risk_level: 'Low' | 'Medium' | 'High' | 'Degen';
   analysis: string;
   url?: string;
+  created_at: string;
 }
 
 export interface ScanStatus {

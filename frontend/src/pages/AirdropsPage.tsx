@@ -8,7 +8,10 @@ import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/Search
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink, Send } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Rocket01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { Rocket01Icon, ArrowLeft01Icon, ArrowRight01Icon, Calendar01Icon } from '@hugeicons/core-free-icons';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+
+const AGENT_AVATAR = '/logo.webp';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -261,6 +264,13 @@ function AirdropCard({ airdrop, index, featured = false }: { airdrop: Airdrop; i
 
   const scoreColor = getScoreColor(airdrop.rogue_score);
 
+  const date = new Date(airdrop.created_at).toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -303,7 +313,7 @@ function AirdropCard({ airdrop, index, featured = false }: { airdrop: Airdrop; i
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-800/50">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
         <div className="text-xs font-medium text-gray-500 bg-gray-800/30 px-2 py-1 rounded">
             {airdrop.deadline_or_phase}
         </div>
@@ -332,6 +342,23 @@ function AirdropCard({ airdrop, index, featured = false }: { airdrop: Airdrop; i
                 Farm <ExternalLink className="w-3 h-3" />
                 </a>
             )}
+        </div>
+      </div>
+
+      {/* Timestamp Footer */}
+      <div className="flex items-center pt-3 border-t border-gray-800 mt-4">
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-7 w-7 border border-gray-700">
+            <AvatarImage src={AGENT_AVATAR} />
+            <AvatarFallback className="bg-cyan-950 text-cyan-400 text-[10px]">RA</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-white">Rogue Agent</span>
+            <span className="text-[10px] text-gray-500 flex items-center gap-1">
+              <HugeiconsIcon icon={Calendar01Icon} className="w-3 h-3" />
+              {date}
+            </span>
+          </div>
         </div>
       </div>
     </motion.div>

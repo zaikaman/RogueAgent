@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Calendar01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
+const AGENT_AVATAR = '/logo.webp';
+
 interface IntelCardProps {
   intel: any;
   onClick?: () => void;
@@ -74,7 +76,7 @@ export function IntelCard({ intel, onClick }: IntelCardProps) {
         <div className="flex items-center justify-between pt-3 border-t border-gray-800">
           <div className="flex items-center gap-2.5">
             <Avatar className="h-7 w-7 border border-gray-700">
-              <AvatarImage src="/agent-avatar.png" />
+              <AvatarImage src={AGENT_AVATAR} />
               <AvatarFallback className="bg-cyan-950 text-cyan-400 text-[10px]">RA</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">

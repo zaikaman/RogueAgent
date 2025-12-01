@@ -8,7 +8,10 @@ import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/Search
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ChartHistogramIcon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { ChartHistogramIcon, ArrowLeft01Icon, ArrowRight01Icon, Calendar01Icon } from '@hugeicons/core-free-icons';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+
+const AGENT_AVATAR = '/logo.webp';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -285,6 +288,13 @@ function MarketCard({ market, index, featured = false }: { market: PredictionMar
     return styles[platform] || 'bg-gray-800 text-gray-400';
   };
 
+  const date = new Date(market.created_at).toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -349,11 +359,28 @@ function MarketCard({ market, index, featured = false }: { market: PredictionMar
           href={market.market_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-cyan-500 hover:text-cyan-400 transition-colors mt-auto"
+          className="inline-flex items-center gap-2 text-sm text-cyan-500 hover:text-cyan-400 transition-colors mb-4"
         >
           Bet Now <ExternalLink className="w-3 h-3" />
         </a>
       )}
+
+      {/* Timestamp Footer */}
+      <div className="flex items-center pt-3 border-t border-gray-800 mt-auto">
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-7 w-7 border border-gray-700">
+            <AvatarImage src={AGENT_AVATAR} />
+            <AvatarFallback className="bg-cyan-950 text-cyan-400 text-[10px]">RA</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-white">Rogue Agent</span>
+            <span className="text-[10px] text-gray-500 flex items-center gap-1">
+              <HugeiconsIcon icon={Calendar01Icon} className="w-3 h-3" />
+              {date}
+            </span>
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 }
