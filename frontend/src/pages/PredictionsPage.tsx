@@ -1,14 +1,56 @@
 import { motion } from 'framer-motion';
+import { useState, useMemo } from 'react';
 import { useConnect } from 'wagmi';
 import { usePredictions, PredictionMarket } from '../hooks/usePredictions';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
+import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ChartHistogramIcon } from '@hugeicons/core-free-icons';
 
+const SORT_OPTIONS: SortOption[] = [
+  { value: 'edge-high', label: 'Edge (High)' },
+  { value: 'edge-low', label: 'Edge (Low)' },
+  { value: 'confidence-high', label: 'Confidence (High)' },
+  { value: 'confidence-low', label: 'Confidence (Low)' },
+  { value: 'expiration-soon', label: 'Expiring Soon' },
+  { value: 'expiration-later', label: 'Expiring Later' },
+];
+
+const FILTER_CONFIG: FilterConfig[] = [
+  {
+    key: 'platform',
+    label: 'Platform',
+    options: [
+      { value: 'all', label: 'All Platforms' },
+      { value: 'polymarket', label: 'Polymarket' },
+      { value: 'azuro', label: 'Azuro' },
+      { value: 'sx network', label: 'SX Network' },
+      { value: 'degen', label: 'Degen' },
+    ],
+  },
+  {
+    key: 'bet',
+    label: 'Recommendation',
+    options: [
+      { value: 'all', label: 'All' },
+      { value: 'buy yes', label: 'Buy Yes' },
+      { value: 'buy no', label: 'Buy No' },
+      { value: 'hold', label: 'Hold' },
+    ],
+  },
+];
+
 export function PredictionsPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('edge-high');
+  const [filters, setFilters] = useState<Record<string, string>>({
+    platform: 'all',
+    bet: 'all',
+  });
+
   const { data, isLoading, isError } = usePredictions();
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
@@ -19,6 +61,64 @@ export function PredictionsPage() {
     const connector = connectors[0];
     connect({ connector });
   };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Filter and sort logic
+  const { featuredMarket, processedMarkets } = useMemo(() => {
+    const featured = markets.length > 0 ? markets[0] : null;
+    const latestId = featured?.market_id;
+    let list = markets.filter((m: PredictionMarket) => m.market_id !== latestId);
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter((m: PredictionMarket) => {
+        const title = m.title?.toLowerCase() || '';
+        const platform = m.platform?.toLowerCase() || '';
+        const reasoning = m.analysis_reasoning?.toLowerCase() || '';
+        const category = m.category?.toLowerCase() || '';
+        return title.includes(query) || platform.includes(query) || reasoning.includes(query) || category.includes(query);
+      });
+    }
+
+    // Platform filter
+    if (filters.platform !== 'all') {
+      list = list.filter((m: PredictionMarket) => {
+        return m.platform?.toLowerCase() === filters.platform;
+      });
+    }
+
+    // Bet recommendation filter
+    if (filters.bet !== 'all') {
+      list = list.filter((m: PredictionMarket) => {
+        return m.recommended_bet?.toLowerCase() === filters.bet;
+      });
+    }
+
+    // Sort
+    list = [...list].sort((a: PredictionMarket, b: PredictionMarket) => {
+      switch (sortBy) {
+        case 'edge-low':
+          return (a.edge_percent || 0) - (b.edge_percent || 0);
+        case 'confidence-high':
+          return (b.confidence_score || 0) - (a.confidence_score || 0);
+        case 'confidence-low':
+          return (a.confidence_score || 0) - (b.confidence_score || 0);
+        case 'expiration-soon':
+          return new Date(a.expiration_date || '2099-01-01').getTime() - new Date(b.expiration_date || '2099-01-01').getTime();
+        case 'expiration-later':
+          return new Date(b.expiration_date || '1970-01-01').getTime() - new Date(a.expiration_date || '1970-01-01').getTime();
+        case 'edge-high':
+        default:
+          return (b.edge_percent || 0) - (a.edge_percent || 0);
+      }
+    });
+
+    return { featuredMarket: featured, processedMarkets: list };
+  }, [markets, searchQuery, sortBy, filters]);
 
   if (isLoading) {
     return (
@@ -49,10 +149,10 @@ export function PredictionsPage() {
       </div>
 
       {/* First Market - Visible to all */}
-      {markets && markets.length > 0 && (
+      {featuredMarket && (
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Featured Market</h3>
-          <MarketCard market={markets[0]} index={0} featured />
+          <MarketCard market={featuredMarket} index={0} featured />
         </div>
       )}
 
@@ -65,12 +165,39 @@ export function PredictionsPage() {
           isLoading={isTierLoading}
         >
           <div className="space-y-4 pt-8 border-t border-gray-800">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {markets.slice(1).map((market, index) => (
-                <MarketCard key={market.market_id || index + 1} market={market} index={index + 1} />
-              ))}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
+              
+              <SearchAndSort
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
+                searchPlaceholder="Search markets..."
+                sortOptions={SORT_OPTIONS}
+                currentSort={sortBy}
+                onSortChange={setSortBy}
+                filters={FILTER_CONFIG}
+                activeFilters={filters}
+                onFilterChange={handleFilterChange}
+              />
             </div>
+
+            {processedMarkets.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {processedMarkets.map((market: PredictionMarket, index: number) => (
+                  <MarketCard key={market.market_id || index + 1} market={market} index={index + 1} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-12 text-center">
+                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <HugeiconsIcon icon={ChartHistogramIcon} className="w-8 h-8 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No Matching Markets</h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  Try adjusting your search or filters.
+                </p>
+              </div>
+            )}
           </div>
         </GatedContent>
       )}

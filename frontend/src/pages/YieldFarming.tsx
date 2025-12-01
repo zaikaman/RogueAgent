@@ -1,16 +1,57 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useConnect } from 'wagmi';
 import { useYield, YieldOpportunity } from '../hooks/useYield';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
+import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Coins01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
+const SORT_OPTIONS: SortOption[] = [
+  { value: 'apy-high', label: 'APY (High)' },
+  { value: 'apy-low', label: 'APY (Low)' },
+  { value: 'tvl-high', label: 'TVL (High)' },
+  { value: 'tvl-low', label: 'TVL (Low)' },
+];
+
+const FILTER_CONFIG: FilterConfig[] = [
+  {
+    key: 'risk',
+    label: 'Risk Level',
+    options: [
+      { value: 'all', label: 'All' },
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' },
+      { value: 'degen', label: 'Degen' },
+    ],
+  },
+  {
+    key: 'chain',
+    label: 'Chain',
+    options: [
+      { value: 'all', label: 'All Chains' },
+      { value: 'ethereum', label: 'Ethereum' },
+      { value: 'arbitrum', label: 'Arbitrum' },
+      { value: 'base', label: 'Base' },
+      { value: 'optimism', label: 'Optimism' },
+      { value: 'polygon', label: 'Polygon' },
+    ],
+  },
+];
+
 export function YieldFarming() {
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('apy-high');
+  const [filters, setFilters] = useState<Record<string, string>>({
+    risk: 'all',
+    chain: 'all',
+  });
+
   const limit = page === 1 ? 10 : 9; // page 1 total including featured = 10, pages 2+ = 9
   const { data: yieldData, isLoading, isError } = useYield(page, limit);
   const opportunities = yieldData?.opportunities || [];
@@ -23,6 +64,62 @@ export function YieldFarming() {
     const connector = connectors[0];
     connect({ connector });
   };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Filter and sort logic
+  const { featuredOpportunity, processedOpportunities } = useMemo(() => {
+    const featured = page === 1 ? opportunities[0] : null;
+    const latestId = featured?.pool_id;
+    let list = page === 1
+      ? opportunities.filter((o: YieldOpportunity) => o.pool_id !== latestId)
+      : [...opportunities];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter((opp: YieldOpportunity) => {
+        const protocol = opp.protocol?.toLowerCase() || '';
+        const chain = opp.chain?.toLowerCase() || '';
+        const symbol = opp.symbol?.toLowerCase() || '';
+        const analysis = opp.analysis?.toLowerCase() || '';
+        return protocol.includes(query) || chain.includes(query) || symbol.includes(query) || analysis.includes(query);
+      });
+    }
+
+    // Risk filter
+    if (filters.risk !== 'all') {
+      list = list.filter((opp: YieldOpportunity) => {
+        return opp.risk_level?.toLowerCase() === filters.risk;
+      });
+    }
+
+    // Chain filter
+    if (filters.chain !== 'all') {
+      list = list.filter((opp: YieldOpportunity) => {
+        return opp.chain?.toLowerCase() === filters.chain;
+      });
+    }
+
+    // Sort
+    list = [...list].sort((a: YieldOpportunity, b: YieldOpportunity) => {
+      switch (sortBy) {
+        case 'apy-low':
+          return (a.apy || 0) - (b.apy || 0);
+        case 'tvl-high':
+          return (b.tvl || 0) - (a.tvl || 0);
+        case 'tvl-low':
+          return (a.tvl || 0) - (b.tvl || 0);
+        case 'apy-high':
+        default:
+          return (b.apy || 0) - (a.apy || 0);
+      }
+    });
+
+    return { featuredOpportunity: featured, processedOpportunities: list.slice(0, 9) };
+  }, [opportunities, searchQuery, sortBy, filters, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -61,10 +158,10 @@ export function YieldFarming() {
       </div>
 
       {/* First Opportunity - Visible only on page 1 */}
-      {page === 1 && opportunities && opportunities.length > 0 && (
+      {page === 1 && featuredOpportunity && (
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Featured Opportunity</h3>
-          <YieldCard opportunity={opportunities[0]} index={0} />
+          <YieldCard opportunity={featuredOpportunity} index={0} />
         </div>
       )}
 
@@ -77,44 +174,62 @@ export function YieldFarming() {
           isLoading={isTierLoading}
         >
           <div className="space-y-4 pt-8 border-t border-gray-800">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(() => {
-                // For page 1: remove featured (first item) and ensure we show at most 9
-                if (page === 1) {
-                  const latestId = opportunities[0]?.pool_id;
-                  const list = opportunities.filter((o) => o.pool_id !== latestId).slice(0, 9);
-                  return list.map((opp, index) => (
-                    <YieldCard key={opp.pool_id || index + 1} opportunity={opp} index={index + 1} />
-                  ));
-                }
-                // For page 2+: opportunities array is expected to contain the page items
-                return opportunities.map((opp, index) => (
-                  <YieldCard key={opp.pool_id || index + 1} opportunity={opp} index={index} />
-                ));
-              })()}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
+              
+              <SearchAndSort
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
+                searchPlaceholder="Search protocols, chains, tokens..."
+                sortOptions={SORT_OPTIONS}
+                currentSort={sortBy}
+                onSortChange={setSortBy}
+                filters={FILTER_CONFIG}
+                activeFilters={filters}
+                onFilterChange={handleFilterChange}
+              />
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={page === 1}
-                  className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
-                >
-                  <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
-                </button>
-                <span className="text-sm text-gray-500">
-                  Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={page === totalPages}
-                  className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
-                >
-                  <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
-                </button>
+            {processedOpportunities.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {processedOpportunities.map((opp: YieldOpportunity, index: number) => (
+                    <YieldCard key={opp.pool_id || index + 1} opportunity={opp} index={index + 1} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={page === 1}
+                      className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                    >
+                      <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm text-gray-500">
+                      Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                    </span>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={page === totalPages}
+                      className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                    >
+                      <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-12 text-center">
+                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <HugeiconsIcon icon={Coins01Icon} className="w-8 h-8 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No Matching Opportunities</h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  Try adjusting your search or filters.
+                </p>
               </div>
             )}
           </div>

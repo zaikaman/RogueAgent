@@ -1,20 +1,44 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useConnect } from 'wagmi';
-import { useIntelHistory, useIntelDetail } from '../hooks/useIntel';
+import { useIntelHistory, useIntelDetail, IntelItem } from '../hooks/useIntel';
 import { useUserTier } from '../hooks/useUserTier';
 import { IntelBlog } from '../components/IntelBlog';
 import { IntelCard } from '../components/IntelCard';
 import { GatedContent } from '../components/GatedContent';
+import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
 import { TIERS } from '../constants/tiers';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { News01Icon, ArrowLeft01Icon, ArrowRight01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 import { Button } from '../components/ui/button';
 
+const SORT_OPTIONS: SortOption[] = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+];
+
+const FILTER_CONFIG: FilterConfig[] = [
+  {
+    key: 'type',
+    label: 'Report Type',
+    options: [
+      { value: 'all', label: 'All' },
+      { value: 'deep_dive', label: 'Deep Dive' },
+      { value: 'alpha_report', label: 'Alpha Report' },
+    ],
+  },
+];
+
 export function IntelPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [filters, setFilters] = useState<Record<string, string>>({
+    type: 'all',
+  });
+
   const { data: historyData, isLoading: isHistoryLoading } = useIntelHistory(page, page === 1 ? 10 : 9);
   const { data: detailData, isLoading: isDetailLoading } = useIntelDetail(id);
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
@@ -27,6 +51,10 @@ export function IntelPage() {
     connect({ connector });
   };
 
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
   const intelItems = historyData?.data || [];
   const pagination = historyData?.pagination;
   const totalPages = pagination?.pages || 1;
@@ -36,14 +64,45 @@ export function IntelPage() {
   // the archive rendering to avoid duplication.
   const latestIntel = page === 1 ? intelItems[0] : null;
 
-  const filteredArchive = (() => {
-    if (page === 1) {
-      const latestId = latestIntel?.id;
-      const list = intelItems.filter((it) => it.id !== latestId);
-      return list.slice(0, 9); // ensure archive shows at most 9 so latest+archive = 10
+  // Filter and sort logic for archive
+  const processedArchive = useMemo(() => {
+    const latestId = latestIntel?.id;
+    let list = page === 1
+      ? intelItems.filter((it: IntelItem) => it.id !== latestId)
+      : [...intelItems];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter((item: IntelItem) => {
+        const topic = item.content?.topic?.toLowerCase() || '';
+        const headline = item.content?.headline?.toLowerCase() || '';
+        const tweet = item.content?.tweet_text?.toLowerCase() || '';
+        const blog = item.content?.blog_post?.toLowerCase() || '';
+        return topic.includes(query) || headline.includes(query) || tweet.includes(query) || blog.includes(query);
+      });
     }
-    return intelItems.slice(0, 9); // pages 2+ show 9 items
-  })();
+
+    // Type filter
+    if (filters.type !== 'all') {
+      list = list.filter((item: IntelItem) => {
+        if (filters.type === 'deep_dive') return item.type === 'deep_dive';
+        if (filters.type === 'alpha_report') return item.type !== 'deep_dive';
+        return true;
+      });
+    }
+
+    // Sort
+    list = [...list].sort((a: IntelItem, b: IntelItem) => {
+      if (sortBy === 'oldest') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    // Limit
+    return list.slice(0, 9);
+  }, [intelItems, latestIntel, searchQuery, sortBy, filters, page]);
 
   const selectedIntel = id ? detailData : null;
 
@@ -114,17 +173,32 @@ export function IntelPage() {
       )}
 
       <div className="space-y-4">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Archive</h3>
+        <div className="flex flex-col gap-4">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Archive</h3>
+          
+          <SearchAndSort
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search reports..."
+            sortOptions={SORT_OPTIONS}
+            currentSort={sortBy}
+            onSortChange={setSortBy}
+            filters={FILTER_CONFIG}
+            activeFilters={filters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
+
         <GatedContent 
           userTier={tier} 
           requiredTier={TIERS.SILVER}
           onConnect={!isConnected ? handleConnect : undefined}
           isLoading={isTierLoading}
         >
-          {filteredArchive.length > 0 ? (
+          {processedArchive.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredArchive.map((intel) => (
+                {processedArchive.map((intel: IntelItem) => (
                   <IntelCard 
                     key={intel.id} 
                     intel={intel} 
@@ -162,9 +236,13 @@ export function IntelPage() {
                 <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <HugeiconsIcon icon={News01Icon} className="w-8 h-8 text-gray-600" />
                 </div>
-                <h3 className="text-lg font-medium text-white mb-2">No Archived Reports</h3>
+                <h3 className="text-lg font-medium text-white mb-2">
+                  {searchQuery || filters.type !== 'all' ? 'No Matching Reports' : 'No Archived Reports'}
+                </h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  Older intelligence reports will appear here.
+                  {searchQuery || filters.type !== 'all'
+                    ? 'Try adjusting your search or filters.'
+                    : 'Older intelligence reports will appear here.'}
                 </p>
               </div>
             )

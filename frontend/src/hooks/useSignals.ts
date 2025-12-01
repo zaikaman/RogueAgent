@@ -23,6 +23,7 @@ export interface Signal {
     current_price?: number;
     trigger_event?: any;
     formatted_tweet?: string;
+    direction?: 'LONG' | 'SHORT';
   };
 }
 

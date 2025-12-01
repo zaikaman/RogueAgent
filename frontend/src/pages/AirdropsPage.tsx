@@ -1,16 +1,56 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useConnect } from 'wagmi';
 import { useAirdrops, Airdrop } from '../hooks/useAirdrops';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
+import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
 import { TIERS } from '../constants/tiers';
 import { Loader2, ExternalLink, Send } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Rocket01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
+const SORT_OPTIONS: SortOption[] = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'score-high', label: 'Score (High)' },
+  { value: 'score-low', label: 'Score (Low)' },
+];
+
+const FILTER_CONFIG: FilterConfig[] = [
+  {
+    key: 'chain',
+    label: 'Chain',
+    options: [
+      { value: 'all', label: 'All Chains' },
+      { value: 'ethereum', label: 'Ethereum' },
+      { value: 'solana', label: 'Solana' },
+      { value: 'base', label: 'Base' },
+      { value: 'arbitrum', label: 'Arbitrum' },
+      { value: 'other', label: 'Other' },
+    ],
+  },
+  {
+    key: 'type',
+    label: 'Type',
+    options: [
+      { value: 'all', label: 'All Types' },
+      { value: 'points', label: 'Points' },
+      { value: 'testnet', label: 'Testnet' },
+      { value: 'mainnet', label: 'Mainnet' },
+    ],
+  },
+];
+
 export function AirdropsPage() {
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [filters, setFilters] = useState<Record<string, string>>({
+    chain: 'all',
+    type: 'all',
+  });
+
   const limit = page === 1 ? 10 : 9;
   const { data: airdropData, isLoading, isError } = useAirdrops(page, limit);
   const airdrops = airdropData?.airdrops || [];
@@ -23,6 +63,67 @@ export function AirdropsPage() {
     const connector = connectors[0];
     connect({ connector });
   };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Filter and sort logic
+  const { featuredAirdrop, processedAirdrops } = useMemo(() => {
+    const featured = page === 1 ? airdrops[0] : null;
+    const latestId = featured?.id;
+    let list = page === 1
+      ? airdrops.filter((o: Airdrop) => o.id !== latestId)
+      : [...airdrops];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter((drop: Airdrop) => {
+        const ticker = drop.ticker?.toLowerCase() || '';
+        const chain = drop.chain?.toLowerCase() || '';
+        const why = drop.why_promising?.toLowerCase() || '';
+        const tasks = drop.tasks?.toLowerCase() || '';
+        return ticker.includes(query) || chain.includes(query) || why.includes(query) || tasks.includes(query);
+      });
+    }
+
+    // Chain filter
+    if (filters.chain !== 'all') {
+      list = list.filter((drop: Airdrop) => {
+        const chain = drop.chain?.toLowerCase() || '';
+        if (filters.chain === 'other') {
+          return !['ethereum', 'solana', 'base', 'arbitrum'].includes(chain);
+        }
+        return chain === filters.chain;
+      });
+    }
+
+    // Type filter
+    if (filters.type !== 'all') {
+      list = list.filter((drop: Airdrop) => {
+        const type = drop.type?.toLowerCase() || '';
+        return type.includes(filters.type);
+      });
+    }
+
+    // Sort
+    list = [...list].sort((a: Airdrop, b: Airdrop) => {
+      switch (sortBy) {
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'score-high':
+          return (b.rogue_score || 0) - (a.rogue_score || 0);
+        case 'score-low':
+          return (a.rogue_score || 0) - (b.rogue_score || 0);
+        case 'newest':
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
+    return { featuredAirdrop: featured, processedAirdrops: list.slice(0, 9) };
+  }, [airdrops, searchQuery, sortBy, filters, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -61,10 +162,10 @@ export function AirdropsPage() {
       </div>
 
       {/* First Opportunity - Visible only on page 1 */}
-      {page === 1 && airdrops && airdrops.length > 0 && (
+      {page === 1 && featuredAirdrop && (
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Featured Airdrop</h3>
-          <AirdropCard airdrop={airdrops[0]} index={0} featured />
+          <AirdropCard airdrop={featuredAirdrop} index={0} featured />
         </div>
       )}
 
@@ -76,42 +177,62 @@ export function AirdropsPage() {
           onConnect={!isConnected ? handleConnect : undefined}
         >
           <div className="space-y-4 pt-8 border-t border-gray-800">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(() => {
-                if (page === 1) {
-                  const latestId = airdrops[0]?.id;
-                  const list = airdrops.filter((o) => o.id !== latestId).slice(0, 9);
-                  return list.map((drop, index) => (
-                    <AirdropCard key={drop.id || index + 1} airdrop={drop} index={index + 1} />
-                  ));
-                }
-                return airdrops.map((drop, index) => (
-                  <AirdropCard key={drop.id || index + 1} airdrop={drop} index={index} />
-                ));
-              })()}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">More Opportunities</h3>
+              
+              <SearchAndSort
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
+                searchPlaceholder="Search airdrops..."
+                sortOptions={SORT_OPTIONS}
+                currentSort={sortBy}
+                onSortChange={setSortBy}
+                filters={FILTER_CONFIG}
+                activeFilters={filters}
+                onFilterChange={handleFilterChange}
+              />
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={page === 1}
-                  className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
-                >
-                  <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
-                </button>
-                <span className="text-sm text-gray-500">
-                  Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={page === totalPages}
-                  className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
-                >
-                  <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
-                </button>
+            {processedAirdrops.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {processedAirdrops.map((drop: Airdrop, index: number) => (
+                    <AirdropCard key={drop.id || index + 1} airdrop={drop} index={index + 1} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={page === 1}
+                      className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                    >
+                      <HugeiconsIcon icon={ArrowLeft01Icon} className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm text-gray-500">
+                      Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                    </span>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={page === totalPages}
+                      className="p-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
+                    >
+                      <HugeiconsIcon icon={ArrowRight01Icon} className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-12 text-center">
+                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <HugeiconsIcon icon={Rocket01Icon} className="w-8 h-8 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No Matching Airdrops</h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  Try adjusting your search or filters.
+                </p>
               </div>
             )}
           </div>
