@@ -559,15 +559,15 @@ export const getTechnicalAnalysisTool = createTool({
           reliable: true, // Works with close prices
           description: mtfResult.aligned && mtfResult.score > 75 
             ? `Strong ${mtfResult.bias} trend - all timeframes aligned (${mtfResult.score.toFixed(0)}% score)`
-            : mtfResult.score > 60 
+            : mtfResult.score > 50 
             ? `Moderate ${mtfResult.bias} bias (${mtfResult.score.toFixed(0)}%)`
             : 'Choppy market - no clear trend alignment'
         }
       };
     }
 
-    // Generate overall signal quality score - MORE CONSERVATIVE scoring
-    // Minimum 4 confluences needed for a valid signal
+    // Generate overall signal quality score
+    // Minimum 3 confluences needed for a valid signal (balanced threshold)
     // IMPORTANT: Only count RELIABLE indicators as confluences
     let signalQuality = 0;
     let confidenceBoost = 0;
@@ -665,14 +665,14 @@ export const getTechnicalAnalysisTool = createTool({
     }
 
     // Check MTF alignment - critical for signal quality
-    if (!advancedIndicators.mtf_alignment?.aligned || (advancedIndicators.mtf_alignment?.score || 0) < 70) {
+    if (!advancedIndicators.mtf_alignment?.aligned || (advancedIndicators.mtf_alignment?.score || 0) < 50) {
       warnings.push(`⚠️ MTF NOT ALIGNED: Score ${advancedIndicators.mtf_alignment?.score?.toFixed(0) || 0}% - high risk of false signal`);
       confidenceBoost = Math.max(0, confidenceBoost - 20);
     }
 
     // Minimum confluence requirement
-    if (confluenceCount < 4) {
-      warnings.push(`⚠️ INSUFFICIENT CONFLUENCES: Only ${confluenceCount}/4 minimum met`);
+    if (confluenceCount < 3) {
+      warnings.push(`⚠️ INSUFFICIENT CONFLUENCES: Only ${confluenceCount}/3 minimum met`);
     }
 
     signalQuality = Math.min(confidenceBoost, 100);
@@ -737,7 +737,7 @@ export const getTechnicalAnalysisTool = createTool({
       // Overall assessment
       signal_quality_score: signalQuality,
       confluence_count: confluenceCount,
-      minimum_confluences_met: confluenceCount >= 4,
+      minimum_confluences_met: confluenceCount >= 3,
       confidence_boost: `+${confidenceBoost}%`,
       key_insights: insights,
       warnings: warnings,
@@ -745,11 +745,11 @@ export const getTechnicalAnalysisTool = createTool({
       // Clear recommendation
       recommendation: warnings.length > 0
         ? `⚠️ CAUTION: ${warnings.length} warning(s) detected. ${warnings.join(' ')}`
-        : confluenceCount >= 4 && signalQuality >= 60
-        ? `🔥 High-quality setup! ${confluenceCount} confluences aligned. Consider signal with ${signalQuality}% quality score.`
+        : confluenceCount >= 3 && signalQuality >= 50
+        ? `🔥 Good setup! ${confluenceCount} confluences aligned. Consider signal with ${signalQuality}% quality score.`
         : `⚪ Marginal setup - only ${confluenceCount} confluences. Wait for better opportunity.`,
       
-      summary: insights.length >= 4 && warnings.length === 0
+      summary: insights.length >= 3 && warnings.length === 0
         ? `🔥 STRONG SETUP: ${insights.length} bullish factors aligned with no conflicting signals.` 
         : insights.length > 0 && warnings.length > 0
         ? `⚠️ MIXED SIGNALS: ${insights.length} positive factors but ${warnings.length} warnings. SKIP recommended.`
@@ -769,95 +769,86 @@ export const getChartImageTool = createTool({
   schema: z.object({
     symbol: z.string().describe('The trading symbol (e.g. "BTC", "ETH", "SOL") - just the symbol, not the pair'),
     interval: z.enum(['1', '5', '15', '60', '240', 'D', 'W']).default('60').describe('Chart interval: 1=1min, 5=5min, 15=15min, 60=1hour, 240=4hour, D=daily, W=weekly'),
-    theme: z.enum(['light', 'dark']).default('dark').describe('Chart theme'),
   }) as any,
-  fn: async ({ symbol, interval = '60', theme = 'dark' }: { symbol: string; interval?: string; theme?: 'light' | 'dark' }) => {
+  fn: async ({ symbol, interval = '60' }: { symbol: string; interval?: string }) => {
     try {
       // Normalize symbol (remove USDT if present, just need base symbol)
       const baseSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '');
       
-      // Interval descriptions
-      const intervalDescriptions: Record<string, string> = {
-        '1': '1 minute',
-        '5': '5 minute', 
-        '15': '15 minute',
-        '30': '30 minute',
-        '60': '1 hour',
-        '120': '2 hour',
-        '240': '4 hour',
-        'D': 'Daily',
-        'W': 'Weekly',
-        'M': 'Monthly'
-      };
+      // Map interval string to Binance format
+      const intervalMap: Record<string, string> = {
+        '1': '1m',
+        '5': '5m', 
+        '15': '15m',
+        '30': '30m',
+        '60': '1h',
+        '120': '2h',
+        '240': '4h',
+        'D': '1d',
+        'W': '1w',
+      } as const;
       
-      // Get chart URLs for multiple timeframes for comprehensive analysis
-      const timeframes = ['15', '60', '240', 'D'] as const; // 15m, 1h, 4h, daily
-      const chartUrls: Record<string, string> = {};
+      const binanceInterval = (intervalMap[interval as keyof typeof intervalMap] || '1h') as '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
       
-      for (const tf of timeframes) {
-        const url = chartImageService.getChartUrl({
-          symbol: baseSymbol,
-          interval: tf as any,
-          theme,
-        });
-        if (url) {
-          chartUrls[intervalDescriptions[tf] || tf] = url;
-        }
-      }
+      // Fetch real OHLCV data from Binance
+      const ohlcv = await binanceService.getOHLCV(baseSymbol, binanceInterval, 100);
       
-      // Primary chart URL (requested interval)
-      const primaryUrl = chartImageService.getChartUrl({
-        symbol: baseSymbol,
-        interval: interval as any,
-        theme,
-      });
-      
-      // Check if symbol is supported
-      const tvSymbol = chartImageService.getTradingViewSymbol(baseSymbol);
-      if (!tvSymbol) {
+      if (!ohlcv || ohlcv.length < 20) {
         return {
-          error: `Symbol ${baseSymbol} not found in TradingView mappings`,
-          supported_symbols: ['BTC', 'ETH', 'SOL', 'BNB', 'ADA', 'AVAX', 'DOGE', 'ARB', 'OP', 'SUI', 'TIA', 'INJ', 'FET', 'TAO', 'WIF', 'PEPE'],
+          error: `Could not fetch OHLCV data for ${baseSymbol}`,
           fallback: 'Use get_technical_analysis for numerical indicators instead',
         };
       }
       
+      // Generate actual PNG chart image
+      const chartResult = await chartImageService.generateCandlestickChart(
+        ohlcv,
+        baseSymbol,
+        {
+          title: `${baseSymbol}/USDT - ${interval === 'D' ? 'Daily' : interval === 'W' ? 'Weekly' : interval + ' min'} Chart`,
+          showVolume: true,
+          showSMA: [20, 50],
+          darkMode: true,
+        }
+      );
+      
+      // Generate text-based chart description for additional context
+      const chartDescription = chartImageService.generateChartDescription(ohlcv);
+      
       return {
         symbol: baseSymbol,
-        tradingview_symbol: tvSymbol,
-        primary_chart: {
-          url: primaryUrl,
-          interval: intervalDescriptions[interval] || interval,
-          description: `Primary ${intervalDescriptions[interval] || interval} chart for ${baseSymbol}`,
+        interval: interval,
+        candles_analyzed: ohlcv.length,
+        chart_image: {
+          base64: chartResult.base64,
+          mimeType: chartResult.mimeType,
+          width: chartResult.width,
+          height: chartResult.height,
+          description: `PNG chart image for ${baseSymbol} - can be sent to vision-capable LLM`,
         },
-        multi_timeframe_charts: chartUrls,
+        chart_analysis: chartDescription,
+        latest_price: ohlcv[ohlcv.length - 1].close,
         analysis_instructions: `
-📊 VISUAL CHART ANALYSIS INSTRUCTIONS:
-1. Open each chart URL to visually analyze the price action
-2. On the DAILY chart: Identify the major trend direction and key S/R levels
-3. On the 4H chart: Look for swing structure and intermediate zones
-4. On the 1H chart: Find entry zones and confirm trend alignment
-5. On the 15m chart: Fine-tune entry timing and spot divergences
+📊 CHART IMAGE GENERATED:
+This is an actual PNG image of the ${baseSymbol} chart with:
+- Candlestick price action (green=bullish, red=bearish)
+- High/Low range lines (dashed)
+- Close price line (blue)
+- SMA 20 (orange) and SMA 50 (pink)
+- Volume bars at the bottom
 
-🔍 KEY PATTERNS TO IDENTIFY:
-- Trend: Higher highs/lows (uptrend) or lower highs/lows (downtrend)
-- Support/Resistance: Horizontal levels with multiple touches
-- Chart Patterns: Flags, triangles, head & shoulders, double tops/bottoms
-- Volume Profile: High volume at key levels = strong S/R
-- Candlestick Patterns: Engulfing, doji, hammer at key levels
-
-⚠️ RED FLAGS TO WATCH:
-- Choppy, sideways price action (avoid)
-- Declining volume on rallies (weak)
-- Price at major resistance without consolidation (risky long)
-- Extended price far from moving averages (mean reversion risk)
+🔍 VISUAL ANALYSIS CHECKLIST:
+1. Trend Direction: Follow the SMA crossovers and price structure
+2. Support/Resistance: Look for price reaction zones
+3. Volume: Higher volume confirms moves
+4. Momentum: Green vs red candle dominance
+5. Patterns: Look for flags, triangles, double tops/bottoms
 `,
-        warning: 'Charts are from TradingView. Load each URL to visually confirm the technical setup before generating a signal.',
       };
     } catch (error: any) {
       logger.error('Chart image tool error:', error);
       return {
-        error: `Failed to generate chart URLs: ${error.message}`,
+        error: `Failed to generate chart image: ${error.message}`,
         fallback: 'Use technical indicators from get_technical_analysis tool instead',
       };
     }

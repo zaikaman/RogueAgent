@@ -42,13 +42,14 @@
 **Rogue** is not just a bot; it's an **autonomous Crypto Trading Oracle**—a sophisticated multi-agent system that goes beyond analysis to actually execute trades. Think of it as your personal institutional-grade trading desk that never sleeps.
 
 Built on cutting-edge AI agent orchestration, Rogue continuously monitors the cryptocurrency markets across multiple dimensions:
-- **30+ data sources** including CoinGecko, Birdeye, DeFi Llama, CoinMarketCap, **Binance**
+- **30+ data sources** including CoinGecko, Birdeye, DeFi Llama, CoinMarketCap, **Binance Futures**
+- **122 unified tradeable tokens** verified on both Binance Futures AND Hyperliquid
 - **Real-time social sentiment** from X (Twitter) and crypto news sources
 - **On-chain analytics** tracking volume spikes, whale movements, and TVL shifts
 - **Advanced Technical Analysis** (2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, SuperTrend, BB Squeeze, VW-MACD, Fibonacci, MTF alignment)
 - **Traditional indicators** (RSI, MACD, EMAs, support/resistance levels)
 - **Fundamental analysis** (market cap, FDV ratios, tokenomics)
-- **Visual Chart Analysis** — TradingView chart images for pattern recognition
+- **Professional Chart Generation** — TradingView-quality PNG charts with candlesticks, MAs, Bollinger Bands, and volume
 
 ---
 
@@ -72,17 +73,31 @@ Stricter thresholds for higher-quality signals:
 | Confluences | 2+ | **3+** |
 | Min Stop-Loss | 4% | **5%** |
 
-### Binance OHLCV Data (NEW)
-Real candlestick data from Binance public API:
-- Accurate high/low/close/volume data (not derived)
-- 70+ supported trading pairs
-- Primary data source for technical analysis
+### Unified Tradeable Tokens (NEW)
+**122 tokens** verified available on BOTH Binance Futures AND Hyperliquid:
+- Scanner and Analyzer only recommend tokens with guaranteed data + execution
+- Binance Futures for OHLCV chart data and technical analysis
+- Hyperliquid for trade execution
+- Categories: Major, Layer 2, DeFi, Gaming, AI, Meme, Ecosystem, Infrastructure
 
-### Visual Chart Analysis (NEW)
-Agents can now request TradingView chart images:
-- 60+ supported tokens with chart URLs
-- Multi-timeframe visual verification
-- Pattern recognition confirmation before committing
+### Binance Futures OHLCV Data (UPGRADED)
+Real candlestick data from Binance USDT-M Perpetual Futures API:
+- Accurate high/low/close/volume data (institutional-grade)
+- **122 supported trading pairs** (cross-verified with Hyperliquid)
+- Primary data source for technical analysis
+- 1500 candle history for deep analysis
+
+### Professional Chart Generation (NEW)
+TradingView-quality chart images generated with Canvas API:
+- **Real candlestick rendering** with proper wicks and bodies
+- **Moving averages**: SMA 20, SMA 50, EMA support
+- **Bollinger Bands** with fill shading
+- **Volume bars** color-coded by candle direction
+- **OHLC info box** with exact values
+- **Current price label** with change percentage
+- **Dark theme** matching TradingView aesthetics
+- **1800x1000 resolution** for detailed visual analysis
+- Images sent directly to LLM for vision-based chart analysis
 
 The platform operates autonomously on a configurable schedule (default: every 1 hour), running coordinated "swarms" of specialized AI agents that collaborate to identify, analyze, and distribute high-signal opportunities.
 

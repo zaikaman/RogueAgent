@@ -76,13 +76,55 @@ export default function Agents() {
 
             <h3 className="text-2xl font-bold text-white mb-4">Data Sources</h3>
             <ul className="list-none space-y-2 mb-6 text-gray-300">
-                <li className="flex items-start gap-3"><span className="text-cyan-400 font-bold">★</span><strong className="text-white">Binance OHLCV (Primary)</strong> — Real candlestick data with accurate high/low/volume</li>
+                <li className="flex items-start gap-3"><span className="text-cyan-400 font-bold">★</span><strong className="text-white">Binance Futures OHLCV (Primary)</strong> — Institutional-grade candlestick data from USDT-M Perpetuals</li>
+                <li className="flex items-start gap-3"><span className="text-cyan-400 font-bold">★</span><strong className="text-white">122 Unified Tradeable Tokens</strong> — Verified on BOTH Binance Futures AND Hyperliquid</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>CoinGecko trending coins (top 15)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Birdeye trending tokens (top 10, real-time DEX data)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Top gainers/losers (24h price changes)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>DeFi Llama TVL shifts (chain and protocol level)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Bitcoin market context (global sentiment indicator)</li>
             </ul>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Unified Tradeable Tokens</h3>
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-6 mb-6">
+                <p className="text-cyan-200 text-sm mb-4">
+                    <strong>NEW:</strong> Scanner only recommends tokens from the <strong>122 unified tradeable tokens list</strong> — tokens verified available on BOTH Binance Futures (for chart data) AND Hyperliquid (for execution).
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-cyan-400 font-bold">Major (17)</span>
+                        <p className="text-gray-400">BTC, ETH, SOL, BNB, XRP...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-blue-400 font-bold">Layer 2 (18)</span>
+                        <p className="text-gray-400">ARB, OP, ZK, NEAR, STRK...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-green-400 font-bold">DeFi (19)</span>
+                        <p className="text-gray-400">AAVE, UNI, PENDLE, JUP...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-purple-400 font-bold">Gaming (13)</span>
+                        <p className="text-gray-400">IMX, GALA, SAND, AXS...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-pink-400 font-bold">AI (10)</span>
+                        <p className="text-gray-400">FET, TAO, IO, WLD...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-orange-400 font-bold">Meme (15)</span>
+                        <p className="text-gray-400">PEPE, SHIB, WIF, BONK...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-yellow-400 font-bold">Ecosystem (18)</span>
+                        <p className="text-gray-400">SUI, TIA, APT, BERA...</p>
+                    </div>
+                    <div className="bg-white/5 rounded p-2">
+                        <span className="text-gray-400 font-bold">Other (12)</span>
+                        <p className="text-gray-400">ORDI, BLUR, ENS, OM...</p>
+                    </div>
+                </div>
+            </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Intelligence</h3>
             <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
@@ -278,13 +320,36 @@ export default function Agents() {
                 </div>
 
                 <div>
-                    <h4 className="text-lg font-bold text-white mb-3">6. Visual Chart Analysis</h4>
+                    <h4 className="text-lg font-bold text-white mb-3">6. Professional Chart Analysis (TradingView-Style)</h4>
                     <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
                         <p className="text-purple-200 text-sm mb-3">
-                            <strong>NEW:</strong> Agents can now request and analyze TradingView chart images for visual pattern recognition.
+                            <strong>NEW:</strong> Real-time TradingView-style chart generation using Binance Futures OHLCV data. Charts are generated as PNG images and analyzed directly by the LLM's vision capabilities.
                         </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-white/5 rounded p-3">
+                                <h5 className="text-purple-300 font-semibold mb-2 text-sm">📊 Chart Components</h5>
+                                <ul className="text-xs text-gray-400 space-y-1">
+                                    <li>• Real candlesticks with wicks and colored bodies</li>
+                                    <li>• SMA 20 (blue) & SMA 50 (yellow) trend lines</li>
+                                    <li>• Bollinger Bands with semi-transparent fill</li>
+                                    <li>• Color-coded volume bars (green/red)</li>
+                                    <li>• OHLC info box with exact values</li>
+                                    <li>• Current price label with % change</li>
+                                </ul>
+                            </div>
+                            <div className="bg-white/5 rounded p-3">
+                                <h5 className="text-cyan-300 font-semibold mb-2 text-sm">🎨 Visual Style</h5>
+                                <ul className="text-xs text-gray-400 space-y-1">
+                                    <li>• Professional dark theme (#131722)</li>
+                                    <li>• TradingView color palette</li>
+                                    <li>• Bullish: #26a69a | Bearish: #ef5350</li>
+                                    <li>• High-resolution: 1800x1000 PNG</li>
+                                    <li>• Precise Y-axis scales with volume subplot</li>
+                                </ul>
+                            </div>
+                        </div>
                         <ul className="list-none space-y-2 text-gray-300">
-                            <li className="flex items-start gap-3"><span className="text-purple-400">📊</span>TradingView chart URLs for 60+ supported tokens</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">📊</span>Real Binance Futures candlestick data for 122 unified tokens</li>
                             <li className="flex items-start gap-3"><span className="text-purple-400">🔍</span>Visual confirmation of patterns (head & shoulders, wedges, channels)</li>
                             <li className="flex items-start gap-3"><span className="text-purple-400">📈</span>Multi-timeframe chart comparison (15m, 1H, 4H, Daily)</li>
                             <li className="flex items-start gap-3"><span className="text-purple-400">✅</span>Visual verification of indicator signals before committing</li>

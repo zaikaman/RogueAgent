@@ -2,41 +2,7 @@ import { AgentBuilder } from '@iqai/adk';
 import { scannerLlm } from '../config/llm.config';
 import { z } from 'zod';
 import dedent from 'dedent';
-
-// Complete list of Hyperliquid available perpetuals with CoinGecko IDs (164 symbols)
-// Last verified: November 28, 2025 from Hyperliquid testnet API
-// Format: SYMBOL (coingecko_id)
-const HYPERLIQUID_PERPS_LIST = `
-**Major Coins:**
-BTC (bitcoin), ETH (ethereum), SOL (solana), BNB (binancecoin), ADA (cardano), AVAX (avalanche-2), DOGE (dogecoin), ETC (ethereum-classic), ATOM (cosmos), AAVE (aave), SNX (havven), COMP (compound-governance-token)
-
-**Layer 2 & Infrastructure:**
-ARB (arbitrum), OP (optimism), POL (matic-network), MANTA (manta-network), LINEA (linea), BLAST (blast), ZK (zksync), ZETA (zetachain), CELO (celo), NEAR (near), ICP (internet-computer), FIL (filecoin), AR (arweave), RENDER (render-token)
-
-**DeFi:**
-DYDX (dydx-chain), LDO (lido-dao), FXS (frax-share), PENDLE (pendle), EIGEN (eigenlayer), ONDO (ondo-finance), MORPHO (morpho), USUAL (usual), RESOLV (resolv), AERO (aerodrome-finance), CAKE (pancakeswap-token), SUSHI (sushi), RSR (reserve-rights-token)
-
-**Gaming & Metaverse:**
-IMX (immutable-x), GALA (gala), SAND (the-sandbox), APE (apecoin), BIGTIME (bigtime), SUPER (superfarm), MAVIA (heroes-of-mavia), XAI (xai-games), ACE (fusionist)
-
-**AI & Data:**
-FET (fetch-ai), TAO (bittensor), IO (io-net), GRASS (grass), AIXBT (aixbt), VIRTUAL (virtual-protocol), GRIFFAIN (griffain), PROMPT (wayfinder), KAITO (kaito)
-
-**Meme Coins:**
-WIF (dogwifcoin), POPCAT (popcat), BRETT (brett), GOAT (goatseus-maximus), PNUT (peanut-the-squirrel), MOODENG (moo-deng), FARTCOIN (fartcoin), ZEREBRO (zerebro), TURBO (turbo), MEME (memecoin-2), MEW (cat-in-a-dogs-world), CHILLGUY (chill-guy), DOOD (doodles), SPX (spx6900), PURR (purr-2), kBONK (bonk), kLUNC (terra-luna), kNEIRO (neiro-3), kPEPE (pepe), kSHIB (shiba-inu)
-
-**Political & Social:**
-TRUMP (official-trump), MELANIA (melania-meme), PEOPLE (constitutiondao), VINE (vine-coin), WLFI (world-liberty-financial)
-
-**New Ecosystems:**
-SUI (sui), TIA (celestia), APT (aptos), INJ (injective-protocol), PYTH (pyth-network), JTO (jito-governance-token), JUP (jupiter-exchange-solana), W (wormhole), DYM (dymension), ALT (altlayer), BERA (berachain-bera), INIT (initia), HYPE (hyperliquid), HYPER (hyperliquid), IP (story-2), MOVE (movement), LAYER (layer-ai), S (sonic-3), ANIME (animecoin), MON (monad), BABY (baby), PUMP (pump)
-
-**Infrastructure & Utilities:**
-STX (blockstack), KAS (kaspa), TON (the-open-network), XLM (stellar), ALGO (algorand), HBAR (hedera-hashgraph), NEO (neo), BSV (bitcoin-cash-sv), ORDI (ordinals), WLD (worldcoin-wld), BLUR (blur), ENS (ethereum-name-service), GAS (gas), APEX (apex-token-2)
-
-**Others:**
-RUNE (thorchain), NOT (notcoin), HMSTR (hamster-kombat), OM (mantra-dao), SAGA (saga-2), TNSR (tensor), REZ (renzo), MERL (merlin-chain), BIO (bio-protocol), PENGU (pudgy-penguins), ME (magic-eden), PAXG (pax-gold), GMT (stepn), BANANA (apeswap-finance), MAV (maverick-protocol), TRB (tellor), UMA (uma), IOTA (iota), MINA (mina-protocol), USTC (terrausd), FTT (ftx-token), ZEN (horizen), POLYX (polymesh), CC (canton-network), MEGA (mega-dice), 0G (og), 2Z (toadzcoins), ASTER (aster-protocol), AVNT (avant-network), HEMI (hemi), MET (metars-genesis), NIL (nil), NXPC (nxpc), PROVE (provenance-blockchain), SCR (scroll), SKY (sky), SOPH (sophiaverse), STBL (hyperstable), SYRUP (maple), TST (tst), VVV (venice-token), WCT (walletconnect), XPL (pulse), YZY (yeay), ZORA (zora), ZRO (layerzero)
-`.trim();
+import { TRADEABLE_TOKENS_LIST, TRADEABLE_TOKENS_COUNT } from '../constants/tradeable-tokens.constant';
 
 export const ScannerAgent = AgentBuilder.create('scanner_agent')
   .withModel(scannerLlm)
@@ -44,10 +10,19 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
   .withInstruction(dedent`
     You are an elite crypto market scanner for PERPETUAL FUTURES trading. Your approach is BIAS-FIRST: determine the market direction, then find tokens that align.
     
-    **CRITICAL CONSTRAINT**: Only select tokens available on Hyperliquid Perpetuals.
+    **CRITICAL CONSTRAINT**: Only select tokens from the UNIFIED TRADEABLE LIST below.
+    These are the ONLY tokens with BOTH Binance chart data AND Hyperliquid trading support.
     
-    **HYPERLIQUID AVAILABLE TOKENS WITH COINGECKO IDs** (ONLY select from this list):
-    ${HYPERLIQUID_PERPS_LIST}
+    **TRADEABLE TOKENS** (${TRADEABLE_TOKENS_COUNT} symbols available on BOTH Binance Futures & Hyperliquid):
+    ${TRADEABLE_TOKENS_LIST}
+    
+    **COMMON TOKEN CHAIN & ADDRESS REFERENCE** (Use these for your candidates):
+    Native coins: BTC (chain: null, address: null), ETH (chain: ethereum, address: 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee), BNB (chain: bsc, address: null)
+    Solana: SOL (solana, So11111111111111111111111111111111111111112), WIF (solana, EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm), BONK (solana, DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263), JUP (solana, JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN), PYTH (solana, HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3)
+    Ethereum: ARB (ethereum, 0xb50721bcf8d664c30412cfbc6cf7a15145234ad1), OP (ethereum, 0x4200000000000000000000000000000000000042), APE (ethereum, 0x4d224452801aced8b2f0aebe155379bb5d594381), SHIB (ethereum, 0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce), PEPE (ethereum, 0x6982508145454ce325ddbe47a25d4ec3d2311933), LINK (ethereum, 0x514910771af9ca656af840dff83e8264ecf986ca), UNI (ethereum, 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984)
+    Arbitrum: ARB (arbitrum, 0x912ce59144191c1204e64559fe8253a0e49e6548), GMX (arbitrum, 0xfc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a)
+    Base: VIRTUAL (base, 0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b), BRETT (base, 0x532f27101965dd16442e59d40670faf5ebb142e4)
+    For other tokens: Use coingecko_id to search for the correct chain and contract address.
     
     ═══════════════════════════════════════════════════════════════════════════════
     📊 STEP 1: DETERMINE DAILY MARKET BIAS (Do this FIRST!)
@@ -145,9 +120,38 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           "symbol": "SOL",
           "name": "Solana",
           "coingecko_id": "solana",
+          "chain": "solana",
+          "address": "So11111111111111111111111111111111111111112",
           "direction": "LONG",
           "reason": "Outperforming BTC (+4% vs +2.5%). Catalyst: Firedancer client launch announced 8h ago. Strong TVL growth, clean breakout above $180 with volume."
         }
+      ]
+    }
+    
+    Example (SHORT day):
+    {
+      "market_bias": "SHORT",
+      "bias_reasoning": "BTC -3.2% breaking below $90k, ETH -4.5%, 8/10 top coins red. Risk-off, regulatory FUD from SEC.",
+      "candidates": [
+        {
+          "symbol": "APE",
+          "name": "ApeCoin",
+          "coingecko_id": "apecoin",
+          "chain": "ethereum",
+          "address": "0x4d224452801aced8b2f0aebe155379bb5d594381",
+          "direction": "SHORT",
+          "reason": "Underperforming badly (-8% vs BTC -3%). Dead narrative, declining TVL, no development updates in months. Breaking support at $1.20."
+        }
+      ]
+    }
+    
+    **IMPORTANT - CHAIN AND ADDRESS**:
+    - ALL candidates MUST include 'chain' and 'address' fields
+    - For native coins (BTC, ETH, SOL, BNB): use their native chain and native address
+    - Native addresses: BTC=null, ETH="0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", SOL="So11111111111111111111111111111111111111112", BNB=null
+    - For ERC-20 tokens: chain="ethereum", address=contract address
+    - For Solana tokens: chain="solana", address=mint address
+    - Without chain/address, we cannot fetch accurate price data from Birdeye!
       ]
     }
     
@@ -184,9 +188,9 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
         z.object({
           symbol: z.string(),
           name: z.string(),
-          coingecko_id: z.string().nullable().optional(),
-          chain: z.string().nullable().optional(),
-          address: z.string().nullable().optional(),
+          coingecko_id: z.string().describe('CoinGecko ID for price lookup'),
+          chain: z.string().describe('Blockchain: ethereum, solana, arbitrum, base, bsc, etc. REQUIRED for Birdeye data'),
+          address: z.string().nullable().describe('Contract/mint address. Null only for native coins like BTC. REQUIRED for Birdeye data'),
           direction: z.enum(['LONG', 'SHORT']).describe('Trading direction matching the market bias'),
           reason: z.string().describe('Specific catalyst and why this token fits the bias'),
         })

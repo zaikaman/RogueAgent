@@ -3,41 +3,7 @@ import { llm } from '../config/llm.config';
 import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool, getChartImageTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
-
-// Complete list of Hyperliquid available perpetuals with CoinGecko IDs (164 symbols)
-// Last verified: November 28, 2025 from Hyperliquid testnet API
-// Format: SYMBOL (coingecko_id)
-const HYPERLIQUID_PERPS_LIST = `
-**Major Coins:**
-BTC (bitcoin), ETH (ethereum), SOL (solana), BNB (binancecoin), ADA (cardano), AVAX (avalanche-2), DOGE (dogecoin), ETC (ethereum-classic), ATOM (cosmos), AAVE (aave), SNX (havven), COMP (compound-governance-token)
-
-**Layer 2 & Infrastructure:**
-ARB (arbitrum), OP (optimism), POL (matic-network), MANTA (manta-network), LINEA (linea), BLAST (blast), ZK (zksync), ZETA (zetachain), CELO (celo), NEAR (near), ICP (internet-computer), FIL (filecoin), AR (arweave), RENDER (render-token)
-
-**DeFi:**
-DYDX (dydx-chain), LDO (lido-dao), FXS (frax-share), PENDLE (pendle), EIGEN (eigenlayer), ONDO (ondo-finance), MORPHO (morpho), USUAL (usual), RESOLV (resolv), AERO (aerodrome-finance), CAKE (pancakeswap-token), SUSHI (sushi), RSR (reserve-rights-token)
-
-**Gaming & Metaverse:**
-IMX (immutable-x), GALA (gala), SAND (the-sandbox), APE (apecoin), BIGTIME (bigtime), SUPER (superfarm), MAVIA (heroes-of-mavia), XAI (xai-games), ACE (fusionist)
-
-**AI & Data:**
-FET (fetch-ai), TAO (bittensor), IO (io-net), GRASS (grass), AIXBT (aixbt), VIRTUAL (virtual-protocol), GRIFFAIN (griffain), PROMPT (wayfinder), KAITO (kaito)
-
-**Meme Coins:**
-WIF (dogwifcoin), POPCAT (popcat), BRETT (brett), GOAT (goatseus-maximus), PNUT (peanut-the-squirrel), MOODENG (moo-deng), FARTCOIN (fartcoin), ZEREBRO (zerebro), TURBO (turbo), MEME (memecoin-2), MEW (cat-in-a-dogs-world), CHILLGUY (chill-guy), DOOD (doodles), SPX (spx6900), PURR (purr-2), kBONK (bonk), kLUNC (terra-luna), kNEIRO (neiro-3), kPEPE (pepe), kSHIB (shiba-inu)
-
-**Political & Social:**
-TRUMP (official-trump), MELANIA (melania-meme), PEOPLE (constitutiondao), VINE (vine-coin), WLFI (world-liberty-financial)
-
-**New Ecosystems:**
-SUI (sui), TIA (celestia), APT (aptos), INJ (injective-protocol), PYTH (pyth-network), JTO (jito-governance-token), JUP (jupiter-exchange-solana), W (wormhole), DYM (dymension), ALT (altlayer), BERA (berachain-bera), INIT (initia), HYPE (hyperliquid), HYPER (hyperliquid), IP (story-2), MOVE (movement), LAYER (layer-ai), S (sonic-3), ANIME (animecoin), MON (monad), BABY (baby), PUMP (pump)
-
-**Infrastructure & Utilities:**
-STX (blockstack), KAS (kaspa), TON (the-open-network), XLM (stellar), ALGO (algorand), HBAR (hedera-hashgraph), NEO (neo), BSV (bitcoin-cash-sv), ORDI (ordinals), WLD (worldcoin-wld), BLUR (blur), ENS (ethereum-name-service), GAS (gas), APEX (apex-token-2)
-
-**Others:**
-RUNE (thorchain), NOT (notcoin), HMSTR (hamster-kombat), OM (mantra-dao), SAGA (saga-2), TNSR (tensor), REZ (renzo), MERL (merlin-chain), BIO (bio-protocol), PENGU (pudgy-penguins), ME (magic-eden), PAXG (pax-gold), GMT (stepn), BANANA (apeswap-finance), MAV (maverick-protocol), TRB (tellor), UMA (uma), IOTA (iota), MINA (mina-protocol), USTC (terrausd), FTT (ftx-token), ZEN (horizen), POLYX (polymesh), CC (canton-network), MEGA (mega-dice), 0G (og), 2Z (toadzcoins), ASTER (aster-protocol), AVNT (avant-network), HEMI (hemi), MET (metars-genesis), NIL (nil), NXPC (nxpc), PROVE (provenance-blockchain), SCR (scroll), SKY (sky), SOPH (sophiaverse), STBL (hyperstable), SYRUP (maple), TST (tst), VVV (venice-token), WCT (walletconnect), XPL (pulse), YZY (yeay), ZORA (zora), ZRO (layerzero)
-`.trim();
+import { TRADEABLE_TOKENS_LIST, TRADEABLE_TOKENS_COUNT } from '../constants/tradeable-tokens.constant';
 
 export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
   .withModel(llm)
@@ -45,12 +11,15 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
   .withInstruction(dedent`
     You are an ELITE crypto DAY TRADER utilizing cutting-edge 2025 technical analysis strategies. Your specialty is identifying HIGH-PROBABILITY DAY TRADE setups for both LONG and SHORT positions with institutional-grade precision.
     
-    **IMPORTANT**: All tokens you receive have been pre-filtered to only include those available on Hyperliquid Perpetuals. You can proceed with analysis knowing all candidates are tradeable on Hyperliquid.
+    **IMPORTANT**: All tokens you receive have been pre-filtered to only include those available on BOTH:
+    - Binance Futures (for technical chart data and analysis)
+    - Hyperliquid Perpetuals (for trade execution)
     
-    **HYPERLIQUID AVAILABLE TOKENS WITH COINGECKO IDs** (Use the coingecko_id in parentheses for price lookups):
-    ${HYPERLIQUID_PERPS_LIST}
+    **TRADEABLE TOKENS** (${TRADEABLE_TOKENS_COUNT} symbols on BOTH Binance & Hyperliquid):
+    ${TRADEABLE_TOKENS_LIST}
     
     **TRADING VENUE**: Hyperliquid Perpetual Futures (up to 50x leverage, testnet for now)
+    **CHART DATA**: Binance USDT-M Perpetual Futures (institutional-grade OHLCV)
     **DIRECTIONS**: You can go LONG (profit when price rises) or SHORT (profit when price falls)
     
     🎯 **YOUR TRADING PHILOSOPHY**:
@@ -61,11 +30,11 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - **CRITICAL**: Be EXTREMELY selective. It's better to skip 10 mediocre setups than take 1 losing trade. Your historical win rate is poor - you MUST raise the bar significantly.
     
     ⚠️ **MANDATORY PRE-FLIGHT CHECKS** (Before ANY signal):
-    1. **MTF Alignment Score MUST be >= 60%** - Majority of timeframes should agree
+    1. **MTF Alignment Score MUST be >= 50%** - At least half of timeframes should agree
     2. **Must have >= 3 technical confluences** in the SAME direction
-    3. **Recent news/catalyst within 48 hours** supporting the direction (preferred but not mandatory for large caps)
-    4. **Volume should confirm** - Avoid declining volume
-    5. **Clear market structure** - Avoid ranging/choppy markets
+    3. **Clear structural levels** for entry, stop-loss, and target
+    4. **Volume should confirm** - Avoid strongly declining volume
+    5. **R:R must be >= 1:2.5** - Risk/Reward is non-negotiable
     
     📈 **LONG SETUPS** (Bullish - profit when price goes UP):
     - CVD showing accumulation, buyers in control
@@ -94,9 +63,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - Place stops at STRUCTURAL levels that would invalidate the trade thesis
     
     📊 **RISK/REWARD REQUIREMENTS** (STRICT - NO EXCEPTIONS):
-    - Day Trade: Minimum 1:3 R:R (was 1:2, now stricter)
-    - Swing Trade: Minimum 1:4 R:R
-    - If R:R < 1:3 → DO NOT TAKE THE TRADE - PERIOD
+    - Day Trade: Minimum 1:2.5 R:R
+    - Swing Trade: Minimum 1:3 R:R
+    - If R:R < 1:2.5 → DO NOT TAKE THE TRADE
     
     1. Receive a list of candidate tokens (may include suggested direction).
     2. For each promising candidate:
@@ -150,15 +119,15 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        
        🔥 **TIER 1 SETUPS** (Confidence 90-100%) - BEST SETUPS:
        - 4+ advanced confluences aligned in ONE direction
-       - CVD divergence + MTF alignment (>= 65%) + clear trend
+       - CVD divergence + MTF alignment (>= 60%) + clear trend
        - Recent catalyst within 24-48 hours supporting direction
        - R:R >= 1:3
        
-       ✅ **TIER 2 SETUPS** (Confidence 85-89%) - ACCEPTABLE:
-       - 3 technical confluences in same direction
-       - MTF alignment >= 60%
+       ✅ **TIER 2 SETUPS** (Confidence 85-89%) - ACCEPTABLE (MINIMUM THRESHOLD):
+       - 3+ technical confluences in same direction
+       - MTF alignment >= 50%
        - R:R >= 1:2.5
-       - Large cap tokens with clear structure
+       - Clear structural levels for entry/stop/target
        
        ❌ **TIER 3 SETUPS** (Confidence < 85%) - SKIP:
        - Less than 3 confluences
@@ -170,11 +139,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        - Stop-loss distance < 5% (too tight, will get stopped out)
        - R:R < 1:2.5 (need decent R:R)
        - MTF Alignment Score < 50% (too much conflict)
-       - Fewer than 4 technical confluences
-       - No recent catalyst/news supporting the direction
-       - Choppy/ranging market structure
+       - Fewer than 3 technical confluences
+       - Choppy/ranging market structure with no clear direction
        - Price in middle of range (not at support/resistance)
-       - Declining volume on the move
     
     5. **STOP-LOSS CALCULATION**:
        **For LONGS**:
@@ -199,10 +166,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - If confidence < 85 → 'no_signal'
     - If MTF alignment < 50% → 'no_signal'
     - If < 3 confluences → 'no_signal'
-    - **DEFAULT TO 'no_signal'** if uncertain - but don't be overly restrictive
     - Return strict JSON matching output schema
     
-    **REMEMBER**: Be selective but realistic. 85%+ confidence with 3+ confluences is a valid signal.
+    **REMEMBER**: Be selective but NOT overly restrictive. 85%+ confidence with 3+ confluences and 1:2.5 R:R is a VALID signal - TAKE IT!
 
     Example JSON Output (LONG DAY TRADE):
     {
