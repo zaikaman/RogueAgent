@@ -7,7 +7,9 @@ import { YieldAgent, buildYieldPrompt, ExistingYield } from './yield.agent';
 import { AirdropAgent, buildAirdropPrompt, ExistingAirdrop } from './airdrop.agent';
 import { logger } from '../utils/logger.util';
 import { cleanSignalText } from '../utils/text.util';
+import { TechnicalAnalysis } from '../utils/ta.util';
 import { supabaseService } from '../services/supabase.service';
+import { binanceService } from '../services/binance.service';
 import { randomUUID } from 'crypto';
 import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
@@ -227,7 +229,7 @@ export class Orchestrator extends EventEmitter {
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
       this.broadcast('Establishing connection to global market data feeds...', 'info');
-      const [trendingCg, trendingBe, topGainers, defiChains, defiProtocols, bitcoinData] = await Promise.all([
+      const [trendingCg, trendingBe, topGainers, defiChains, defiProtocols, bitcoinData, btcOhlcv] = await Promise.all([
         coingeckoService.getTrending().catch(e => { logger.error('CG Trending Error', e); return []; }),
         birdeyeService.getTrendingTokens(10).catch(e => { logger.error('Birdeye Trending Error', e); return []; }),
         coingeckoService.getTopGainersLosers().catch(e => { logger.error('CG Gainers Error', e); return []; }),
@@ -242,8 +244,126 @@ export class Orchestrator extends EventEmitter {
                 logger.warn('CMC BTC Price Error, falling back to CG');
                 return coingeckoService.getPriceWithChange('bitcoin').catch(e2 => { logger.error('CG BTC Price Error', e2); return null; });
             }
-        })()
+        })(),
+        // Fetch BTC OHLCV for technical analysis
+        binanceService.getOHLCV('BTC', '4h', 30).catch(e => { logger.error('Binance BTC OHLCV Error', e); return []; })
       ]);
+
+      // Calculate BTC Technical Analysis
+      let btcTechnicalAnalysis: any = null;
+      if (btcOhlcv && btcOhlcv.length > 20) {
+        try {
+          const prices = btcOhlcv.map((c: any) => c.close);
+          const currentPrice = prices[prices.length - 1];
+          
+          // Basic indicators
+          const rsi = TechnicalAnalysis.calculateRSI(prices, 14);
+          const macd = TechnicalAnalysis.calculateMACD(prices);
+          const latestRSI = rsi[rsi.length - 1];
+          const latestMACD = macd.macd[macd.macd.length - 1];
+          const latestSignal = macd.signal[macd.signal.length - 1];
+          const latestHistogram = macd.histogram[macd.histogram.length - 1];
+          
+          // Advanced indicators
+          const haCandles = TechnicalAnalysis.calculateHeikinAshi(btcOhlcv);
+          const stResult = TechnicalAnalysis.calculateSuperTrend(haCandles, 10, 3);
+          const currentSuperTrend = stResult.trend[stResult.trend.length - 1];
+          
+          const bbResult = TechnicalAnalysis.calculateBollingerBands(prices, 20, 2);
+          const kcResult = TechnicalAnalysis.calculateKeltnerChannel(btcOhlcv, 20, 2);
+          const currentBBUpper = bbResult.upper[bbResult.upper.length - 1];
+          const currentBBLower = bbResult.lower[bbResult.lower.length - 1];
+          const currentKCUpper = kcResult.upper[kcResult.upper.length - 1];
+          const currentKCLower = kcResult.lower[kcResult.lower.length - 1];
+          const bbSqueeze = bbResult.squeeze;
+          const breakout = (currentPrice > currentKCUpper || currentPrice < currentKCLower) && bbSqueeze;
+          
+          // CVD for accumulation/distribution
+          const cvdResult = TechnicalAnalysis.calculateCVD(btcOhlcv);
+          
+          // MTF Alignment
+          const mtfResult = TechnicalAnalysis.calculateMTFAlignment(prices);
+          
+          // Fibonacci levels
+          const swingPoints = TechnicalAnalysis.detectSwingPoints(btcOhlcv, 20);
+          const fibResult = TechnicalAnalysis.calculateFibonacci(swingPoints.swingHigh, swingPoints.swingLow);
+          
+          btcTechnicalAnalysis = {
+            current_price: currentPrice,
+            rsi: {
+              value: latestRSI?.toFixed(1),
+              signal: latestRSI > 70 ? 'OVERBOUGHT' : latestRSI < 30 ? 'OVERSOLD' : 'NEUTRAL',
+              description: latestRSI > 70 ? 'Overbought - potential reversal/pullback' : latestRSI < 30 ? 'Oversold - potential bounce' : 'Neutral momentum'
+            },
+            macd: {
+              macd_line: latestMACD?.toFixed(2),
+              signal_line: latestSignal?.toFixed(2),
+              histogram: latestHistogram?.toFixed(2),
+              signal: latestHistogram > 0 ? 'BULLISH' : 'BEARISH',
+              crossover: latestHistogram > 0 && macd.histogram[macd.histogram.length - 2] <= 0 ? 'BULLISH_CROSS' : 
+                        latestHistogram < 0 && macd.histogram[macd.histogram.length - 2] >= 0 ? 'BEARISH_CROSS' : 'NONE'
+            },
+            supertrend: {
+              trend: currentSuperTrend?.toUpperCase(),
+              level: stResult.supertrend[stResult.supertrend.length - 1]?.toFixed(2),
+              description: currentSuperTrend === 'up' ? 'Bullish - price above SuperTrend support' : 'Bearish - price below SuperTrend resistance'
+            },
+            bollinger_squeeze: {
+              squeeze: bbSqueeze,
+              breakout: breakout,
+              breakout_direction: currentPrice > currentKCUpper ? 'BULLISH' : currentPrice < currentKCLower ? 'BEARISH' : 'NONE',
+              description: breakout ? `Volatility breakout ${currentPrice > currentKCUpper ? 'UP' : 'DOWN'}` : 
+                          bbSqueeze ? 'Bollinger squeeze - breakout imminent' : 'Normal volatility'
+            },
+            cvd: {
+              divergence: cvdResult.divergence,
+              description: cvdResult.divergence ? 'CVD divergence detected - potential reversal' : 'No divergence'
+            },
+            mtf_alignment: {
+              score: mtfResult.score?.toFixed(0),
+              bias: mtfResult.bias?.toUpperCase(),
+              aligned: mtfResult.aligned,
+              description: mtfResult.aligned && mtfResult.score > 75 
+                ? `Strong ${mtfResult.bias} trend - all timeframes aligned` 
+                : mtfResult.score > 50 
+                ? `Moderate ${mtfResult.bias} bias` 
+                : 'Choppy - no clear trend'
+            },
+            fibonacci: {
+              swing_high: swingPoints.swingHigh?.toFixed(2),
+              swing_low: swingPoints.swingLow?.toFixed(2),
+              key_levels: {
+                '38.2%': fibResult.retracement['38.2']?.toFixed(2),
+                '50%': fibResult.retracement['50']?.toFixed(2),
+                '61.8%': fibResult.retracement['61.8']?.toFixed(2)
+              }
+            },
+            summary: (() => {
+              const bullish = [];
+              const bearish = [];
+              if (latestRSI < 30) bullish.push('RSI oversold');
+              if (latestRSI > 70) bearish.push('RSI overbought');
+              if (latestHistogram > 0) bullish.push('MACD bullish');
+              if (latestHistogram < 0) bearish.push('MACD bearish');
+              if (currentSuperTrend === 'up') bullish.push('SuperTrend bullish');
+              if (currentSuperTrend === 'down') bearish.push('SuperTrend bearish');
+              if (mtfResult.bias === 'bullish' && mtfResult.score > 50) bullish.push(`MTF ${mtfResult.score.toFixed(0)}% bullish`);
+              if (mtfResult.bias === 'bearish' && mtfResult.score > 50) bearish.push(`MTF ${mtfResult.score.toFixed(0)}% bearish`);
+              if (breakout && currentPrice > currentKCUpper) bullish.push('BB breakout UP');
+              if (breakout && currentPrice < currentKCLower) bearish.push('BB breakout DOWN');
+              
+              return {
+                bullish_signals: bullish,
+                bearish_signals: bearish,
+                overall: bullish.length > bearish.length ? 'BULLISH' : bearish.length > bullish.length ? 'BEARISH' : 'NEUTRAL'
+              };
+            })()
+          };
+          logger.info('BTC Technical Analysis calculated successfully');
+        } catch (e) {
+          logger.error('Error calculating BTC TA:', e);
+        }
+      }
       const marketData = {
         global_market_context: {
           bitcoin: bitcoinData
@@ -287,15 +407,45 @@ export class Orchestrator extends EventEmitter {
         const { runner: scanner } = await ScannerAgent.build();
         const scannerPrompt = `Determine the market bias and find matching trading opportunities.
 
-Here is the current market data:
+═══════════════════════════════════════════════════════════════════════════════
+📊 BITCOIN TECHNICAL ANALYSIS (4H TIMEFRAME)
+═══════════════════════════════════════════════════════════════════════════════
+${btcTechnicalAnalysis ? JSON.stringify(btcTechnicalAnalysis, null, 2) : 'BTC TA data unavailable - rely on price action and sentiment'}
+
+═══════════════════════════════════════════════════════════════════════════════
+📈 MARKET DATA
+═══════════════════════════════════════════════════════════════════════════════
 ${JSON.stringify(marketData, null, 2)}
         
-RECENTLY POSTED CONTENT (Avoid repeating these):
+═══════════════════════════════════════════════════════════════════════════════
+📝 RECENTLY POSTED CONTENT (Avoid repeating)
+═══════════════════════════════════════════════════════════════════════════════
 ${JSON.stringify(recentPosts)}
 
-STEP 1: First determine if today is a LONG day, SHORT day, or NEUTRAL (no trade).
-STEP 2: If LONG/SHORT, find up to 3 tokens that match your bias.
-STEP 3: Return empty candidates if NEUTRAL or no good setups exist.`;
+═══════════════════════════════════════════════════════════════════════════════
+🔍 YOUR MISSION
+═══════════════════════════════════════════════════════════════════════════════
+
+**STEP 1: VERIFY MARKET TREND WITH RESEARCH**
+Use your built-in web search AND X (Twitter) search capabilities to:
+1. Search X for "BTC", "Bitcoin", "crypto market" to gauge real-time sentiment
+2. Search web for latest Bitcoin news, market analysis, and macro events
+3. Look for what top crypto traders and analysts are saying on X
+4. Check for any breaking news that could impact market direction
+5. Verify if the technical indicators align with the sentiment on X/social media
+
+**STEP 2: DETERMINE BIAS BASED ON CONFLUENCE**
+Combine the technical analysis above with your research findings:
+- Do the BTC indicators (RSI, MACD, SuperTrend, MTF alignment) support LONG or SHORT?
+- Does the sentiment on X support or contradict the technical signals?
+- Are there any major news events or catalysts that override technicals?
+- Is there clear consensus or conflicting signals?
+
+**STEP 3: FIND CANDIDATES MATCHING YOUR BIAS**
+If LONG/SHORT bias is clear, find up to 3 tokens that align.
+If signals are conflicting or unclear, return NEUTRAL with empty candidates.
+
+REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak trade.`;
         
         const scannerResult = await this.runAgentWithRetry<ScannerResult>(
           scanner,
