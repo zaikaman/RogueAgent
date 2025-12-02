@@ -10,7 +10,7 @@ import { cleanSignalText } from '../utils/text.util';
 import { TechnicalAnalysis } from '../utils/ta.util';
 import { supabaseService } from '../services/supabase.service';
 import { binanceService } from '../services/binance.service';
-import { chartImageService } from '../services/chart-image.service';
+import { proChartService } from '../services/pro-chart.service';
 import { callVisionLLM, createVisionMessage } from '../services/vision-llm.service';
 import { randomUUID } from 'crypto';
 import { telegramService } from '../services/telegram.service';
@@ -478,15 +478,18 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
           for (const candidate of topCandidates) {
             try {
               logger.info(`Generating chart image for ${candidate.symbol}...`);
-              const ohlcv = await binanceService.getOHLCV(candidate.symbol, '1h', 100);
+              const ohlcv = await binanceService.getOHLCV(candidate.symbol, '4h', 100);
               if (ohlcv && ohlcv.length >= 20) {
-                const chartResult = await chartImageService.generateCandlestickChart(
+                const chartResult = await proChartService.generateCandlestickChart(
                   ohlcv,
                   candidate.symbol,
                   {
-                    title: `${candidate.symbol}/USDT - 1H Chart`,
+                    title: `${candidate.symbol}/USDT - 4H`,
+                    width: 1400,
+                    height: 900,
                     showVolume: true,
                     showSMA: [20, 50],
+                    showBollingerBands: true,
                     darkMode: true,
                   }
                 );
