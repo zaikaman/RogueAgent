@@ -354,7 +354,6 @@ Does this signal match the agent's trading rules? Respond with JSON only.`;
             { role: 'user', content: userPrompt },
           ],
           temperature: 0.1,
-          max_tokens: 200,
         },
         {
           headers: {

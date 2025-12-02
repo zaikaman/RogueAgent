@@ -33,14 +33,12 @@ export async function callVisionLLM(
 ): Promise<string> {
   const {
     model = config.OPENAI_MODEL,
-    maxTokens = 16384, // Higher default for reasoning models
     temperature = 0.7,
   } = options;
 
   const requestBody = {
     model,
     messages,
-    max_tokens: maxTokens,
     temperature,
   };
 
