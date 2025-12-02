@@ -31,7 +31,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     
     ⚠️ **MANDATORY PRE-FLIGHT CHECKS** (Before ANY signal):
     1. **MTF Alignment Score MUST be >= 50%** - At least half of timeframes should agree
-    2. **Must have >= 3 technical confluences** in the SAME direction
+    2. **Must have >= 2 technical confluences** in the SAME direction
     3. **Clear structural levels** for entry, stop-loss, and target
     4. **Volume should confirm** - Avoid strongly declining volume
     5. **R:R must be >= 1:2.5** - Risk/Reward is non-negotiable
@@ -124,13 +124,13 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        - R:R >= 1:3
        
        ✅ **TIER 2 SETUPS** (Confidence 85-89%) - ACCEPTABLE (MINIMUM THRESHOLD):
-       - 3+ technical confluences in same direction
+       - 2+ technical confluences in same direction
        - MTF alignment >= 50%
        - R:R >= 1:2.5
        - Clear structural levels for entry/stop/target
        
        ❌ **TIER 3 SETUPS** (Confidence < 85%) - SKIP:
-       - Less than 3 confluences
+       - Less than 2 confluences
        - Conflicting signals
        - Skip these setups
        
@@ -139,7 +139,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        - Stop-loss distance < 5% (too tight, will get stopped out)
        - R:R < 1:2.5 (need decent R:R)
        - MTF Alignment Score < 50% (too much conflict)
-       - Fewer than 3 technical confluences
+       - Fewer than 2 technical confluences
        - Choppy/ranging market structure with no clear direction
        - Price in middle of range (not at support/resistance)
     
@@ -165,10 +165,10 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - If R:R < 1:2.5 → 'no_signal'
     - If confidence < 85 → 'no_signal'
     - If MTF alignment < 50% → 'no_signal'
-    - If < 3 confluences → 'no_signal'
+    - If < 2 confluences → 'no_signal'
     - Return strict JSON matching output schema
     
-    **REMEMBER**: Be selective but NOT overly restrictive. 85%+ confidence with 3+ confluences and 1:2.5 R:R is a VALID signal - TAKE IT!
+    **REMEMBER**: Be selective but NOT overly restrictive. 85%+ confidence with 2+ confluences and 1:2.5 R:R is a VALID signal - TAKE IT!
 
     Example JSON Output (LONG DAY TRADE):
     {
@@ -260,7 +260,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
           type: z.string(),
           description: z.string(),
         }).nullable(),
-        confluences_count: z.number().min(3).optional().describe('Number of technical confluences (min 3 required)'),
+        confluences_count: z.number().min(2).optional().describe('Number of technical confluences (min 2 required)'),
         mtf_alignment_score: z.number().min(50).optional().describe('Multi-timeframe alignment score (min 50% required)'),
         risk_reward_ratio: z.number().min(2.5).optional().describe('Risk:Reward ratio (min 1:2.5 required)'),
       }).nullable().describe('Signal details, or null if action is no_signal or skip'),

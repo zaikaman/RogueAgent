@@ -149,7 +149,7 @@ export default function Architecture() {
                             <h3 className="text-white font-bold mb-2">Analyzer Agent Execution</h3>
                             <p className="text-gray-400 text-sm mb-2">Deep analysis combining visual chart insights + advanced TA + fundamentals + sentiment</p>
                             <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                                <p className="text-xs text-gray-400">Requires 85%+ confidence, 3+ confluences, 1:2.5 R:R, and 50%+ MTF alignment</p>
+                                <p className="text-xs text-gray-400">Requires 85%+ confidence, 2+ confluences, 1:2.5 R:R, and 50%+ MTF alignment</p>
                             </div>
                         </div>
                     </div>

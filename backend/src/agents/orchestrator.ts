@@ -120,7 +120,7 @@ function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
     : ((stop - entry) / entry) * 100;
   
   // Get optional quality metrics (default to passing if not provided)
-  const confluencesCount = details.confluences_count || 3; // Assume minimum if not specified
+  const confluencesCount = details.confluences_count || 2; // Assume minimum if not specified
   const mtfAlignmentScore = details.mtf_alignment_score || 50; // Assume minimum if not specified
 
   // VALIDATION RULES (balanced - selective but not impossible)

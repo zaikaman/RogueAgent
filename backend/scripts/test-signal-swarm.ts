@@ -298,7 +298,7 @@ CRITICAL REQUIREMENTS:
 3. Confidence must be 92%+ to generate signal
 4. R:R must be 1:2.5 minimum
 5. Stop loss must be 5%+ from entry
-6. Need 3+ technical confluences
+6. Need 2+ technical confluences
 7. Direction MUST match market bias: ${scannerResult.market_bias}
 
 If no setup meets ALL criteria, return action: "no_signal"`;

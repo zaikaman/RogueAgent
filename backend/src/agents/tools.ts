@@ -567,7 +567,7 @@ export const getTechnicalAnalysisTool = createTool({
     }
 
     // Generate overall signal quality score
-    // Minimum 3 confluences needed for a valid signal (balanced threshold)
+    // Minimum 2 confluences needed for a valid signal (balanced threshold)
     // IMPORTANT: Only count RELIABLE indicators as confluences
     let signalQuality = 0;
     let confidenceBoost = 0;

@@ -167,7 +167,7 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 | Confidence Score | **85%** | 90%+ |
 | Risk/Reward Ratio | **1:2.5** | 1:3+ |
 | MTF Alignment | **50%** | 70%+ |
-| Confluences | **3+** | 5+ |
+| Confluences | **2+** | 5+ |
 | Stop-Loss Distance | **5%** | 5-8% |
 
 **Signal Tiers**:
@@ -175,7 +175,7 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 | Score | Quality | Requirements |
 |-------|---------|---------------|
 | 92-100 | 🔥 TIER 1 | 5+ confluences, 1:3+ R:R |
-| 85-91 | ✅ TIER 2 | 3+ confluences, 1:2.5+ R:R, 50%+ MTF |
+| 85-91 | ✅ TIER 2 | 2+ confluences, 1:2.5+ R:R, 50%+ MTF |
 | < 85 | ❌ REJECTED | Below quality gate |
 
 ---
@@ -225,7 +225,7 @@ Stricter thresholds for higher win rates:
 - Confidence: 80% → **85%**
 - R:R: 1:2 → **1:2.5**
 - MTF Alignment: **50% minimum**
-- Confluences: 2+ → **3+**
+- Confluences: **2+ minimum**
 - Stop-Loss: 4% → **5%**
 
 ### Unified Tradeable Tokens (NEW)
@@ -279,7 +279,7 @@ Rogue is a production-ready autonomous trading system built on IQ.AI ADK-TS, fea
 
 ✅ Multi-agent swarm architecture (10+ specialized agents)  
 ✅ **Bias-First Scanner** — determines market direction before finding trades  
-✅ **Enhanced Quality Gate** — 85%+ confidence, 1:2.5+ R:R, 3+ confluences  
+✅ **Enhanced Quality Gate** — 85%+ confidence, 1:2.5+ R:R, 2+ confluences  
 ✅ **122 Unified Tradeable Tokens** — verified on both Binance Futures & Hyperliquid  
 ✅ **Binance Futures OHLCV** — Institutional-grade candlestick data  
 ✅ **Professional Chart Generation** — TradingView-quality PNG charts with MAs, BBands, Volume  

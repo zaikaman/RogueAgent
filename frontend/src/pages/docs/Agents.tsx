@@ -386,7 +386,7 @@ export default function Agents() {
                 <div className="bg-gradient-to-r from-green-500/10 to-teal-500/10 border border-green-500/30 rounded-lg p-4">
                     <h4 className="text-green-400 font-bold mb-2">✅ TIER 2 SETUPS (Confidence 85-91%) — MINIMUM THRESHOLD</h4>
                     <ul className="text-sm text-gray-300 space-y-1">
-                        <li>• <strong className="text-white">3+ advanced confluences</strong> + R:R ≥ 1:2.5</li>
+                        <li>• <strong className="text-white">2+ advanced confluences</strong> + R:R ≥ 1:2.5</li>
                         <li>• MTF alignment ≥ 50% across timeframes</li>
                         <li>• Clear structural levels for entry/stop/target</li>
                         <li>• Day trade with clear 4-24h catalyst window</li>
@@ -399,7 +399,7 @@ export default function Agents() {
                         <li>• Confidence below <strong className="text-white">85%</strong></li>
                         <li>• R:R below <strong className="text-white">1:2.5</strong></li>
                         <li>• MTF alignment below <strong className="text-white">50%</strong></li>
-                        <li>• Fewer than <strong className="text-white">3 confluences</strong></li>
+                        <li>• Fewer than <strong className="text-white">2 confluences</strong></li>
                         <li>• Stop-loss would need to be &lt;5% (too tight)</li>
                         <li>• No clear structural levels for stop-loss</li>
                     </ul>

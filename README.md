@@ -70,7 +70,7 @@ Stricter thresholds for higher-quality signals:
 | Confidence | 80% | **85%** |
 | Risk/Reward | 1:2 | **1:2.5** |
 | MTF Alignment | N/A | **50%** |
-| Confluences | 2+ | **3+** |
+| Confluences | N/A | **2+** |
 | Min Stop-Loss | 4% | **5%** |
 
 ### Unified Tradeable Tokens (NEW)
@@ -318,7 +318,7 @@ The **Orchestrator** is the conductor of the entire operation. It:
 | Confidence Score | **85%** | 90%+ |
 | Risk/Reward Ratio | **1:2.5** | 1:3+ |
 | MTF Alignment | **50%** | 70%+ |
-| Confluences | **3+** | 5+ |
+| Confluences | **2+** | 5+ |
 | Stop-Loss Distance | **5%** | 5-8% |
 
 **Stop-Loss Rules** (Non-Negotiable):
