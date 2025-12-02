@@ -318,44 +318,6 @@ export default function Agents() {
                         <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Social media trending strength</li>
                     </ul>
                 </div>
-
-                <div>
-                    <h4 className="text-lg font-bold text-white mb-3">6. Professional Chart Analysis (TradingView-Style)</h4>
-                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
-                        <p className="text-purple-200 text-sm mb-3">
-                            <strong>NEW:</strong> Real-time TradingView-style chart generation using Binance Futures OHLCV data. Charts are generated as PNG images and analyzed directly by the LLM's vision capabilities.
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div className="bg-white/5 rounded p-3">
-                                <h5 className="text-purple-300 font-semibold mb-2 text-sm">📊 Chart Components</h5>
-                                <ul className="text-xs text-gray-400 space-y-1">
-                                    <li>• Real candlesticks with wicks and colored bodies</li>
-                                    <li>• SMA 20 (blue) & SMA 50 (yellow) trend lines</li>
-                                    <li>• Bollinger Bands with semi-transparent fill</li>
-                                    <li>• Color-coded volume bars (green/red)</li>
-                                    <li>• OHLC info box with exact values</li>
-                                    <li>• Current price label with % change</li>
-                                </ul>
-                            </div>
-                            <div className="bg-white/5 rounded p-3">
-                                <h5 className="text-cyan-300 font-semibold mb-2 text-sm">🎨 Visual Style</h5>
-                                <ul className="text-xs text-gray-400 space-y-1">
-                                    <li>• Professional dark theme (#131722)</li>
-                                    <li>• TradingView color palette</li>
-                                    <li>• Bullish: #26a69a | Bearish: #ef5350</li>
-                                    <li>• High-resolution: 1800x1000 PNG</li>
-                                    <li>• Precise Y-axis scales with volume subplot</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <ul className="list-none space-y-2 text-gray-300">
-                            <li className="flex items-start gap-3"><span className="text-purple-400">📊</span>Real Binance Futures candlestick data for 122 unified tokens</li>
-                            <li className="flex items-start gap-3"><span className="text-purple-400">🔍</span>Visual confirmation of patterns (head & shoulders, wedges, channels)</li>
-                            <li className="flex items-start gap-3"><span className="text-purple-400">📈</span>Multi-timeframe chart comparison (15m, 1H, 4H, Daily)</li>
-                            <li className="flex items-start gap-3"><span className="text-purple-400">✅</span>Visual verification of indicator signals before committing</li>
-                        </ul>
-                    </div>
-                </div>
             </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Signal Tiers</h3>

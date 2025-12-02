@@ -37,8 +37,6 @@
 - **Real-time social sentiment** from X (Twitter) and crypto news
 - **On-chain analytics**: volume spikes, whale movements, TVL shifts
 - **Advanced Technical Analysis**: CVD, ICT Order Blocks, Volume Profile, SuperTrend, BB Squeeze, VW-MACD, Fibonacci, MTF alignment
-- **Professional Chart Generation**: TradingView-quality PNG charts with candlesticks, MAs, BBands
-- **Vision-based Chart Analysis**: LLM analyzes actual chart images for pattern recognition
 - **Autonomous futures trading** on Hyperliquid (LONG/SHORT positions)
 
 ### What Makes Rogue Different?
@@ -48,7 +46,6 @@
 📈 **From Analysis to Execution**: Trades LONG/SHORT positions on Hyperliquid with dynamic leverage  
 ⚠️ **Strict Risk Management**: Minimum **5% SL**, **1:2.5 R:R** requirement, **85%+ confidence**, structural stop placement  
 🔄 **Bias-First Scanning**: Determines LONG/SHORT/NEUTRAL market bias before finding matching opportunities  
-📊 **Visual Chart Analysis**: TradingView chart images for pattern confirmation  
 🗣️ **Voice AI Interface**: Speak to Rogue using natural language via VAPI  
 
 ---
@@ -69,7 +66,7 @@ Rogue operates as a coordinated **Swarm of Agents** where the **Orchestrator** m
 |-------|------|
 | **🎯 Orchestrator** | Schedules swarm runs, routes data, enforces signal quotas, validates quality gates |
 | **👁️ Scanner** | **Bias-First methodology** — determines LONG/SHORT/NEUTRAL market direction, then finds matching tokens (max 3 candidates) |
-| **🧠 Analyzer** | Deep technical analysis with 2025 meta indicators, visual chart analysis, **85%+ confidence requirement** |
+| **🧠 Analyzer** | Deep technical analysis with 2025 meta indicators, **85%+ confidence requirement** |
 | **📊 Intel** | Identifies emerging narratives and macro trends |
 | **🌾 Yield** | Discovers high-APY farming opportunities |
 | **🎁 Airdrop** | Finds new airdrop opportunities within 72h of launch |
@@ -240,14 +237,6 @@ Institutional-grade candlestick data from Binance USDT-M Perpetual Futures:
 - Accurate high/low/close/volume data
 - 1500 candle history for deep analysis
 
-### Professional Chart Generation (NEW)
-TradingView-quality PNG charts rendered with Canvas API:
-- Real candlestick rendering (wicks + bodies)
-- SMA 20/50, Bollinger Bands with fill
-- Volume bars, OHLC info box, price labels
-- 1800x1000 dark theme charts
-- Vision-based LLM analysis of actual chart images
-
 ---
 
 ## 🛠️ Tech Stack
@@ -281,8 +270,6 @@ Rogue is a production-ready autonomous trading system built on IQ.AI ADK-TS, fea
 ✅ **Enhanced Quality Gate** — 85%+ confidence, 1:2.5+ R:R, 3+ confluences  
 ✅ **122 Unified Tradeable Tokens** — verified on both Binance Futures & Hyperliquid  
 ✅ **Binance Futures OHLCV** — Institutional-grade candlestick data  
-✅ **Professional Chart Generation** — TradingView-quality PNG charts with MAs, BBands, Volume  
-✅ **Vision-based Chart Analysis** — LLM analyzes actual chart images  
 ✅ 25+ custom tools for market data, TA, and publishing  
 ✅ Advanced 2025 meta indicators (89-97% accuracy)  
 ✅ Autonomous futures trading on Hyperliquid  

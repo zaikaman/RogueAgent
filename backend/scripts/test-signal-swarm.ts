@@ -293,13 +293,12 @@ Candidates: ${JSON.stringify(scannerResult.candidates, null, 2)}
 Global Market Context: ${JSON.stringify(marketData.global_market_context, null, 2)}
 
 CRITICAL REQUIREMENTS:
-1. Use get_chart_image to visually analyze the charts FIRST
-2. Then use get_technical_analysis with the symbol parameter for real OHLCV data
-3. Confidence must be 92%+ to generate signal
-4. R:R must be 1:2.5 minimum
-5. Stop loss must be 5%+ from entry
-6. Need 3+ technical confluences
-7. Direction MUST match market bias: ${scannerResult.market_bias}
+1. Use get_technical_analysis with the symbol parameter for real OHLCV data
+2. Confidence must be 85%+ to generate signal
+3. R:R must be 1:2.5 minimum
+4. Stop loss must be 5%+ from entry
+5. Need 3+ technical confluences
+6. Direction MUST match market bias: ${scannerResult.market_bias}
 
 If no setup meets ALL criteria, return action: "no_signal"`;
 
@@ -324,7 +323,7 @@ If no setup meets ALL criteria, return action: "no_signal"`;
     
     console.log(`${colors.bright}Signal Quality Metrics:${colors.reset}`);
     console.log(`  Direction:    ${qualityCheck.metrics.direction === 'LONG' ? colors.green : colors.red}${qualityCheck.metrics.direction}${colors.reset}`);
-    console.log(`  Confidence:   ${qualityCheck.metrics.confidence >= 92 ? colors.green : colors.red}${qualityCheck.metrics.confidence}%${colors.reset} (min: 92%)`);
+    console.log(`  Confidence:   ${qualityCheck.metrics.confidence >= 85 ? colors.green : colors.red}${qualityCheck.metrics.confidence}%${colors.reset} (min: 85%)`);
     console.log(`  R:R Ratio:    ${qualityCheck.metrics.riskRewardRatio >= 2.5 ? colors.green : colors.red}1:${qualityCheck.metrics.riskRewardRatio.toFixed(2)}${colors.reset} (min: 1:2.5)`);
     console.log(`  Stop Loss:    ${qualityCheck.metrics.stopLossPercent >= 5 ? colors.green : colors.red}${qualityCheck.metrics.stopLossPercent.toFixed(1)}%${colors.reset} (min: 5%)`);
     console.log(`  Style:        ${qualityCheck.metrics.tradingStyle}`);

@@ -49,7 +49,6 @@ Built on cutting-edge AI agent orchestration, Rogue continuously monitors the cr
 - **Advanced Technical Analysis** (2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, SuperTrend, BB Squeeze, VW-MACD, Fibonacci, MTF alignment)
 - **Traditional indicators** (RSI, MACD, EMAs, support/resistance levels)
 - **Fundamental analysis** (market cap, FDV ratios, tokenomics)
-- **Professional Chart Generation** — TradingView-quality PNG charts with candlesticks, MAs, Bollinger Bands, and volume
 
 ---
 
@@ -86,18 +85,6 @@ Real candlestick data from Binance USDT-M Perpetual Futures API:
 - **122 supported trading pairs** (cross-verified with Hyperliquid)
 - Primary data source for technical analysis
 - 1500 candle history for deep analysis
-
-### Professional Chart Generation (NEW)
-TradingView-quality chart images generated with Canvas API:
-- **Real candlestick rendering** with proper wicks and bodies
-- **Moving averages**: SMA 20, SMA 50, EMA support
-- **Bollinger Bands** with fill shading
-- **Volume bars** color-coded by candle direction
-- **OHLC info box** with exact values
-- **Current price label** with change percentage
-- **Dark theme** matching TradingView aesthetics
-- **1800x1000 resolution** for detailed visual analysis
-- Images sent directly to LLM for vision-based chart analysis
 
 The platform operates autonomously on a configurable schedule (default: every 1 hour), running coordinated "swarms" of specialized AI agents that collaborate to identify, analyze, and distribute high-signal opportunities.
 
@@ -298,12 +285,6 @@ The **Orchestrator** is the conductor of the entire operation. It:
    - Community sentiment scoring
    - Partnership/integration announcements
    - Social media trending strength
-
-6. **Visual Chart Analysis (NEW)**:
-   - 📊 TradingView chart URLs for 60+ supported tokens
-   - 🔍 Visual confirmation of patterns (head & shoulders, wedges, channels)
-   - 📈 Multi-timeframe chart comparison (15m, 1H, 4H, Daily)
-   - ✅ Visual verification of indicator signals before committing
 
 **Quality Gate Thresholds (Updated)**:
 | Metric | Minimum | Preferred |

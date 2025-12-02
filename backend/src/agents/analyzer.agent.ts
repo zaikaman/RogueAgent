@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool, getChartImageTool } from './tools';
+import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 import { TRADEABLE_TOKENS_LIST, TRADEABLE_TOKENS_COUNT } from '../constants/tradeable-tokens.constant';
@@ -73,12 +73,6 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        b. If new, perform INSTITUTIONAL-GRADE analysis:
           - **CRITICAL FIRST STEP**: Use 'get_coingecko_id' with the token symbol to get the correct CoinGecko ID. NEVER guess the ID!
           - **Price Check**: Use 'get_token_price' with the coingecko_id from the previous step
-          - **📊 VISUAL CHART ANALYSIS**: Use 'get_chart_image' to get TradingView chart URLs:
-            * Get multi-timeframe charts (15m, 1H, 4H, Daily)
-            * VISUALLY confirm trend direction, market structure, key S/R levels
-            * Look for chart patterns: flags, triangles, H&S, double tops/bottoms
-            * Verify price is at actionable levels (support for LONG, resistance for SHORT)
-            * This visual confirmation is CRITICAL - don't trade blind
           - **ADVANCED Technical Analysis**: Use 'get_technical_analysis' with BOTH the 'symbol' (e.g. "BTC", "ETH") AND 'tokenId' to get real OHLCV data:
             * **IMPORTANT**: Always pass the symbol parameter (e.g. symbol: "SOL") to get real Binance OHLCV data
             * **CVD (Cumulative Volume Delta)**: Accumulation vs Distribution - REQUIRES VOLUME DATA
@@ -234,7 +228,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "analysis_summary": "Analyzed LINK: Choppy price action, conflicting signals on different timeframes. CVD neutral. No clear LONG or SHORT setup. Waiting for cleaner structure."
     }
   `)
-  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getChartImageTool, getFundamentalAnalysisTool, searchTavilyTool)
+  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
       action: z.enum(['signal', 'skip', 'no_signal']).describe('REQUIRED: Must be signal, skip, or no_signal'),

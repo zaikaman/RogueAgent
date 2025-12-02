@@ -315,10 +315,13 @@ STEP 3: Return empty candidates if NEUTRAL or no good setups exist.`;
           logger.info('Scanner determined NEUTRAL bias - skipping signal generation');
           this.broadcast('Market is NEUTRAL/choppy - no clear direction. Skipping signal generation.', 'warning');
         } else if (scannerResult.candidates && scannerResult.candidates.length > 0) {
-          // 2. Analyzer - Pass market bias context
+          // 2. Analyzer - Deep technical analysis based on numerical indicators
           logger.info('Running Analyzer Agent...');
           this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
+          
           const { runner: analyzer } = await AnalyzerAgent.build();
+          
+          // Build analyzer prompt with market context
           const analyzerPrompt = `Analyze these ${marketBias} candidates for high-probability trading signals:
 
 Market Bias: ${marketBias}
@@ -328,8 +331,18 @@ Candidates: ${JSON.stringify(scannerResult.candidates)}
           
 Global Market Context: ${JSON.stringify(marketData.global_market_context)}
 
-IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.`;
-          
+IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.
+
+Use your technical analysis tools (get_technical_analysis) to analyze each candidate's:
+1. Price action and trend direction (RSI, MACD, SuperTrend)
+2. Support/Resistance levels (Order Blocks, Fibonacci, Volume Profile)
+3. Volatility and momentum (ATR, Bollinger Squeeze)
+4. Multi-timeframe alignment score
+5. Volume confirmation (CVD analysis)
+
+Select the BEST candidate with the highest confluence of technical factors.`;
+
+          // Run analyzer with standard retry (no vision)
           analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
             analyzer,
             analyzerPrompt,
