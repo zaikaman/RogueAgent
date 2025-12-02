@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool, getChartImageTool } from './tools';
+import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 import { TRADEABLE_TOKENS_LIST, TRADEABLE_TOKENS_COUNT } from '../constants/tradeable-tokens.constant';
@@ -234,7 +234,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "analysis_summary": "Analyzed LINK: Choppy price action, conflicting signals on different timeframes. CVD neutral. No clear LONG or SHORT setup. Waiting for cleaner structure."
     }
   `)
-  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getChartImageTool, getFundamentalAnalysisTool, searchTavilyTool)
+  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
       action: z.enum(['signal', 'skip', 'no_signal']).describe('REQUIRED: Must be signal, skip, or no_signal'),
