@@ -121,29 +121,42 @@ export default function Architecture() {
                         </div>
                         <div className="flex-1 pb-6">
                             <h3 className="text-white font-bold mb-2">Scanner Agent Execution</h3>
-                            <p className="text-gray-400 text-sm mb-2">Analyzes market data and identifies 3-5 high-quality candidates</p>
+                            <p className="text-gray-400 text-sm mb-2">Determines market bias (LONG/SHORT/NEUTRAL), then identifies up to 3 aligned candidates</p>
                             <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                                <p className="text-xs text-gray-400">Uses real-time X search to validate narratives, filters stablecoins/scams</p>
+                                <p className="text-xs text-gray-400">Bias-first methodology: BTC context → funding rates → sentiment → find matching tokens</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0 border-2 border-pink-500/50 relative z-10">
+                            <span className="text-pink-400 font-bold text-sm">3</span>
+                        </div>
+                        <div className="flex-1 pb-6">
+                            <h3 className="text-white font-bold mb-2">Chart Generation + Vision Analysis</h3>
+                            <p className="text-gray-400 text-sm mb-2">Generate TradingView-style charts for each candidate, send to Vision LLM for analysis</p>
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                                <p className="text-xs text-gray-400">Vision LLM analyzes trends, patterns, S/R levels → returns textual analysis for Analyzer</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex gap-4">
                         <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 border-2 border-green-500/50 relative z-10">
-                            <span className="text-green-400 font-bold text-sm">3</span>
+                            <span className="text-green-400 font-bold text-sm">4</span>
                         </div>
                         <div className="flex-1 pb-6">
                             <h3 className="text-white font-bold mb-2">Analyzer Agent Execution</h3>
-                            <p className="text-gray-400 text-sm mb-2">Deep analysis on each candidate using advanced TA, fundamentals, and sentiment</p>
+                            <p className="text-gray-400 text-sm mb-2">Deep analysis combining visual chart insights + advanced TA + fundamentals + sentiment</p>
                             <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                                <p className="text-xs text-gray-400">Requires 80%+ confidence and 3+ advanced technical confluences to proceed</p>
+                                <p className="text-xs text-gray-400">Requires 85%+ confidence, 3+ confluences, 1:2.5 R:R, and 50%+ MTF alignment</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex gap-4">
                         <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 border-2 border-orange-500/50 relative z-10">
-                            <span className="text-orange-400 font-bold text-sm">4</span>
+                            <span className="text-orange-400 font-bold text-sm">5</span>
                         </div>
                         <div className="flex-1 pb-6">
                             <h3 className="text-white font-bold mb-2">Writer & Generator Agents</h3>
@@ -156,7 +169,7 @@ export default function Architecture() {
 
                     <div className="flex gap-4">
                         <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0 border-2 border-teal-500/50 relative z-10">
-                            <span className="text-teal-400 font-bold text-sm">5</span>
+                            <span className="text-teal-400 font-bold text-sm">6</span>
                         </div>
                         <div className="flex-1 pb-6">
                             <h3 className="text-white font-bold mb-2">Publisher Agent Execution</h3>
@@ -179,8 +192,8 @@ export default function Architecture() {
                     </div>
 
                     <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0 border-2 border-pink-500/50 relative z-10">
-                            <span className="text-pink-400 font-bold text-sm">6</span>
+                        <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 border-2 border-red-500/50 relative z-10">
+                            <span className="text-red-400 font-bold text-sm">7</span>
                         </div>
                         <div className="flex-1">
                             <h3 className="text-white font-bold mb-2">Signal Monitoring</h3>

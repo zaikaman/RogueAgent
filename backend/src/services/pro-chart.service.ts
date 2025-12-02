@@ -12,7 +12,7 @@ export interface OHLCVData {
 
 export interface ChartImageResult {
   base64: string;
-  mimeType: 'image/png' | 'image/jpeg';
+  mimeType: 'image/png';
   width: number;
   height: number;
 }
@@ -27,8 +27,6 @@ interface ChartOptions {
   showBollingerBands?: boolean;
   showGrid?: boolean;
   darkMode?: boolean;
-  format?: 'png' | 'jpeg';  // Output format - jpeg is much smaller
-  quality?: number;          // JPEG quality 0-1 (default 0.7)
 }
 
 // TradingView-inspired color palette
@@ -180,7 +178,6 @@ class ProChartService {
 
   /**
    * Generate professional candlestick chart
-   * Default size optimized for LLM vision (800x500) - small enough to fit token limits
    */
   async generateCandlestickChart(
     ohlcv: OHLCVData[],
@@ -188,8 +185,8 @@ class ProChartService {
     options: ChartOptions = {}
   ): Promise<ChartImageResult> {
     const {
-      width = 800,        // Reduced from 1600 for LLM token limits
-      height = 500,       // Reduced from 900 for LLM token limits
+      width = 1600,
+      height = 900,
       title = `${symbol}/USDT`,
       showVolume = true,
       showSMA = [20, 50],
@@ -197,8 +194,6 @@ class ProChartService {
       showBollingerBands = false,
       showGrid = true,
       darkMode = true,
-      format = 'jpeg',    // JPEG is much smaller than PNG
-      quality = 0.75,     // Good balance of quality vs size
     } = options;
 
     // Create canvas
@@ -556,29 +551,16 @@ class ProChartService {
     ctx.fillText(this.formatPrice(lastCandle.close), infoX + 95, infoY + 28);
 
     // ═══════════════════════════════════════════════════════════════
-    // EXPORT - Support both PNG and JPEG (JPEG is much smaller)
+    // EXPORT
     // ═══════════════════════════════════════════════════════════════
-    let buffer: Buffer;
-    let mimeType: 'image/png' | 'image/jpeg';
-    
-    if (format === 'jpeg') {
-      // JPEG with quality setting - much smaller file size
-      buffer = canvas.toBuffer('image/jpeg', { quality });
-      mimeType = 'image/jpeg';
-    } else {
-      // PNG - lossless but larger
-      buffer = canvas.toBuffer('image/png');
-      mimeType = 'image/png';
-    }
-    
+    const buffer = canvas.toBuffer('image/png');
     const base64 = buffer.toString('base64');
-    const sizeKB = Math.round(buffer.length / 1024);
 
-    logger.info(`ProChart: Generated ${width}x${height} ${format.toUpperCase()} for ${symbol} (${ohlcv.length} candles, ${sizeKB}KB)`);
+    logger.info(`ProChart: Generated ${width}x${height} PNG for ${symbol} (${ohlcv.length} candles)`);
 
     return {
       base64,
-      mimeType,
+      mimeType: 'image/png',
       width,
       height,
     };

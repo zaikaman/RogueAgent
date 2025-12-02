@@ -2,24 +2,13 @@ import { AiSdkLlm } from '@iqai/adk';
 import { createOpenAI } from '@ai-sdk/openai';
 import { config } from './env.config';
 
-// Create an OpenAI provider instance with a custom base URL
-const openaiModelInstance = createOpenAI({
-  apiKey: config.OPENAI_API_KEY,
-  baseURL: config.OPENAI_BASE_URL,
-});
-
-// Wrap the provider in AiSdkLlm
-// We use the model name from config, defaulting to gpt-4o
-export const llm = new AiSdkLlm(openaiModelInstance.chat(config.OPENAI_MODEL));
-
-// Custom fetch to fix message formatting
+// Custom fetch to fix message formatting AND handle vision/images
 const customFetch = async (url: string, options: any) => {
-  console.log('--- ORIGINAL REQUEST ---');
-  console.log('URL:', url);
-  // console.log('BODY:', options.body); // Commented out to reduce noise if needed, but keeping for now
+  // console.log('--- ORIGINAL REQUEST ---');
+  // console.log('URL:', url);
 
   let newUrl = url;
-  // Fix URL if it is wrong (SDK seems to be using /responses for some reason, or maybe it's a config issue)
+  // Fix URL if it is wrong (SDK seems to be using /responses for some reason)
   if (url.includes('/responses')) {
      newUrl = url.replace('/responses', '/chat/completions');
   }
@@ -35,17 +24,72 @@ const customFetch = async (url: string, options: any) => {
       }
 
       if (body.messages) {
+        let hasAnyImages = false;
+        
+        // Debug: Log message structure
+        console.log('📝 Messages count:', body.messages.length);
+        body.messages.forEach((msg: any, idx: number) => {
+          console.log(`   Message ${idx}: role=${msg.role}, content type=${typeof msg.content}, isArray=${Array.isArray(msg.content)}`);
+          if (Array.isArray(msg.content)) {
+            msg.content.forEach((part: any, pIdx: number) => {
+              const keys = Object.keys(part);
+              console.log(`     Part ${pIdx}: keys=[${keys.join(', ')}]`);
+            });
+          }
+        });
+        
         body.messages = body.messages.map((msg: any) => {
           if (Array.isArray(msg.content)) {
-            // Convert array content back to string if it's just text
+            // Check if content has images - look for inlineData or image types
+            const hasImages = msg.content.some((c: any) => 
+              c.type === 'image' || c.type === 'image_url' || c.image_url || c.inlineData
+            );
+            
+            console.log(`   hasImages check: ${hasImages}`);
+            
+            if (hasImages) {
+              hasAnyImages = true;
+              // Keep array format for vision requests, but normalize the structure
+              msg.content = msg.content.map((c: any) => {
+                if (c.type === 'text' || c.type === 'input_text') {
+                  return { type: 'text', text: c.text };
+                }
+                if (c.text && !c.type) {
+                  // Plain text object without type
+                  return { type: 'text', text: c.text };
+                }
+                if (c.type === 'image_url' || c.image_url) {
+                  return { type: 'image_url', image_url: c.image_url || { url: c.url } };
+                }
+                if (c.inlineData) {
+                  // Convert ADK inlineData to OpenAI image_url format with data URI
+                  console.log('🖼️ Converting inlineData to image_url format');
+                  return { 
+                    type: 'image_url', 
+                    image_url: { 
+                      url: `data:${c.inlineData.mimeType};base64,${c.inlineData.data}` 
+                    } 
+                  };
+                }
+                return c;
+              });
+              return msg;
+            }
+            
+            // No images - convert array content back to string (text only)
             const text = msg.content
-              .filter((c: any) => c.type === 'text' || c.type === 'input_text')
+              .filter((c: any) => c.type === 'text' || c.type === 'input_text' || c.text)
               .map((c: any) => c.text)
               .join('\n');
             return { ...msg, content: text };
           }
           return msg;
         });
+        
+        if (hasAnyImages) {
+          console.log('📷 Vision request detected - sending with image(s)');
+        }
+        
         options.body = JSON.stringify(body);
       }
     } catch (e) {
@@ -53,22 +97,19 @@ const customFetch = async (url: string, options: any) => {
     }
   }
   
-  console.log('--- MODIFIED REQUEST ---');
-  console.log('URL:', newUrl);
-  console.log('BODY:', options.body);
-  console.log('----------------------------');
+  // console.log('--- MODIFIED REQUEST ---');
+  // console.log('URL:', newUrl);
+  // console.log('----------------------------');
   
   const response = await fetch(newUrl, options);
   
   // Intercept response to fix usage fields for AI SDK compatibility
   if (response.ok && response.headers.get('content-type')?.includes('application/json')) {
     try {
-      // Clone to read body without consuming the original response yet
       const clone = response.clone();
       const data = await clone.json();
       
       if (data.usage) {
-        // Map OpenAI standard fields to what the SDK apparently wants (input_tokens/output_tokens)
         if (data.usage.input_tokens === undefined) {
           data.usage.input_tokens = data.usage.prompt_tokens || 0;
         }
@@ -76,12 +117,6 @@ const customFetch = async (url: string, options: any) => {
           data.usage.output_tokens = data.usage.completion_tokens || 0;
         }
       }
-      
-      console.log('--- CUSTOM FETCH RESPONSE (MODIFIED) ---');
-      console.log('Status:', response.status);
-      // console.log('Body:', JSON.stringify(data, null, 2)); // Optional: log full body
-      console.log('Usage:', JSON.stringify(data.usage));
-      console.log('--------------------------------------');
 
       const newHeaders: Record<string, string> = {};
       response.headers.forEach((value, key) => {
@@ -103,6 +138,17 @@ const customFetch = async (url: string, options: any) => {
   
   return response;
 };
+
+// Create an OpenAI provider instance with custom base URL AND customFetch for vision support
+const openaiModelInstance = createOpenAI({
+  apiKey: config.OPENAI_API_KEY,
+  baseURL: config.OPENAI_BASE_URL,
+  fetch: customFetch,
+} as any);
+
+// Wrap the provider in AiSdkLlm
+// We use the model name from config, defaulting to gpt-4o
+export const llm = new AiSdkLlm(openaiModelInstance.chat(config.OPENAI_MODEL));
 
 // Create a separate LLM instance for the Scanner Agent if configured
 const scannerModelInstance = createOpenAI({

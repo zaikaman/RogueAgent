@@ -318,6 +318,57 @@ export default function Agents() {
                         <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Social media trending strength</li>
                     </ul>
                 </div>
+
+                <div>
+                    <h4 className="text-lg font-bold text-white mb-3">6. Vision-Based Chart Analysis (Two-Stage Pipeline)</h4>
+                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
+                        <p className="text-purple-200 text-sm mb-3">
+                            <strong>NEW:</strong> AI-powered visual chart analysis using a dedicated Vision LLM Service. Charts are generated, sent to a vision-capable model for analysis, and the textual insights are passed to the Analyzer Agent.
+                        </p>
+                        
+                        <div className="bg-white/5 rounded-lg p-4 mb-4">
+                            <h5 className="text-cyan-300 font-semibold mb-3 text-sm">🔄 Vision Analysis Flow</h5>
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded">Scanner finds 3 candidates</span>
+                                <span className="text-gray-500">→</span>
+                                <span className="bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Generate PNG charts</span>
+                                <span className="text-gray-500">→</span>
+                                <span className="bg-pink-500/20 text-pink-300 px-2 py-1 rounded">Vision LLM analyzes images</span>
+                                <span className="text-gray-500">→</span>
+                                <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded">Text analysis to Analyzer</span>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-white/5 rounded p-3">
+                                <h5 className="text-purple-300 font-semibold mb-2 text-sm">📊 Stage 1: Chart Generation</h5>
+                                <ul className="text-xs text-gray-400 space-y-1">
+                                    <li>• Real candlesticks with wicks and colored bodies</li>
+                                    <li>• SMA 20 (blue) & SMA 50 (yellow) trend lines</li>
+                                    <li>• Bollinger Bands with semi-transparent fill</li>
+                                    <li>• Color-coded volume bars (green/red)</li>
+                                    <li>• 1800x1000 PNG, dark theme (#131722)</li>
+                                </ul>
+                            </div>
+                            <div className="bg-white/5 rounded p-3">
+                                <h5 className="text-cyan-300 font-semibold mb-2 text-sm">🤖 Stage 2: Vision LLM Analysis</h5>
+                                <ul className="text-xs text-gray-400 space-y-1">
+                                    <li>• Direct API call to vision-capable LLM</li>
+                                    <li>• Analyzes: trends, S/R, patterns, MA positions</li>
+                                    <li>• Returns 150-200 word textual analysis</li>
+                                    <li>• Bypasses AI SDK for proper image handling</li>
+                                    <li>• Analysis embedded in Analyzer prompt</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <ul className="list-none space-y-2 text-gray-300">
+                            <li className="flex items-start gap-3"><span className="text-purple-400">📊</span>Real Binance Futures candlestick data for 122 unified tokens</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">🔍</span>Visual pattern recognition (head & shoulders, wedges, channels)</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">📈</span>Trend direction and momentum assessment from actual charts</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">✅</span>Combines numerical TA with visual confirmation for higher accuracy</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Signal Tiers</h3>

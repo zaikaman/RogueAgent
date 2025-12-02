@@ -10,6 +10,8 @@ import { cleanSignalText } from '../utils/text.util';
 import { TechnicalAnalysis } from '../utils/ta.util';
 import { supabaseService } from '../services/supabase.service';
 import { binanceService } from '../services/binance.service';
+import { chartImageService } from '../services/chart-image.service';
+import { callVisionLLM, createVisionMessage } from '../services/vision-llm.service';
 import { randomUUID } from 'crypto';
 import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
@@ -465,14 +467,81 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
           logger.info('Scanner determined NEUTRAL bias - skipping signal generation');
           this.broadcast('Market is NEUTRAL/choppy - no clear direction. Skipping signal generation.', 'warning');
         } else if (scannerResult.candidates && scannerResult.candidates.length > 0) {
-          // 2. Analyzer - Deep technical analysis based on numerical indicators
+          // 2. Analyzer - Pass market bias context with chart images
           logger.info('Running Analyzer Agent...');
           this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
           
+          // Generate chart images for top candidates (limit to 3 to avoid token overflow)
+          const topCandidates = scannerResult.candidates.slice(0, 3);
+          const chartImages: Array<{ symbol: string; base64: string; mimeType: string }> = [];
+          
+          for (const candidate of topCandidates) {
+            try {
+              logger.info(`Generating chart image for ${candidate.symbol}...`);
+              const ohlcv = await binanceService.getOHLCV(candidate.symbol, '1h', 100);
+              if (ohlcv && ohlcv.length >= 20) {
+                const chartResult = await chartImageService.generateCandlestickChart(
+                  ohlcv,
+                  candidate.symbol,
+                  {
+                    title: `${candidate.symbol}/USDT - 1H Chart`,
+                    showVolume: true,
+                    showSMA: [20, 50],
+                    darkMode: true,
+                  }
+                );
+                chartImages.push({
+                  symbol: candidate.symbol,
+                  base64: chartResult.base64,
+                  mimeType: chartResult.mimeType,
+                });
+                logger.info(`Chart image generated for ${candidate.symbol}`);
+              }
+            } catch (e) {
+              logger.warn(`Failed to generate chart for ${candidate.symbol}:`, e);
+            }
+          }
+          
           const { runner: analyzer } = await AnalyzerAgent.build();
           
-          // Build analyzer prompt with market context
-          const analyzerPrompt = `Analyze these ${marketBias} candidates for high-probability trading signals:
+          // If we have chart images, use vision API to get visual analysis first
+          let chartAnalysisText = '';
+          if (chartImages.length > 0) {
+            logger.info(`Performing visual chart analysis for ${chartImages.length} chart(s)...`);
+            this.broadcast(`Analyzing ${chartImages.length} chart image(s) with vision model...`, 'info');
+            
+            try {
+              // Build vision messages - one per chart for clarity
+              const visionAnalyses: string[] = [];
+              
+              for (const chart of chartImages) {
+                const visionPrompt = `You are an expert crypto technical analyst. Analyze this ${chart.symbol}/USDT chart image and provide a concise technical analysis.
+
+Focus on:
+1. Trend direction (bullish/bearish/neutral)
+2. Key support and resistance levels visible
+3. Chart patterns (double bottom, head & shoulders, flags, etc.)
+4. Moving average positions (if visible)
+5. Volume characteristics
+6. Overall setup quality for trading
+
+Provide a focused, actionable analysis in 150-200 words.`;
+                
+                const visionMessage = createVisionMessage(visionPrompt, chart.base64, chart.mimeType);
+                const visionResponse = await callVisionLLM([visionMessage], { maxTokens: 1024 });
+                visionAnalyses.push(`**${chart.symbol} Chart Analysis:**\n${visionResponse}`);
+                logger.info(`Vision analysis complete for ${chart.symbol}`);
+              }
+              
+              chartAnalysisText = `\n\n📊 VISUAL CHART ANALYSIS (from vision model):\n${visionAnalyses.join('\n\n')}`;
+              logger.info('All chart visual analyses complete');
+            } catch (e) {
+              logger.warn('Vision analysis failed, proceeding without chart images:', e);
+              chartAnalysisText = '\n\n⚠️ Chart image analysis unavailable - proceeding with numerical data only.';
+            }
+          }
+          
+          const analyzerPromptText = `Analyze these ${marketBias} candidates for high-probability trading signals:
 
 Market Bias: ${marketBias}
 Bias Reasoning: ${biasReasoning}
@@ -481,21 +550,12 @@ Candidates: ${JSON.stringify(scannerResult.candidates)}
           
 Global Market Context: ${JSON.stringify(marketData.global_market_context)}
 
-IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.
-
-Use your technical analysis tools (get_technical_analysis) to analyze each candidate's:
-1. Price action and trend direction (RSI, MACD, SuperTrend)
-2. Support/Resistance levels (Order Blocks, Fibonacci, Volume Profile)
-3. Volatility and momentum (ATR, Bollinger Squeeze)
-4. Multi-timeframe alignment score
-5. Volume confirmation (CVD analysis)
-
-Select the BEST candidate with the highest confluence of technical factors.`;
-
-          // Run analyzer with standard retry (no vision)
+IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.${chartAnalysisText}`;
+          
+          // Use standard text-based agent call with the visual analysis embedded
           analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
             analyzer,
-            analyzerPrompt,
+            analyzerPromptText,
             'Analyzer Agent'
           );
           logger.info('Analyzer result:', analyzerResult);
