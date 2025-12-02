@@ -17,15 +17,69 @@ export default function Agents() {
             <h2 className="text-3xl font-bold text-white mb-6">Scanner Agent</h2>
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
                 <p className="text-blue-200 text-sm">
-                    <strong>Role:</strong> First-line detection of market anomalies and trending opportunities
+                    <strong>Role:</strong> First-line detection of market anomalies using <strong>Bias-First Methodology</strong> — determines LONG/SHORT/NEUTRAL market bias before finding matching opportunities
                 </p>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Bias-First Methodology</h3>
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-lg p-6 mb-6">
+                <p className="text-cyan-200 text-sm mb-4">
+                    <strong>NEW:</strong> Instead of blindly scanning all tokens, the Scanner first determines the overall market bias for the trading session, then finds tokens that align with that bias.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                        <h5 className="text-green-400 font-bold text-sm mb-1">📈 LONG Bias</h5>
+                        <p className="text-xs text-gray-400">BTC bullish, positive funding, risk-on sentiment → Find breakout & accumulation setups</p>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                        <h5 className="text-red-400 font-bold text-sm mb-1">📉 SHORT Bias</h5>
+                        <p className="text-xs text-gray-400">BTC weakness, negative funding, risk-off → Find rejection & distribution setups</p>
+                    </div>
+                    <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-3">
+                        <h5 className="text-gray-400 font-bold text-sm mb-1">⏸️ NEUTRAL</h5>
+                        <p className="text-xs text-gray-400">Conflicting signals, choppy conditions → No trading, wait for clarity</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-4">Bias Determination Process</h3>
+            <div className="space-y-3 mb-6">
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">1</span>
+                    <div>
+                        <p className="text-white font-medium">Analyze BTC Context</p>
+                        <p className="text-gray-400 text-sm">4H trend direction, key support/resistance levels, recent price action</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">2</span>
+                    <div>
+                        <p className="text-white font-medium">Check Funding Rates</p>
+                        <p className="text-gray-400 text-sm">Positive funding = crowded longs (fade), negative = potential bounce</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">3</span>
+                    <div>
+                        <p className="text-white font-medium">Sentiment Scan</p>
+                        <p className="text-gray-400 text-sm">X/Twitter mood, news catalysts, Fear & Greed Index context</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                    <span className="bg-blue-500/20 text-blue-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">4</span>
+                    <div>
+                        <p className="text-white font-medium">Commit to Bias</p>
+                        <p className="text-gray-400 text-sm">Only search for tokens that align with the determined bias direction</p>
+                    </div>
+                </div>
             </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Data Sources</h3>
             <ul className="list-none space-y-2 mb-6 text-gray-300">
+                <li className="flex items-start gap-3"><span className="text-cyan-400 font-bold">★</span><strong className="text-white">Binance OHLCV (Primary)</strong> — Real candlestick data with accurate high/low/volume</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>CoinGecko trending coins (top 15)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Birdeye trending tokens (top 10, real-time DEX data)</li>
-                <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Top gainers (24h price changes)</li>
+                <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Top gainers/losers (24h price changes)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>DeFi Llama TVL shifts (chain and protocol level)</li>
                 <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Bitcoin market context (global sentiment indicator)</li>
             </ul>
@@ -33,6 +87,10 @@ export default function Agents() {
             <h3 className="text-2xl font-bold text-white mb-4">Intelligence</h3>
             <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
                 <ul className="space-y-3 text-gray-300 list-none">
+                    <li className="flex items-start gap-3">
+                        <span className="text-teal-glow text-xl">→</span>
+                        <span><strong className="text-white">Bias-aligned filtering</strong> — Only returns tokens matching the day's directional bias</span>
+                    </li>
                     <li className="flex items-start gap-3">
                         <span className="text-teal-glow text-xl">→</span>
                         <span>Uses <strong className="text-white">real-time X (Twitter) and web search</strong> to validate each candidate</span>
@@ -47,27 +105,26 @@ export default function Agents() {
                     </li>
                     <li className="flex items-start gap-3">
                         <span className="text-teal-glow text-xl">→</span>
-                        <span>Prioritizes mid-caps and low-caps with high volume</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                        <span className="text-teal-glow text-xl">→</span>
-                        <span>Returns detailed candidate profiles including chain, contract address, and reasoning</span>
+                        <span><strong className="text-white">Max 3 candidates</strong> — Quality over quantity, only the best setups</span>
                     </li>
                 </ul>
             </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Output</h3>
-            <p className="text-gray-300 mb-4">Returns 3-5 high-quality candidates with narrative context, or empty list if market conditions are poor.</p>
+            <p className="text-gray-300 mb-4">Returns market bias determination and up to 3 high-quality candidates that align with that bias.</p>
             <div className="bg-[#0d1117] rounded-lg border border-white/10 p-4 mb-4 font-mono text-xs overflow-x-auto">
                 <pre className="text-gray-300">{`{
+  "market_bias": "SHORT",
+  "bias_reasoning": "BTC rejected at $68k resistance with bearish 4H close. Funding rates elevated (+0.03%). Risk-off sentiment after hawkish Fed comments.",
   "candidates": [
     {
-      "symbol": "BONK",
-      "name": "Bonk",
-      "coingecko_id": "bonk",
+      "symbol": "SOL",
+      "name": "Solana",
+      "coingecko_id": "solana",
       "chain": "solana",
-      "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      "reason": "Trending on Birdeye, 20% gain in 24h. X search confirms new exchange listing rumor."
+      "address": "So11111111111111111111111111111111111111112",
+      "direction": "SHORT",
+      "reason": "Distribution pattern at $150 resistance. CVD divergence (price flat, volume declining). Aligns with bearish market bias."
     }
   ]
 }`}</pre>
@@ -219,6 +276,21 @@ export default function Agents() {
                         <li className="flex items-start gap-3"><span className="text-teal-glow">•</span>Social media trending strength</li>
                     </ul>
                 </div>
+
+                <div>
+                    <h4 className="text-lg font-bold text-white mb-3">6. Visual Chart Analysis</h4>
+                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
+                        <p className="text-purple-200 text-sm mb-3">
+                            <strong>NEW:</strong> Agents can now request and analyze TradingView chart images for visual pattern recognition.
+                        </p>
+                        <ul className="list-none space-y-2 text-gray-300">
+                            <li className="flex items-start gap-3"><span className="text-purple-400">📊</span>TradingView chart URLs for 60+ supported tokens</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">🔍</span>Visual confirmation of patterns (head & shoulders, wedges, channels)</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">📈</span>Multi-timeframe chart comparison (15m, 1H, 4H, Daily)</li>
+                            <li className="flex items-start gap-3"><span className="text-purple-400">✅</span>Visual verification of indicator signals before committing</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <h3 className="text-2xl font-bold text-white mb-4">Signal Tiers</h3>
@@ -234,31 +306,24 @@ export default function Agents() {
                 </div>
 
                 <div className="bg-gradient-to-r from-green-500/10 to-teal-500/10 border border-green-500/30 rounded-lg p-4">
-                    <h4 className="text-green-400 font-bold mb-2">✅ TIER 2 SETUPS (Confidence 85-91%)</h4>
+                    <h4 className="text-green-400 font-bold mb-2">✅ TIER 2 SETUPS (Confidence 85-91%) — MINIMUM THRESHOLD</h4>
                     <ul className="text-sm text-gray-300 space-y-1">
-                        <li>• 3-4 advanced confluences + proper R:R</li>
-                        <li>• Strong narrative + 2 technical confluences</li>
+                        <li>• <strong className="text-white">3+ advanced confluences</strong> + R:R ≥ 1:2.5</li>
+                        <li>• MTF alignment ≥ 50% across timeframes</li>
+                        <li>• Clear structural levels for entry/stop/target</li>
                         <li>• Day trade with clear 4-24h catalyst window</li>
                     </ul>
                 </div>
 
-                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
-                    <h4 className="text-blue-400 font-bold mb-2">⚠️ TIER 3 SETUPS (Confidence 80-84%)</h4>
-                    <ul className="text-sm text-gray-300 space-y-1">
-                        <li>• 2-3 confluences + solid fundamentals</li>
-                        <li>• Clear structural levels for entry/stop/target</li>
-                        <li>• ONLY taken if R:R is 1:2.5 or better</li>
-                    </ul>
-                </div>
-
                 <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-lg p-4">
-                    <h4 className="text-red-400 font-bold mb-2">❌ REJECTED</h4>
+                    <h4 className="text-red-400 font-bold mb-2">❌ REJECTED (Below Quality Gate)</h4>
                     <ul className="text-sm text-gray-300 space-y-1">
-                        <li>• Confidence below 80%</li>
-                        <li>• Stop-loss would need to be &lt;4% (too tight)</li>
-                        <li>• R:R below 1:2</li>
+                        <li>• Confidence below <strong className="text-white">85%</strong></li>
+                        <li>• R:R below <strong className="text-white">1:2.5</strong></li>
+                        <li>• MTF alignment below <strong className="text-white">50%</strong></li>
+                        <li>• Fewer than <strong className="text-white">3 confluences</strong></li>
+                        <li>• Stop-loss would need to be &lt;5% (too tight)</li>
                         <li>• No clear structural levels for stop-loss</li>
-                        <li>• Bearish market without independent catalyst</li>
                     </ul>
                 </div>
             </div>

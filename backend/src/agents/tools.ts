@@ -8,6 +8,8 @@ import { telegramService } from '../services/telegram.service';
 import { tavilyService } from '../services/tavily.service';
 import { birdeyeService } from '../services/birdeye.service';
 import { defillamaService } from '../services/defillama.service';
+import { binanceService } from '../services/binance.service';
+import { chartImageService } from '../services/chart-image.service';
 import { TechnicalAnalysis } from '../utils/ta.util';
 import { logger } from '../utils/logger.util';
 import { getCoingeckoId, hasCoingeckoMapping } from '../constants/coingecko-ids.constant';
@@ -278,96 +280,125 @@ export const getTechnicalAnalysisTool = createTool({
   description: 'Advanced technical analysis with 2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, Heikin-Ashi, SuperTrend, BB Squeeze, Fibonacci, VW-MACD, and MTF alignment. Works multi-chain.',
   schema: z.object({
     tokenId: z.string().optional().describe('The CoinGecko API ID of the token'),
+    symbol: z.string().optional().describe('The token symbol (e.g., BTC, ETH, SOL) - used to fetch real OHLCV from Binance'),
     chain: z.string().optional().describe('The blockchain network (solana, ethereum, arbitrum, avalanche, bsc, optimism, polygon, base, zksync, sui, aptos)'),
     address: z.string().optional().describe('The token contract address for chain-based lookup'),
     days: z.number().optional().default(30).describe('Days of history to analyze (default: 30)'),
   }) as any,
-  fn: async ({ tokenId, chain, address, days }) => {
+  fn: async ({ tokenId, symbol, chain, address, days }: { tokenId?: string; symbol?: string; chain?: string; address?: string; days?: number }) => {
     let prices: number[] = [];
     let ohlcv: Array<{ timestamp: number; open: number; high: number; low: number; close: number; volume: number }> = [];
+    let dataSource = 'unknown';
 
-    // Try CoinGecko first if we have a tokenId (for native coins like BTC, ETH, FIRO)
-    if (tokenId && !address) {
+    // Extract symbol from tokenId if not provided
+    // tokenId for CoinGecko is like "bitcoin", "ethereum" - need to map to symbol
+    const tokenSymbol: string | null = symbol || (tokenId ? tokenId.toUpperCase() : null);
+
+    // PRIORITY 1: Try Binance first for real OHLCV data (major tokens)
+    // This is the BEST source because it provides real candlestick data with volume
+    if (tokenSymbol && binanceService.hasSymbol(tokenSymbol)) {
       try {
-        const data = await coingeckoService.getMarketChart(tokenId, days || 30);
-        if (data && data.prices && data.prices.length > 0) {
-          prices = data.prices.map(p => p[1]);
-          // Construct approximate OHLCV from price data
-          ohlcv = data.prices.map((p: any, idx: number) => {
-            const price = p[1];
-            return {
-              timestamp: p[0],
-              open: price,
-              high: price * 1.01, // Approximate
-              low: price * 0.99,
-              close: price,
-              volume: 0 // CoinGecko market chart doesn't include volume per timestamp
-            };
-          });
+        const binanceOhlcv = await binanceService.getOHLCV(tokenSymbol, '1h', days || 30);
+        if (binanceOhlcv && binanceOhlcv.length > 0) {
+          ohlcv = binanceOhlcv;
+          prices = ohlcv.map(candle => candle.close);
+          dataSource = 'binance';
+          logger.info(`TA: Using Binance OHLCV data for ${tokenSymbol} (${binanceOhlcv.length} candles)`);
         }
       } catch (e) {
-        logger.warn(`CoinGecko market chart failed for ${tokenId}:`, e);
+        logger.warn(`Binance OHLCV failed for ${tokenSymbol}:`, e);
       }
     }
 
-    // Try Birdeye OHLCV for tokens with addresses
+    // PRIORITY 2: Try Birdeye OHLCV for tokens with addresses (DeFi tokens)
     if (ohlcv.length === 0 && chain && address) {
       try {
         ohlcv = await birdeyeService.getOHLCVData(address, chain, days || 30, '1H');
         if (ohlcv && ohlcv.length > 0) {
           prices = ohlcv.map((candle) => candle.close);
+          dataSource = 'birdeye';
+          logger.info(`TA: Using Birdeye OHLCV data for ${address} (${ohlcv.length} candles)`);
         }
       } catch (e) {
-        // Fallback
+        logger.warn(`Birdeye OHLCV failed for ${address}:`, e);
       }
     }
 
-    // Fallback to DexScreener if Birdeye fails
+    // PRIORITY 3: Try DexScreener if Birdeye fails
     if (ohlcv.length === 0 && chain && address) {
       try {
         const { dexScreenerService } = require('../services/dexscreener.service');
         ohlcv = await dexScreenerService.getOHLCVData(address, chain);
         if (ohlcv && ohlcv.length > 0) {
           prices = ohlcv.map((candle) => candle.close);
+          dataSource = 'dexscreener';
+          logger.info(`TA: Using DexScreener OHLCV data for ${address}`);
         }
       } catch (e) {
         // Continue to CoinGecko fallback
       }
     }
 
-    // Final fallback to CoinGecko for tokens (prices only, no OHLCV)
-    if (prices.length === 0) {
-      let targetTokenId: string | undefined = tokenId;
+    // PRIORITY 4: CoinGecko fallback (price data only - LIMITED OHLCV)
+    // ⚠️ WARNING: CoinGecko doesn't provide true OHLCV, so advanced indicators will be less accurate
+    if (prices.length === 0 && tokenId) {
+      try {
+        const data = await coingeckoService.getMarketChart(tokenId, days || 30);
+        if (data && data.prices && data.prices.length > 0) {
+          prices = data.prices.map(p => p[1]);
+          // Construct APPROXIMATE OHLCV from price data
+          // This is NOT ideal - H/L are estimated, volume is 0
+          ohlcv = data.prices.map((p: any, idx: number) => {
+            const price = p[1];
+            const prevPrice = idx > 0 ? data.prices[idx - 1][1] : price;
+            return {
+              timestamp: p[0],
+              open: prevPrice,
+              high: Math.max(price, prevPrice) * 1.005, // Approximate 0.5% range
+              low: Math.min(price, prevPrice) * 0.995,
+              close: price,
+              volume: 0 // ⚠️ No volume data from CoinGecko market chart
+            };
+          });
+          dataSource = 'coingecko_limited';
+          logger.warn(`TA: Using CoinGecko LIMITED data for ${tokenId} - advanced indicators may be inaccurate`);
+        }
+      } catch (e) {
+        logger.warn(`CoinGecko market chart failed for ${tokenId}:`, e);
+      }
+    }
 
-      if (!targetTokenId && chain && address) {
+    // PRIORITY 5: Try to resolve tokenId from chain+address and use CoinGecko
+    if (prices.length === 0 && chain && address) {
+      try {
         const details = await coingeckoService.getCoinDetailsByAddress(chain, address);
         if (details && details.id) {
-          targetTokenId = details.id;
+          const data = await coingeckoService.getMarketChart(details.id, days || 30);
+          if (data && data.prices) {
+            prices = data.prices.map(p => p[1]);
+            ohlcv = data.prices.map((p: any) => ({
+              timestamp: p[0],
+              open: p[1],
+              high: p[1],
+              low: p[1],
+              close: p[1],
+              volume: 0
+            }));
+            dataSource = 'coingecko_limited';
+          }
         }
-      }
-
-      if (targetTokenId) {
-        const data = await coingeckoService.getMarketChart(targetTokenId, days || 30);
-        if (data && data.prices) {
-          prices = data.prices.map(p => p[1]);
-          // Construct approximate OHLCV from price data
-          ohlcv = data.prices.map((p: any) => ({
-            timestamp: p[0],
-            open: p[1],
-            high: p[1],
-            low: p[1],
-            close: p[1],
-            volume: 0
-          }));
-        }
+      } catch (e) {
+        // Final fallback failed
       }
     }
 
     if (prices.length === 0) {
-      return { error: 'No price data available from Birdeye, DexScreener, or CoinGecko' };
+      return { error: 'No price data available from Binance, Birdeye, DexScreener, or CoinGecko' };
     }
 
     const currentPrice = prices[prices.length - 1];
+    const hasRealOHLCV = dataSource === 'binance' || dataSource === 'birdeye' || dataSource === 'dexscreener';
+    const hasVolume = ohlcv.some(c => c.volume > 0);
 
     // ========== BASIC INDICATORS ==========
     const rsi = TechnicalAnalysis.calculateRSI(prices, 14);
@@ -384,18 +415,33 @@ export const getTechnicalAnalysisTool = createTool({
 
     // ========== ADVANCED INDICATORS (2025 META) ==========
     let advancedIndicators: any = {};
+    let dataQualityWarnings: string[] = [];
+
+    // Add data quality warnings
+    if (!hasRealOHLCV) {
+      dataQualityWarnings.push('⚠️ NO REAL OHLCV DATA - Using approximated candlesticks from close prices only');
+    }
+    if (!hasVolume) {
+      dataQualityWarnings.push('⚠️ NO VOLUME DATA - CVD, Volume Profile, and VW-MACD will be unreliable');
+    }
 
     if (ohlcv.length > 20) { // Only calculate advanced if we have enough data
-      // 1. CVD - Orderflow Divergence
-      const cvdResult = TechnicalAnalysis.calculateCVD(ohlcv);
+      // 1. CVD - Orderflow Divergence (REQUIRES VOLUME)
+      const cvdResult = hasVolume 
+        ? TechnicalAnalysis.calculateCVD(ohlcv)
+        : { cvd: [], divergence: false };
       
-      // 2. ICT Order Blocks & Fair Value Gaps
-      const ictResult = TechnicalAnalysis.detectOrderBlocksAndFVG(ohlcv);
+      // 2. ICT Order Blocks & Fair Value Gaps (REQUIRES REAL OHLCV)
+      const ictResult = hasRealOHLCV
+        ? TechnicalAnalysis.detectOrderBlocksAndFVG(ohlcv)
+        : { orderBlocks: [], fairValueGaps: [] };
       
-      // 3. Volume Profile (VPFR)
-      const vpResult = TechnicalAnalysis.calculateVolumeProfile(ohlcv, 20);
+      // 3. Volume Profile (VPFR) (REQUIRES VOLUME)
+      const vpResult = hasVolume
+        ? TechnicalAnalysis.calculateVolumeProfile(ohlcv, 20)
+        : { poc: currentPrice, valueArea: { high: currentPrice * 1.05, low: currentPrice * 0.95 }, profile: [] };
       
-      // 4. Heikin-Ashi + SuperTrend
+      // 4. Heikin-Ashi + SuperTrend (Works with any OHLCV)
       const haCandles = TechnicalAnalysis.calculateHeikinAshi(ohlcv);
       const stResult = TechnicalAnalysis.calculateSuperTrend(haCandles, 10, 3);
       const currentSuperTrend = stResult.trend[stResult.trend.length - 1];
@@ -411,8 +457,10 @@ export const getTechnicalAnalysisTool = createTool({
       const currentKCLower = kcResult.lower[kcResult.lower.length - 1];
       const breakout = (currentPrice > currentKCUpper || currentPrice < currentKCLower) && bbResult.squeeze;
       
-      // 6. Volume-Weighted MACD
-      const vwmacd = TechnicalAnalysis.calculateVolumeWeightedMACD(ohlcv, 12, 26, 9);
+      // 6. Volume-Weighted MACD (REQUIRES VOLUME for accuracy)
+      const vwmacd = hasVolume 
+        ? TechnicalAnalysis.calculateVolumeWeightedMACD(ohlcv, 12, 26, 9)
+        : macd; // Fall back to regular MACD if no volume
       const latestVWMACD = vwmacd.macd[vwmacd.macd.length - 1];
       const latestVWSignal = vwmacd.signal[vwmacd.signal.length - 1];
       const latestVWHistogram = vwmacd.histogram[vwmacd.histogram.length - 1];
@@ -429,34 +477,56 @@ export const getTechnicalAnalysisTool = createTool({
       const mtfResult = TechnicalAnalysis.calculateMTFAlignment(prices);
 
       advancedIndicators = {
+        data_quality: {
+          source: dataSource,
+          has_real_ohlcv: hasRealOHLCV,
+          has_volume: hasVolume,
+          warnings: dataQualityWarnings,
+          reliability: hasRealOHLCV && hasVolume ? 'HIGH' : hasRealOHLCV ? 'MEDIUM' : 'LOW'
+        },
         cvd: {
-          bullish_divergence: cvdResult.divergence,
-          description: cvdResult.divergence ? 'CVD rising while price falling - whale accumulation detected' : 'No divergence'
+          bullish_divergence: hasVolume ? cvdResult.divergence : false,
+          reliable: hasVolume,
+          description: !hasVolume 
+            ? '⚠️ CVD UNRELIABLE - no volume data available'
+            : cvdResult.divergence 
+              ? 'CVD rising while price falling - whale accumulation detected' 
+              : 'No divergence'
         },
         ict_orderflow: {
           order_blocks: ictResult.orderBlocks.slice(-2), // Last 2 order blocks
           fair_value_gaps: ictResult.fairValueGaps.slice(-2),
           active_zones: ictResult.orderBlocks.length + ictResult.fairValueGaps.length,
-          description: ictResult.orderBlocks.length > 0 ? `${ictResult.orderBlocks.length} institutional zones detected` : 'No major order blocks'
+          reliable: hasRealOHLCV,
+          description: !hasRealOHLCV
+            ? '⚠️ ORDER BLOCKS UNRELIABLE - no real OHLCV data'
+            : ictResult.orderBlocks.length > 0 
+              ? `${ictResult.orderBlocks.length} institutional zones detected` 
+              : 'No major order blocks'
         },
         volume_profile: {
           poc: vpResult.poc,
           value_area_high: vpResult.valueArea.high,
           value_area_low: vpResult.valueArea.low,
-          price_near_poc: Math.abs(currentPrice - vpResult.poc) / currentPrice < 0.03,
-          description: Math.abs(currentPrice - vpResult.poc) / currentPrice < 0.03 
-            ? `Price near high-volume POC at $${vpResult.poc.toFixed(4)} - strong support/resistance`
-            : 'Price outside value area'
+          price_near_poc: hasVolume ? Math.abs(currentPrice - vpResult.poc) / currentPrice < 0.03 : false,
+          reliable: hasVolume,
+          description: !hasVolume
+            ? '⚠️ VOLUME PROFILE UNRELIABLE - no volume data'
+            : Math.abs(currentPrice - vpResult.poc) / currentPrice < 0.03 
+              ? `Price near high-volume POC at $${vpResult.poc.toFixed(4)} - strong support/resistance`
+              : 'Price outside value area'
         },
         heikin_ashi_supertrend: {
           trend: currentSuperTrend,
           supertrend_level: stResult.supertrend[stResult.supertrend.length - 1],
+          reliable: true, // Works with any OHLCV
           description: currentSuperTrend === 'up' ? 'SuperTrend bullish - price above support' : 'SuperTrend bearish - price below resistance'
         },
         bollinger_squeeze: {
           squeeze: bbResult.squeeze,
           breakout: breakout,
           breakout_direction: currentPrice > currentKCUpper ? 'bullish' : currentPrice < currentKCLower ? 'bearish' : 'none',
+          reliable: true, // Works with price data
           description: breakout ? `Squeeze breakout ${currentPrice > currentKCUpper ? 'UP' : 'DOWN'} - high volatility expansion expected` : 
                        bbResult.squeeze ? 'Bollinger squeeze detected - volatility contraction, breakout imminent' : 'Normal volatility'
         },
@@ -465,7 +535,10 @@ export const getTechnicalAnalysisTool = createTool({
           signal_line: latestVWSignal,
           histogram: latestVWHistogram,
           crossover: latestVWHistogram > 0 && vwmacd.histogram[vwmacd.histogram.length - 2] <= 0,
-          description: latestVWHistogram > 0 ? 'Volume-weighted MACD bullish' : 'Volume-weighted MACD bearish'
+          reliable: hasVolume,
+          description: !hasVolume 
+            ? '⚠️ VW-MACD UNRELIABLE - using regular MACD (no volume data)'
+            : latestVWHistogram > 0 ? 'Volume-weighted MACD bullish' : 'Volume-weighted MACD bearish'
         },
         fibonacci: {
           swing_high: swingPoints.swingHigh,
@@ -476,12 +549,14 @@ export const getTechnicalAnalysisTool = createTool({
             '61.8%': fibResult.retracement['61.8']
           },
           near_key_level: nearFib ? nearFib : null,
+          reliable: hasRealOHLCV, // More accurate with real H/L
           description: nearFib ? `Price near Fibonacci level $${nearFib.toFixed(4)} - potential bounce zone` : 'No Fib level nearby'
         },
         mtf_alignment: {
           score: mtfResult.score,
           aligned: mtfResult.aligned,
           bias: mtfResult.bias,
+          reliable: true, // Works with close prices
           description: mtfResult.aligned && mtfResult.score > 75 
             ? `Strong ${mtfResult.bias} trend - all timeframes aligned (${mtfResult.score.toFixed(0)}% score)`
             : mtfResult.score > 60 
@@ -491,42 +566,113 @@ export const getTechnicalAnalysisTool = createTool({
       };
     }
 
-    // Generate overall signal quality score
+    // Generate overall signal quality score - MORE CONSERVATIVE scoring
+    // Minimum 4 confluences needed for a valid signal
+    // IMPORTANT: Only count RELIABLE indicators as confluences
     let signalQuality = 0;
     let confidenceBoost = 0;
+    let confluenceCount = 0;
     const insights: string[] = [];
+    const warnings: string[] = [];
 
-    if (advancedIndicators.cvd?.bullish_divergence) {
-      confidenceBoost += 15;
+    // Add data quality warning if applicable
+    if (dataQualityWarnings.length > 0) {
+      warnings.push(...dataQualityWarnings);
+    }
+
+    // Check for conflicting signals (bearish indicators in bullish setup or vice versa)
+    const bullishSignals: string[] = [];
+    const bearishSignals: string[] = [];
+
+    // Only count CVD if we have volume data
+    if (advancedIndicators.cvd?.bullish_divergence && advancedIndicators.cvd?.reliable) {
+      confidenceBoost += 12;
+      confluenceCount++;
+      bullishSignals.push('CVD');
       insights.push('✅ CVD bullish divergence - whale accumulation');
     }
-    if (advancedIndicators.ict_orderflow?.active_zones > 2) {
-      confidenceBoost += 10;
+    // Only count ICT zones if we have real OHLCV
+    if (advancedIndicators.ict_orderflow?.active_zones > 2 && advancedIndicators.ict_orderflow?.reliable) {
+      confidenceBoost += 8;
+      confluenceCount++;
       insights.push('✅ Multiple ICT zones active - institutional interest');
     }
-    if (advancedIndicators.volume_profile?.price_near_poc) {
-      confidenceBoost += 10;
+    // Only count Volume Profile if we have volume data
+    if (advancedIndicators.volume_profile?.price_near_poc && advancedIndicators.volume_profile?.reliable) {
+      confidenceBoost += 8;
+      confluenceCount++;
       insights.push('✅ Price at POC - high-volume support/resistance');
     }
+    // SuperTrend works with any OHLCV
     if (advancedIndicators.heikin_ashi_supertrend?.trend === 'up') {
-      confidenceBoost += 12;
+      confidenceBoost += 10;
+      confluenceCount++;
+      bullishSignals.push('SuperTrend');
       insights.push('✅ SuperTrend bullish');
+    } else if (advancedIndicators.heikin_ashi_supertrend?.trend === 'down') {
+      bearishSignals.push('SuperTrend');
     }
+    // BB Squeeze works with price data
     if (advancedIndicators.bollinger_squeeze?.breakout) {
-      confidenceBoost += 20;
-      insights.push('🚀 BB Squeeze breakout - volatility expansion!');
-    }
-    if (advancedIndicators.vw_macd?.crossover) {
       confidenceBoost += 15;
-      insights.push('✅ VW-MACD bullish crossover');
+      confluenceCount++;
+      if (advancedIndicators.bollinger_squeeze.breakout_direction === 'bullish') {
+        bullishSignals.push('BB Breakout');
+      } else {
+        bearishSignals.push('BB Breakout');
+      }
+      insights.push(`🚀 BB Squeeze breakout ${advancedIndicators.bollinger_squeeze.breakout_direction} - volatility expansion!`);
     }
+    // Only count VW-MACD if we have volume, otherwise it's just regular MACD
+    if (advancedIndicators.vw_macd?.crossover && advancedIndicators.vw_macd?.reliable) {
+      confidenceBoost += 12;
+      confluenceCount++;
+      bullishSignals.push('VW-MACD');
+      insights.push('✅ VW-MACD bullish crossover');
+    } else if (advancedIndicators.vw_macd?.histogram && advancedIndicators.vw_macd.histogram < 0) {
+      bearishSignals.push('VW-MACD');
+    }
+    // Fibonacci is more reliable with real OHLCV but still useful
     if (advancedIndicators.fibonacci?.near_key_level) {
-      confidenceBoost += 8;
+      const fibBoost = advancedIndicators.fibonacci?.reliable ? 6 : 3;
+      confidenceBoost += fibBoost;
+      confluenceCount++;
       insights.push('✅ Price near Fibonacci level');
     }
-    if (advancedIndicators.mtf_alignment?.aligned && advancedIndicators.mtf_alignment?.score > 75) {
-      confidenceBoost += 18;
-      insights.push(`✅ MTF aligned ${advancedIndicators.mtf_alignment.bias} - strong trend`);
+    // MTF Alignment works with close prices
+    if (advancedIndicators.mtf_alignment?.aligned && advancedIndicators.mtf_alignment?.score > 70) {
+      const mtfBoost = advancedIndicators.mtf_alignment.score > 85 ? 18 : 12;
+      confidenceBoost += mtfBoost;
+      confluenceCount++;
+      if (advancedIndicators.mtf_alignment.bias === 'bullish') {
+        bullishSignals.push('MTF');
+      } else {
+        bearishSignals.push('MTF');
+      }
+      insights.push(`✅ MTF aligned ${advancedIndicators.mtf_alignment.bias} - ${advancedIndicators.mtf_alignment.score.toFixed(0)}% score`);
+    }
+
+    // Check for conflicting signals - this is a RED FLAG
+    if (bullishSignals.length > 0 && bearishSignals.length > 0) {
+      warnings.push(`⚠️ CONFLICTING SIGNALS: Bullish(${bullishSignals.join(',')}) vs Bearish(${bearishSignals.join(',')})`);
+      confidenceBoost = Math.max(0, confidenceBoost - 30); // Heavy penalty for conflicts
+    }
+    
+    // Add penalty for low data quality
+    if (!hasRealOHLCV) {
+      warnings.push('⚠️ LOW DATA QUALITY: Advanced volume-based indicators are unreliable');
+      confidenceBoost = Math.max(0, confidenceBoost - 15);
+    }
+
+    // Check MTF alignment - critical for signal quality
+    if (!advancedIndicators.mtf_alignment?.aligned || (advancedIndicators.mtf_alignment?.score || 0) < 70) {
+      warnings.push(`⚠️ MTF NOT ALIGNED: Score ${advancedIndicators.mtf_alignment?.score?.toFixed(0) || 0}% - high risk of false signal`);
+      confidenceBoost = Math.max(0, confidenceBoost - 20);
+    }
+
+    // Minimum confluence requirement
+    if (confluenceCount < 4) {
+      warnings.push(`⚠️ INSUFFICIENT CONFLUENCES: Only ${confluenceCount}/4 minimum met`);
     }
 
     signalQuality = Math.min(confidenceBoost, 100);
@@ -590,13 +736,131 @@ export const getTechnicalAnalysisTool = createTool({
       
       // Overall assessment
       signal_quality_score: signalQuality,
+      confluence_count: confluenceCount,
+      minimum_confluences_met: confluenceCount >= 4,
       confidence_boost: `+${confidenceBoost}%`,
       key_insights: insights,
+      warnings: warnings,
       
-      summary: insights.length > 0 
-        ? `🔥 High-quality setup detected! ${insights.length} bullish factors aligned.` 
-        : 'Standard setup - no advanced confluences detected.'
+      // Clear recommendation
+      recommendation: warnings.length > 0
+        ? `⚠️ CAUTION: ${warnings.length} warning(s) detected. ${warnings.join(' ')}`
+        : confluenceCount >= 4 && signalQuality >= 60
+        ? `🔥 High-quality setup! ${confluenceCount} confluences aligned. Consider signal with ${signalQuality}% quality score.`
+        : `⚪ Marginal setup - only ${confluenceCount} confluences. Wait for better opportunity.`,
+      
+      summary: insights.length >= 4 && warnings.length === 0
+        ? `🔥 STRONG SETUP: ${insights.length} bullish factors aligned with no conflicting signals.` 
+        : insights.length > 0 && warnings.length > 0
+        ? `⚠️ MIXED SIGNALS: ${insights.length} positive factors but ${warnings.length} warnings. SKIP recommended.`
+        : 'Standard setup - insufficient confluences for high-probability trade.'
     };
+  },
+});
+
+/**
+ * Chart Image Analysis Tool
+ * Returns TradingView chart URLs for visual analysis by the LLM
+ * This allows agents to SEE the actual price action, patterns, and structure
+ */
+export const getChartImageTool = createTool({
+  name: 'get_chart_image',
+  description: 'Get TradingView chart image URLs for visual analysis. Use this to SEE actual price action, chart patterns, support/resistance levels, and market structure. CRITICAL: Always analyze charts visually before generating signals to confirm technical setup.',
+  schema: z.object({
+    symbol: z.string().describe('The trading symbol (e.g. "BTC", "ETH", "SOL") - just the symbol, not the pair'),
+    interval: z.enum(['1', '5', '15', '60', '240', 'D', 'W']).default('60').describe('Chart interval: 1=1min, 5=5min, 15=15min, 60=1hour, 240=4hour, D=daily, W=weekly'),
+    theme: z.enum(['light', 'dark']).default('dark').describe('Chart theme'),
+  }) as any,
+  fn: async ({ symbol, interval = '60', theme = 'dark' }: { symbol: string; interval?: string; theme?: 'light' | 'dark' }) => {
+    try {
+      // Normalize symbol (remove USDT if present, just need base symbol)
+      const baseSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '');
+      
+      // Interval descriptions
+      const intervalDescriptions: Record<string, string> = {
+        '1': '1 minute',
+        '5': '5 minute', 
+        '15': '15 minute',
+        '30': '30 minute',
+        '60': '1 hour',
+        '120': '2 hour',
+        '240': '4 hour',
+        'D': 'Daily',
+        'W': 'Weekly',
+        'M': 'Monthly'
+      };
+      
+      // Get chart URLs for multiple timeframes for comprehensive analysis
+      const timeframes = ['15', '60', '240', 'D'] as const; // 15m, 1h, 4h, daily
+      const chartUrls: Record<string, string> = {};
+      
+      for (const tf of timeframes) {
+        const url = chartImageService.getChartUrl({
+          symbol: baseSymbol,
+          interval: tf as any,
+          theme,
+        });
+        if (url) {
+          chartUrls[intervalDescriptions[tf] || tf] = url;
+        }
+      }
+      
+      // Primary chart URL (requested interval)
+      const primaryUrl = chartImageService.getChartUrl({
+        symbol: baseSymbol,
+        interval: interval as any,
+        theme,
+      });
+      
+      // Check if symbol is supported
+      const tvSymbol = chartImageService.getTradingViewSymbol(baseSymbol);
+      if (!tvSymbol) {
+        return {
+          error: `Symbol ${baseSymbol} not found in TradingView mappings`,
+          supported_symbols: ['BTC', 'ETH', 'SOL', 'BNB', 'ADA', 'AVAX', 'DOGE', 'ARB', 'OP', 'SUI', 'TIA', 'INJ', 'FET', 'TAO', 'WIF', 'PEPE'],
+          fallback: 'Use get_technical_analysis for numerical indicators instead',
+        };
+      }
+      
+      return {
+        symbol: baseSymbol,
+        tradingview_symbol: tvSymbol,
+        primary_chart: {
+          url: primaryUrl,
+          interval: intervalDescriptions[interval] || interval,
+          description: `Primary ${intervalDescriptions[interval] || interval} chart for ${baseSymbol}`,
+        },
+        multi_timeframe_charts: chartUrls,
+        analysis_instructions: `
+📊 VISUAL CHART ANALYSIS INSTRUCTIONS:
+1. Open each chart URL to visually analyze the price action
+2. On the DAILY chart: Identify the major trend direction and key S/R levels
+3. On the 4H chart: Look for swing structure and intermediate zones
+4. On the 1H chart: Find entry zones and confirm trend alignment
+5. On the 15m chart: Fine-tune entry timing and spot divergences
+
+🔍 KEY PATTERNS TO IDENTIFY:
+- Trend: Higher highs/lows (uptrend) or lower highs/lows (downtrend)
+- Support/Resistance: Horizontal levels with multiple touches
+- Chart Patterns: Flags, triangles, head & shoulders, double tops/bottoms
+- Volume Profile: High volume at key levels = strong S/R
+- Candlestick Patterns: Engulfing, doji, hammer at key levels
+
+⚠️ RED FLAGS TO WATCH:
+- Choppy, sideways price action (avoid)
+- Declining volume on rallies (weak)
+- Price at major resistance without consolidation (risky long)
+- Extended price far from moving averages (mean reversion risk)
+`,
+        warning: 'Charts are from TradingView. Load each URL to visually confirm the technical setup before generating a signal.',
+      };
+    } catch (error: any) {
+      logger.error('Chart image tool error:', error);
+      return {
+        error: `Failed to generate chart URLs: ${error.message}`,
+        fallback: 'Use technical indicators from get_technical_analysis tool instead',
+      };
+    }
   },
 });
 

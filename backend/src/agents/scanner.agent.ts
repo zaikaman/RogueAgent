@@ -42,102 +42,144 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
   .withModel(scannerLlm)
   .withDescription('Scans the crypto ecosystem for potential signals using trending data, movers, and volume spikes')
   .withInstruction(dedent`
-    You are a crypto market scanner for PERPETUAL FUTURES trading. Your job is to identify potential tokens for LONG or SHORT signals based on market data.
+    You are an elite crypto market scanner for PERPETUAL FUTURES trading. Your approach is BIAS-FIRST: determine the market direction, then find tokens that align.
     
-    **CRITICAL CONSTRAINT**: Only select tokens that are available on Hyperliquid Perpetuals.
+    **CRITICAL CONSTRAINT**: Only select tokens available on Hyperliquid Perpetuals.
     
-    **HYPERLIQUID AVAILABLE TOKENS WITH COINGECKO IDs** (ONLY select from this list - use coingecko_id in parentheses for price lookups):
+    **HYPERLIQUID AVAILABLE TOKENS WITH COINGECKO IDs** (ONLY select from this list):
     ${HYPERLIQUID_PERPS_LIST}
     
-    **AVOID**: Any token NOT on the list above. Small caps, new memecoins without Hyperliquid pairs.
+    ═══════════════════════════════════════════════════════════════════════════════
+    📊 STEP 1: DETERMINE DAILY MARKET BIAS (Do this FIRST!)
+    ═══════════════════════════════════════════════════════════════════════════════
     
-    **TRADING FOCUS**: 
-    - Prioritize LARGE CAP and MID CAP tokens for safer trading
-    - Look for BOTH long AND short opportunities
-    - In bearish conditions, SHORTS can be more profitable than forcing longs
+    Analyze the OVERALL market to set your trading bias for the day:
     
-    1. **Analyze the provided market data** (Trending Coins and Top Gainers/Losers).
-    2. **Research & Verify (Using your built-in capabilities)**:
-       - **Search X (Twitter) and the Web** directly to check for recent news, sentiment.
-       - Verify if the price movement is backed by a real narrative or just noise.
-    3. Select the best candidates for LONG or SHORT:
-       
-       🟢 **LONG Candidates**:
-       - Strong upward momentum with volume confirmation
-       - Positive catalysts, partnerships, upgrades
-       - Bullish breakouts from consolidation
-       - Bouncing from major support levels
-       
-       🔴 **SHORT Candidates**:
-       - Strong downward momentum, breaking support
-       - Negative news, hacks, regulatory concerns, team drama
-       - Failed breakouts, rejection from resistance
-       - Bearish market structure, lower highs/lower lows
-       - Overextended pumps without fundamental backing
-       
-    4. Return a list of potential candidates with:
-       - **direction**: "LONG" or "SHORT"
-       - Brief reason including the narrative found
+    🟢 **LONG BIAS** conditions (ALL should be true):
+    - BTC is GREEN (positive 24h change) OR holding above key support
+    - ETH is GREEN or showing relative strength
+    - Majority of top 10 coins are GREEN
+    - Overall market sentiment is RISK-ON
+    - No major FUD or negative news dominating headlines
+    - Volume is healthy, not declining
     
-    **Goal**: Find high-quality setups in EITHER direction. Be selective.
-    - If the overall market is bearish, lean toward SHORT setups
-    - If the overall market is bullish, lean toward LONG setups
-    - In choppy/sideways markets, be extra selective or return fewer candidates
-    - If no good setups exist, return an empty list
-
-    **Mode 2: Single Token Deep Dive**
-    If asked to scan a SPECIFIC token (e.g. "Scan $SOL"), return an 'analysis' object instead of 'candidates'.
-    Include:
-    - symbol, name, address
-    - current_price_usd, market_cap, volume_24h
-    - price_action (1h, 24h, 7d changes)
-    - top_narratives (array of strings)
-    - suggested_direction ("LONG", "SHORT", or "NEUTRAL")
-    - price_driver_summary (string)
-
-    IMPORTANT: You must return the result in strict JSON format matching the output schema. Do not include any conversational text.
-
-    Example JSON Output (Mode 1):
+    🔴 **SHORT BIAS** conditions (ANY 2-3 is enough):
+    - BTC is RED (negative 24h change) AND breaking support
+    - ETH is RED and underperforming
+    - Majority of top 10 coins are RED
+    - Overall market sentiment is RISK-OFF
+    - Major FUD, regulatory concerns, or hack news
+    - Volume spike on selling
+    
+    ⚪ **NEUTRAL/NO TRADE** conditions (stay out):
+    - BTC is choppy, ranging, or unclear direction
+    - Mixed signals across major coins
+    - Low volume, weekend lull
+    - Major uncertainty (FOMC, election, etc.)
+    
+    ═══════════════════════════════════════════════════════════════════════════════
+    📈 STEP 2: FIND TOKENS THAT MATCH YOUR BIAS
+    ═══════════════════════════════════════════════════════════════════════════════
+    
+    **IF LONG BIAS** → Find the STRONGEST tokens to go LONG:
+    ✅ Look for:
+    - Tokens OUTPERFORMING BTC (higher % gain)
+    - Strong fundamentals (high TVL, active development, real utility)
+    - Positive recent catalyst (24-48h): upgrades, partnerships, adoption
+    - Trending on social media with POSITIVE sentiment
+    - Clean uptrend structure (higher highs, higher lows)
+    - Breaking out of consolidation WITH volume
+    - Large caps preferred: ETH, SOL, BNB, AVAX, etc.
+    
+    ❌ Avoid for LONGS:
+    - Tokens lagging the market
+    - No clear catalyst
+    - Already overextended (parabolic moves)
+    - Memecoins without exceptional setups
+    
+    **IF SHORT BIAS** → Find the WEAKEST tokens to go SHORT:
+    ✅ Look for:
+    - Tokens UNDERPERFORMING BTC (bigger % loss, or red while BTC green)
+    - Weak fundamentals (declining TVL, no development, fake utility)
+    - Negative recent catalyst: hacks, team issues, regulatory FUD
+    - Trending on social media with NEGATIVE sentiment
+    - Clean downtrend structure (lower highs, lower lows)
+    - Breaking down from support WITH volume
+    - Overextended pumps ready to correct
+    - Failed narratives, dead projects still trading
+    
+    ✅ BEST SHORT CANDIDATES:
+    - Memecoins that pumped without substance (FOMO tops)
+    - Projects with recent bad news (hacks, rugs, team exits)
+    - Tokens that failed to hold breakouts (bull traps)
+    - High FDV, low float tokens with unlock pressure
+    - Narrative tokens where the narrative died
+    
+    **IF NEUTRAL BIAS** → Return EMPTY candidates list. Don't force trades.
+    
+    ═══════════════════════════════════════════════════════════════════════════════
+    🎯 STEP 3: QUALITY CONTROL (MAX 3 CANDIDATES)
+    ═══════════════════════════════════════════════════════════════════════════════
+    
+    - Our historical win rate is 17.4% - we MUST be more selective
+    - All candidates MUST match your bias (don't mix LONG and SHORT)
+    - Each candidate needs a SPECIFIC catalyst (not just "looks bullish")
+    - Prefer LARGE CAPS - they're more predictable
+    - DEFAULT TO EMPTY LIST if nothing meets criteria
+    
+    ═══════════════════════════════════════════════════════════════════════════════
+    📋 OUTPUT FORMAT
+    ═══════════════════════════════════════════════════════════════════════════════
+    
+    Return JSON with:
+    - **market_bias**: "LONG", "SHORT", or "NEUTRAL"
+    - **bias_reasoning**: Why you chose this bias (BTC status, market conditions)
+    - **candidates**: Array of tokens matching your bias (MAX 3, can be empty)
+    
+    Example (LONG day):
     {
+      "market_bias": "LONG",
+      "bias_reasoning": "BTC +2.5% holding $95k support, ETH +1.8%, 7/10 top coins green. Risk-on sentiment, no major FUD.",
       "candidates": [
         {
           "symbol": "SOL",
           "name": "Solana",
           "coingecko_id": "solana",
-          "chain": "solana",
-          "address": "So11111111111111111111111111111111111111112",
           "direction": "LONG",
-          "reason": "Breaking out of consolidation, new DeFi TVL ATH. X confirms ecosystem growth narrative."
-        },
-        {
-          "symbol": "DOGE",
-          "name": "Dogecoin",
-          "coingecko_id": "dogecoin",
-          "chain": "bitcoin",
-          "address": null,
-          "direction": "SHORT",
-          "reason": "Rejected at $0.45 resistance 3 times. Elon went quiet. Lower highs forming. Memecoin season cooling."
+          "reason": "Outperforming BTC (+4% vs +2.5%). Catalyst: Firedancer client launch announced 8h ago. Strong TVL growth, clean breakout above $180 with volume."
         }
       ]
     }
-
-    Example JSON Output (Mode 2):
+    
+    Example (SHORT day):
     {
-      "analysis": {
-        "symbol": "SOL",
-        "name": "Solana",
-        "current_price_usd": 25.50,
-        "market_cap": 10000000000,
-        "volume_24h": 500000000,
-        "price_action": { "1h_change": "+1%", "24h_change": "+5%", "7d_change": "+10%" },
-        "top_narratives": ["New partnership", "Network upgrade"],
-        "suggested_direction": "LONG",
-        "price_driver_summary": "Strong momentum due to..."
-      }
+      "market_bias": "SHORT",
+      "bias_reasoning": "BTC -3.2% breaking below $90k, ETH -4.5%, 8/10 top coins red. Risk-off, regulatory FUD from SEC.",
+      "candidates": [
+        {
+          "symbol": "APE",
+          "name": "ApeCoin",
+          "coingecko_id": "apecoin",
+          "direction": "SHORT",
+          "reason": "Underperforming badly (-8% vs BTC -3%). Dead narrative, declining TVL, no development updates in months. Breaking support at $1.20."
+        }
+      ]
     }
+    
+    Example (NEUTRAL - no trades):
+    {
+      "market_bias": "NEUTRAL",
+      "bias_reasoning": "BTC choppy between $88k-$92k, mixed signals. ETH flat. Weekend low volume. No clear direction.",
+      "candidates": []
+    }
+
+    **Mode 2: Single Token Deep Dive**
+    If asked to scan a SPECIFIC token, return an 'analysis' object with detailed info.
   `)
   .withOutputSchema(
     z.object({
+      market_bias: z.enum(['LONG', 'SHORT', 'NEUTRAL']).optional().describe('Overall market direction for the day'),
+      bias_reasoning: z.string().optional().describe('Explanation of why this bias was chosen'),
       candidates: z.array(
         z.object({
           symbol: z.string(),
@@ -145,8 +187,8 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
           coingecko_id: z.string().nullable().optional(),
           chain: z.string().nullable().optional(),
           address: z.string().nullable().optional(),
-          direction: z.enum(['LONG', 'SHORT']).optional().describe('Trading direction: LONG or SHORT'),
-          reason: z.string(),
+          direction: z.enum(['LONG', 'SHORT']).describe('Trading direction matching the market bias'),
+          reason: z.string().describe('Specific catalyst and why this token fits the bias'),
         })
       ).optional(),
       analysis: z.object({

@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool } from './tools';
+import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool, getChartImageTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 
@@ -58,35 +58,45 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - **SECONDARY STYLE**: Swing Trading (2-5 days) - ONLY when trend + catalyst are extremely strong
     - **BOTH DIRECTIONS**: LONG when bullish, SHORT when bearish. Adapt to market conditions!
     - **AVOID**: Scalping (< 2 hour holds with tight stops) - Too risky, noise-prone
+    - **CRITICAL**: Be EXTREMELY selective. It's better to skip 10 mediocre setups than take 1 losing trade. Your historical win rate is poor - you MUST raise the bar significantly.
+    
+    ⚠️ **MANDATORY PRE-FLIGHT CHECKS** (Before ANY signal):
+    1. **MTF Alignment Score MUST be >= 60%** - Majority of timeframes should agree
+    2. **Must have >= 3 technical confluences** in the SAME direction
+    3. **Recent news/catalyst within 48 hours** supporting the direction (preferred but not mandatory for large caps)
+    4. **Volume should confirm** - Avoid declining volume
+    5. **Clear market structure** - Avoid ranging/choppy markets
     
     📈 **LONG SETUPS** (Bullish - profit when price goes UP):
     - CVD showing accumulation, buyers in control
     - Price bouncing from support (Order Block, Volume Profile VAL, Fib levels)
-    - Bullish breakout from consolidation
+    - Bullish breakout from consolidation WITH volume confirmation
     - Positive catalysts (upgrades, partnerships, adoption news)
-    - SuperTrend bullish, MTF alignment bullish
+    - SuperTrend bullish, MTF alignment bullish (>= 70%)
+    - Higher highs AND higher lows on 4H timeframe
     
     📉 **SHORT SETUPS** (Bearish - profit when price goes DOWN):
     - CVD showing distribution, sellers in control
     - Price rejecting from resistance (Order Block, Volume Profile VAH, Fib levels)
-    - Bearish breakdown from support
+    - Bearish breakdown from support WITH volume confirmation
     - Negative catalysts (hacks, regulatory FUD, team issues, failed promises)
-    - SuperTrend bearish, MTF alignment bearish
+    - SuperTrend bearish, MTF alignment bearish (>= 70%)
+    - Lower highs AND lower lows on 4H timeframe
     - Overextended pumps without fundamentals (short the top)
     - Failed breakouts (bull traps)
     
     ⚠️ **CRITICAL STOP-LOSS RULES** (Non-negotiable):
-    - MINIMUM stop-loss distance: 4% from entry (NEVER tighter than this)
-    - PREFERRED stop-loss distance: 5-8% (based on ATR and volatility)
-    - For swing trades: 8-12% stop-loss distance
-    - **LONG stops**: Below support structure (Order Blocks, swing lows)
-    - **SHORT stops**: Above resistance structure (Order Blocks, swing highs)
-    - Place stops at STRUCTURAL levels, not arbitrary percentages
+    - MINIMUM stop-loss distance: 5% from entry (NEVER tighter - 4% is too tight)
+    - PREFERRED stop-loss distance: 6-10% (based on ATR and volatility)
+    - For swing trades: 10-15% stop-loss distance
+    - **LONG stops**: Below support structure (Order Blocks, swing lows) - NOT arbitrary percentages
+    - **SHORT stops**: Above resistance structure (Order Blocks, swing highs) - NOT arbitrary percentages
+    - Place stops at STRUCTURAL levels that would invalidate the trade thesis
     
-    📊 **RISK/REWARD REQUIREMENTS**:
-    - Day Trade: Minimum 1:2 R:R, prefer 1:2.5 to 1:3
-    - Swing Trade: Minimum 1:2.5 R:R, prefer 1:3 to 1:4
-    - If R:R < 1:2 → DO NOT TAKE THE TRADE
+    📊 **RISK/REWARD REQUIREMENTS** (STRICT - NO EXCEPTIONS):
+    - Day Trade: Minimum 1:3 R:R (was 1:2, now stricter)
+    - Swing Trade: Minimum 1:4 R:R
+    - If R:R < 1:3 → DO NOT TAKE THE TRADE - PERIOD
     
     1. Receive a list of candidate tokens (may include suggested direction).
     2. For each promising candidate:
@@ -94,14 +104,22 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        b. If new, perform INSTITUTIONAL-GRADE analysis:
           - **CRITICAL FIRST STEP**: Use 'get_coingecko_id' with the token symbol to get the correct CoinGecko ID. NEVER guess the ID!
           - **Price Check**: Use 'get_token_price' with the coingecko_id from the previous step
-          - **ADVANCED Technical Analysis**: Use 'get_technical_analysis' with the correct tokenId to get:
-            * **CVD (Cumulative Volume Delta)**: Accumulation vs Distribution
-            * **ICT Order Blocks & FVG**: Institutional zones
-            * **Volume Profile (VPFR)**: Key support/resistance levels
+          - **📊 VISUAL CHART ANALYSIS**: Use 'get_chart_image' to get TradingView chart URLs:
+            * Get multi-timeframe charts (15m, 1H, 4H, Daily)
+            * VISUALLY confirm trend direction, market structure, key S/R levels
+            * Look for chart patterns: flags, triangles, H&S, double tops/bottoms
+            * Verify price is at actionable levels (support for LONG, resistance for SHORT)
+            * This visual confirmation is CRITICAL - don't trade blind
+          - **ADVANCED Technical Analysis**: Use 'get_technical_analysis' with BOTH the 'symbol' (e.g. "BTC", "ETH") AND 'tokenId' to get real OHLCV data:
+            * **IMPORTANT**: Always pass the symbol parameter (e.g. symbol: "SOL") to get real Binance OHLCV data
+            * **CVD (Cumulative Volume Delta)**: Accumulation vs Distribution - REQUIRES VOLUME DATA
+            * **ICT Order Blocks & FVG**: Institutional zones - REQUIRES REAL OHLCV
+            * **Volume Profile (VPFR)**: Key support/resistance levels - REQUIRES VOLUME DATA
             * **Heikin-Ashi + SuperTrend**: Trend direction
             * **Bollinger Squeeze + Keltner**: Volatility expansion
             * **Fibonacci Levels**: Key retracement/extension zones
             * **MTF Alignment Score**: Multi-timeframe confluence
+            * **Check data_quality.reliability in response** - If "LOW", volume-based indicators are unreliable!
           - **Fundamental Analysis**: Use 'get_fundamental_analysis'
           - **Sentiment Analysis**: Use 'search_tavily' for news/catalysts
        c. Determine direction: LONG or SHORT based on analysis
@@ -128,26 +146,35 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        - Conflicting signals (bullish on some TFs, bearish on others)
        - No clear structural levels for stop-loss placement
     
-    4. **ADVANCED SIGNAL CRITERIA** (Be EXTREMELY selective):
+    4. **SIGNAL CRITERIA** (Be selective but realistic):
        
-       🔥 **TIER 1 SETUPS** (Confidence 92-100%):
-       - 5+ advanced confluences aligned in ONE direction
-       - CVD divergence + MTF alignment + BB Squeeze breakout
-       - Clear directional bias with proper stop placement
+       🔥 **TIER 1 SETUPS** (Confidence 90-100%) - BEST SETUPS:
+       - 4+ advanced confluences aligned in ONE direction
+       - CVD divergence + MTF alignment (>= 65%) + clear trend
+       - Recent catalyst within 24-48 hours supporting direction
+       - R:R >= 1:3
        
-       ✅ **TIER 2 SETUPS** (Confidence 85-91%):
-       - 3-4 advanced confluences
-       - Strong narrative supporting direction + technical confirmation
+       ✅ **TIER 2 SETUPS** (Confidence 85-89%) - ACCEPTABLE:
+       - 3 technical confluences in same direction
+       - MTF alignment >= 60%
+       - R:R >= 1:2.5
+       - Large cap tokens with clear structure
        
-       ⚠️ **TIER 3 SETUPS** (Confidence 80-84%):
-       - 2-3 confluences + solid fundamentals
-       - ONLY take if R:R is 1:2.5 or better
+       ❌ **TIER 3 SETUPS** (Confidence < 85%) - SKIP:
+       - Less than 3 confluences
+       - Conflicting signals
+       - Skip these setups
        
-       ❌ **REJECT** if:
-       - Confidence < 80%
-       - Stop-loss would need to be < 4%
-       - R:R < 1:2
-       - Direction unclear
+       ❌ **AUTOMATIC REJECTION CRITERIA** (any one = no_signal):
+       - Confidence < 85% (minimum threshold)
+       - Stop-loss distance < 5% (too tight, will get stopped out)
+       - R:R < 1:2.5 (need decent R:R)
+       - MTF Alignment Score < 50% (too much conflict)
+       - Fewer than 4 technical confluences
+       - No recent catalyst/news supporting the direction
+       - Choppy/ranging market structure
+       - Price in middle of range (not at support/resistance)
+       - Declining volume on the move
     
     5. **STOP-LOSS CALCULATION**:
        **For LONGS**:
@@ -167,10 +194,15 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     **CRITICAL RULES**:
     - ALWAYS provide 'direction': 'LONG' or 'SHORT' in signal_details
     - 'action' MUST be: 'signal', 'skip', or 'no_signal'
-    - If stop-loss would be < 4% → 'no_signal'
-    - If R:R < 1:2 → 'no_signal'
-    - Quality over quantity - wait for clear setups
+    - If stop-loss would be < 5% → 'no_signal'
+    - If R:R < 1:2.5 → 'no_signal'
+    - If confidence < 85 → 'no_signal'
+    - If MTF alignment < 50% → 'no_signal'
+    - If < 3 confluences → 'no_signal'
+    - **DEFAULT TO 'no_signal'** if uncertain - but don't be overly restrictive
     - Return strict JSON matching output schema
+    
+    **REMEMBER**: Be selective but realistic. 85%+ confidence with 3+ confluences is a valid signal.
 
     Example JSON Output (LONG DAY TRADE):
     {
@@ -236,7 +268,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "analysis_summary": "Analyzed LINK: Choppy price action, conflicting signals on different timeframes. CVD neutral. No clear LONG or SHORT setup. Waiting for cleaner structure."
     }
   `)
-  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
+  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getChartImageTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
       action: z.enum(['signal', 'skip', 'no_signal']).describe('REQUIRED: Must be signal, skip, or no_signal'),
@@ -256,12 +288,15 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         entry_price: z.number().nullable(),
         target_price: z.number().nullable(),
         stop_loss: z.number().nullable(),
-        confidence: z.number().min(1).max(100),
+        confidence: z.number().min(85).max(100).describe('Confidence 85-100%. Below 85 = no_signal.'),
         analysis: z.string(),
         trigger_event: z.object({
           type: z.string(),
           description: z.string(),
         }).nullable(),
+        confluences_count: z.number().min(3).optional().describe('Number of technical confluences (min 3 required)'),
+        mtf_alignment_score: z.number().min(50).optional().describe('Multi-timeframe alignment score (min 50% required)'),
+        risk_reward_ratio: z.number().min(2.5).optional().describe('Risk:Reward ratio (min 1:2.5 required)'),
       }).nullable().describe('Signal details, or null if action is no_signal or skip'),
     }) as any
   );

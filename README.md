@@ -21,6 +21,7 @@
 ## 📋 Table of Contents
 
 - [What is Rogue?](#-what-is-rogue)
+- [Recent Improvements](#-recent-improvements)
 - [The Problem We Solve](#-the-problem-we-solve)
 - [Core Architecture](#-the-swarm-architecture)
 - [Futures Agents](#-futures-agents---autonomous-perpetual-trading)
@@ -41,12 +42,47 @@
 **Rogue** is not just a bot; it's an **autonomous Crypto Trading Oracle**—a sophisticated multi-agent system that goes beyond analysis to actually execute trades. Think of it as your personal institutional-grade trading desk that never sleeps.
 
 Built on cutting-edge AI agent orchestration, Rogue continuously monitors the cryptocurrency markets across multiple dimensions:
-- **30+ data sources** including CoinGecko, Birdeye, DeFi Llama, CoinMarketCap
+- **30+ data sources** including CoinGecko, Birdeye, DeFi Llama, CoinMarketCap, **Binance**
 - **Real-time social sentiment** from X (Twitter) and crypto news sources
 - **On-chain analytics** tracking volume spikes, whale movements, and TVL shifts
 - **Advanced Technical Analysis** (2025 meta indicators: CVD, ICT Order Blocks, Volume Profile, SuperTrend, BB Squeeze, VW-MACD, Fibonacci, MTF alignment)
 - **Traditional indicators** (RSI, MACD, EMAs, support/resistance levels)
 - **Fundamental analysis** (market cap, FDV ratios, tokenomics)
+- **Visual Chart Analysis** — TradingView chart images for pattern recognition
+
+---
+
+## 🆕 Recent Improvements
+
+> **Latest updates to improve signal quality and win rate:**
+
+### Bias-First Scanner Methodology
+The Scanner Agent now determines LONG/SHORT/NEUTRAL market bias **before** searching for tokens:
+- Analyzes BTC context, funding rates, and sentiment first
+- Only finds tokens that align with the determined directional bias
+- Prevents fighting against market direction
+
+### Enhanced Quality Gate
+Stricter thresholds for higher-quality signals:
+| Metric | Old | New |
+|--------|-----|-----|
+| Confidence | 80% | **85%** |
+| Risk/Reward | 1:2 | **1:2.5** |
+| MTF Alignment | N/A | **50%** |
+| Confluences | 2+ | **3+** |
+| Min Stop-Loss | 4% | **5%** |
+
+### Binance OHLCV Data (NEW)
+Real candlestick data from Binance public API:
+- Accurate high/low/close/volume data (not derived)
+- 70+ supported trading pairs
+- Primary data source for technical analysis
+
+### Visual Chart Analysis (NEW)
+Agents can now request TradingView chart images:
+- 60+ supported tokens with chart URLs
+- Multi-timeframe visual verification
+- Pattern recognition confirmation before committing
 
 The platform operates autonomously on a configurable schedule (default: every 1 hour), running coordinated "swarms" of specialized AI agents that collaborate to identify, analyze, and distribute high-signal opportunities.
 
@@ -169,25 +205,40 @@ The **Orchestrator** is the conductor of the entire operation. It:
 
 ### 🕵️ Agent Breakdown
 
-#### 👁️ **Scanner Agent** - The Market Surveillance System
+#### 👁️ **Scanner Agent** - The Bias-First Market Scanner
 
-**Role**: First-line detection of market anomalies and trending opportunities.
+**Role**: First-line detection of market anomalies using **Bias-First Methodology** — determines LONG/SHORT/NEUTRAL market bias before finding matching opportunities.
+
+**Bias-First Approach (NEW)**:
+1. **Analyze BTC Context**: 4H trend direction, key support/resistance levels
+2. **Check Funding Rates**: Positive = crowded longs (fade potential), Negative = bounce potential
+3. **Sentiment Scan**: X/Twitter mood, news catalysts, Fear & Greed context
+4. **Commit to Bias**: LONG, SHORT, or NEUTRAL (no trading if neutral)
+5. **Find Matching Tokens**: Only search for setups that align with the determined bias
 
 **Data Sources**:
+- ⭐ **Binance OHLCV (Primary)** — Real candlestick data with accurate high/low/volume
 - CoinGecko trending coins (top 15)
 - Birdeye trending tokens (top 10, real-time DEX data)
-- Top gainers (24h price changes)
+- Top gainers/losers (24h price changes)
 - DeFi Llama TVL shifts (chain and protocol level)
 - Bitcoin market context (global sentiment indicator)
 
 **Intelligence**:
+- **Bias-aligned filtering** — Only returns tokens matching the day's directional bias
 - Uses **real-time X (Twitter) and web search** to validate each candidate
 - Filters out noise by requiring actual narratives, not just price pumps
 - Avoids stablecoins, wrapped tokens, and obvious scams
-- Prioritizes mid-caps and low-caps with high volume
-- Returns detailed candidate profiles including chain, contract address, and reasoning
+- **Max 3 candidates** — Quality over quantity, only the best setups
 
-**Output**: 3-5 high-quality candidates with narrative context, or empty list if market conditions are poor.
+**Output**: Market bias determination and up to 3 high-quality candidates aligned with that bias.
+```json
+{
+  "market_bias": "SHORT",
+  "bias_reasoning": "BTC rejected at $68k resistance with bearish 4H close...",
+  "candidates": [{ "symbol": "SOL", "direction": "SHORT", "reason": "Distribution pattern..." }]
+}
+```
 
 ---
 
@@ -205,6 +256,7 @@ The **Orchestrator** is the conductor of the entire operation. It:
 1. **Duplicate Prevention**: Checks database for recent signals on the same token (48h window)
 
 2. **Price Intelligence**:
+   - ⭐ **Binance OHLCV (Primary)** — Real candlestick data with accurate OHLCV
    - Fetches current price using chain + contract address for accuracy
    - Supports multi-chain lookup (Solana, Ethereum, Base, Arbitrum, etc.)
 
@@ -232,17 +284,32 @@ The **Orchestrator** is the conductor of the entire operation. It:
    - Partnership/integration announcements
    - Social media trending strength
 
+6. **Visual Chart Analysis (NEW)**:
+   - 📊 TradingView chart URLs for 60+ supported tokens
+   - 🔍 Visual confirmation of patterns (head & shoulders, wedges, channels)
+   - 📈 Multi-timeframe chart comparison (15m, 1H, 4H, Daily)
+   - ✅ Visual verification of indicator signals before committing
+
+**Quality Gate Thresholds (Updated)**:
+| Metric | Minimum | Preferred |
+|--------|---------|-----------|
+| Confidence Score | **85%** | 90%+ |
+| Risk/Reward Ratio | **1:2.5** | 1:3+ |
+| MTF Alignment | **50%** | 70%+ |
+| Confluences | **3+** | 5+ |
+| Stop-Loss Distance | **5%** | 5-8% |
+
 **Stop-Loss Rules** (Non-Negotiable):
-- ⚠️ **Minimum**: 4% from entry (NEVER tighter - avoids getting stopped on noise)
+- ⚠️ **Minimum**: 5% from entry (protects against noise)
 - ✅ **Preferred**: 5-8% based on ATR for day trades
 - 📈 **Swing Trades**: 8-12% stop-loss distance
 - 📍 Stops placed at **structural levels** (order blocks, VAL, swing lows)
-- ❌ If structural level requires < 4% stop → **SKIP THE TRADE**
+- ❌ If structural level requires < 5% stop → **SKIP THE TRADE**
 
 **Risk/Reward Requirements**:
-- Day Trade: Minimum **1:2 R:R**, prefer 1:2.5 to 1:3
-- Swing Trade: Minimum **1:2.5 R:R**, prefer 1:3 to 1:4
-- If R:R < 1:2 → **DO NOT TAKE THE TRADE**
+- Day Trade: Minimum **1:2.5 R:R**, prefer 1:3
+- Swing Trade: Minimum **1:3 R:R**, prefer 1:3 to 1:4
+- If R:R < 1:2.5 → **DO NOT TAKE THE TRADE**
 
 **Trading Style Selection**:
 | Choose Day Trade When | Choose Swing Trade When |

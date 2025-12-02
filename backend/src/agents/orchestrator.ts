@@ -9,7 +9,6 @@ import { logger } from '../utils/logger.util';
 import { cleanSignalText } from '../utils/text.util';
 import { supabaseService } from '../services/supabase.service';
 import { randomUUID } from 'crypto';
-import { twitterService } from '../services/twitter.service';
 import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
 import { coinMarketCapService } from '../services/coinmarketcap.service';
@@ -54,6 +53,7 @@ interface AnalyzerResult {
   } | null;
   signal_details: {
     order_type?: 'market' | 'limit';
+    trading_style?: 'day_trade' | 'swing_trade';
     entry_price: number | null;
     target_price: number | null;
     stop_loss: number | null;
@@ -63,7 +63,113 @@ interface AnalyzerResult {
       type: string;
       description: string;
     } | null;
+    confluences_count?: number;
+    mtf_alignment_score?: number;
+    risk_reward_ratio?: number;
   } | null;
+}
+
+/**
+ * Signal Quality Validator - Programmatic enforcement of strict quality criteria
+ * This catches signals that slip through the LLM's judgment
+ */
+interface SignalQualityResult {
+  isValid: boolean;
+  reasons: string[];
+  metrics: {
+    confidence: number;
+    riskRewardRatio: number;
+    stopLossPercent: number;
+    confluencesCount: number;
+    mtfAlignmentScore: number;
+  };
+}
+
+function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
+  const reasons: string[] = [];
+  const details = result.signal_details;
+  
+  if (!details || !details.entry_price || !details.target_price || !details.stop_loss) {
+    return {
+      isValid: false,
+      reasons: ['Missing required price levels'],
+      metrics: { confidence: 0, riskRewardRatio: 0, stopLossPercent: 0, confluencesCount: 0, mtfAlignmentScore: 0 }
+    };
+  }
+
+  const entry = details.entry_price;
+  const target = details.target_price;
+  const stop = details.stop_loss;
+  const confidence = details.confidence;
+  
+  // Determine direction
+  const isLong = target > entry;
+  
+  // Calculate R:R
+  const risk = isLong ? Math.abs(entry - stop) : Math.abs(stop - entry);
+  const reward = isLong ? Math.abs(target - entry) : Math.abs(entry - target);
+  const riskRewardRatio = risk > 0 ? reward / risk : 0;
+  
+  // Calculate stop loss percentage
+  const stopLossPercent = isLong 
+    ? ((entry - stop) / entry) * 100 
+    : ((stop - entry) / entry) * 100;
+  
+  // Get optional quality metrics (default to passing if not provided)
+  const confluencesCount = details.confluences_count || 3; // Assume minimum if not specified
+  const mtfAlignmentScore = details.mtf_alignment_score || 50; // Assume minimum if not specified
+
+  // VALIDATION RULES (balanced - selective but not impossible)
+  
+  // 1. Confidence must be >= 85
+  if (confidence < 85) {
+    reasons.push(`Confidence ${confidence}% is below minimum 85%`);
+  }
+  
+  // 2. Risk:Reward must be >= 1:2.5
+  if (riskRewardRatio < 2.5) {
+    reasons.push(`R:R ratio ${riskRewardRatio.toFixed(2)} is below minimum 1:2.5`);
+  }
+  
+  // 3. Stop loss must be >= 5% from entry
+  if (stopLossPercent < 5) {
+    reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% is below minimum 5%`);
+  }
+  
+  // 4. Stop loss shouldn't be too wide (> 15% for day trades, > 20% for swings)
+  const maxStop = details.trading_style === 'swing_trade' ? 20 : 15;
+  if (stopLossPercent > maxStop) {
+    reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% exceeds maximum ${maxStop}% for ${details.trading_style || 'day_trade'}`);
+  }
+  
+  // 5. Target should be realistic (not more than 50% for day trades, 100% for swings)
+  const targetPercent = isLong 
+    ? ((target - entry) / entry) * 100 
+    : ((entry - target) / entry) * 100;
+  const maxTarget = details.trading_style === 'swing_trade' ? 100 : 50;
+  if (targetPercent > maxTarget) {
+    reasons.push(`Target ${targetPercent.toFixed(1)}% seems unrealistic for ${details.trading_style || 'day_trade'}`);
+  }
+  
+  // 6. Entry, stop, and target must make logical sense
+  if (isLong && stop >= entry) {
+    reasons.push('LONG: Stop loss must be below entry price');
+  }
+  if (!isLong && stop <= entry) {
+    reasons.push('SHORT: Stop loss must be above entry price');
+  }
+
+  return {
+    isValid: reasons.length === 0,
+    reasons,
+    metrics: {
+      confidence,
+      riskRewardRatio,
+      stopLossPercent,
+      confluencesCount,
+      mtfAlignmentScore
+    }
+  };
 }
 
 interface GeneratorResult {
@@ -175,14 +281,21 @@ export class Orchestrator extends EventEmitter {
       let analyzerResult: AnalyzerResult | null = null;
 
       if (shouldTrySignal) {
-        // 1. Scanner
+        // 1. Scanner - Now with BIAS-FIRST approach
         logger.info('Running Scanner Agent...');
-        this.broadcast('Deploying Scanner Agent to identify anomalies...', 'info');
+        this.broadcast('Deploying Scanner Agent to determine market bias...', 'info');
         const { runner: scanner } = await ScannerAgent.build();
-        const scannerPrompt = `Scan the market for top trending tokens. Here is the current market data:\n${JSON.stringify(marketData, null, 2)}
+        const scannerPrompt = `Determine the market bias and find matching trading opportunities.
+
+Here is the current market data:
+${JSON.stringify(marketData, null, 2)}
         
-        RECENTLY POSTED CONTENT (Avoid repeating these):
-        ${JSON.stringify(recentPosts)}`;
+RECENTLY POSTED CONTENT (Avoid repeating these):
+${JSON.stringify(recentPosts)}
+
+STEP 1: First determine if today is a LONG day, SHORT day, or NEUTRAL (no trade).
+STEP 2: If LONG/SHORT, find up to 3 tokens that match your bias.
+STEP 3: Return empty candidates if NEUTRAL or no good setups exist.`;
         
         const scannerResult = await this.runAgentWithRetry<ScannerResult>(
           scanner,
@@ -190,16 +303,32 @@ export class Orchestrator extends EventEmitter {
           'Scanner Agent'
         );
         logger.info('Scanner result:', scannerResult);
-        this.broadcast(`Scanner Agent identified ${scannerResult.candidates?.length || 0} potential candidates.`, 'success', scannerResult);
-
-        if (scannerResult.candidates && scannerResult.candidates.length > 0) {
-          // 2. Analyzer
+        
+        // Log market bias
+        const marketBias = (scannerResult as any).market_bias || 'UNKNOWN';
+        const biasReasoning = (scannerResult as any).bias_reasoning || '';
+        logger.info(`Market Bias: ${marketBias} - ${biasReasoning}`);
+        this.broadcast(`Scanner determined ${marketBias} bias. Found ${scannerResult.candidates?.length || 0} candidates.`, 'success', scannerResult);
+        
+        // Skip if NEUTRAL bias
+        if (marketBias === 'NEUTRAL') {
+          logger.info('Scanner determined NEUTRAL bias - skipping signal generation');
+          this.broadcast('Market is NEUTRAL/choppy - no clear direction. Skipping signal generation.', 'warning');
+        } else if (scannerResult.candidates && scannerResult.candidates.length > 0) {
+          // 2. Analyzer - Pass market bias context
           logger.info('Running Analyzer Agent...');
           this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
           const { runner: analyzer } = await AnalyzerAgent.build();
-          const analyzerPrompt = `Analyze these candidates: ${JSON.stringify(scannerResult.candidates)}
+          const analyzerPrompt = `Analyze these ${marketBias} candidates for high-probability trading signals:
+
+Market Bias: ${marketBias}
+Bias Reasoning: ${biasReasoning}
+
+Candidates: ${JSON.stringify(scannerResult.candidates)}
           
-            Global Market Context: ${JSON.stringify(marketData.global_market_context)}`;
+Global Market Context: ${JSON.stringify(marketData.global_market_context)}
+
+IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.`;
           
           analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
             analyzer,
@@ -209,8 +338,24 @@ export class Orchestrator extends EventEmitter {
           logger.info('Analyzer result:', analyzerResult);
 
           if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
-            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
-            signalGenerated = true;
+            // QUALITY GATE: Programmatic validation to catch signals that slip through
+            const qualityCheck = validateSignalQuality(analyzerResult);
+            
+            if (!qualityCheck.isValid) {
+              logger.warn(`Signal REJECTED by quality gate for ${analyzerResult.selected_token.symbol}:`, qualityCheck.reasons);
+              logger.info('Signal quality metrics:', qualityCheck.metrics);
+              this.broadcast(
+                `Signal for ${analyzerResult.selected_token.symbol} rejected by quality gate: ${qualityCheck.reasons.join(', ')}`,
+                'warning',
+                { analyzerResult, qualityCheck }
+              );
+              // Force no signal
+              signalGenerated = false;
+            } else {
+              logger.info(`Signal PASSED quality gate for ${analyzerResult.selected_token.symbol}:`, qualityCheck.metrics);
+              this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}% | R:R: 1:${qualityCheck.metrics.riskRewardRatio.toFixed(1)} | Stop: ${qualityCheck.metrics.stopLossPercent.toFixed(1)}%`, 'success', analyzerResult);
+              signalGenerated = true;
+            }
           } else {
             this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
             logger.info('Analyzer decided to skip signal generation.');
