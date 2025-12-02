@@ -521,27 +521,27 @@ cvd divergence + poc support + network upgrade catalyst
 ```
 ┌─────────────────────────────────────────────────────┐
 │ Futures Scanner Agent                               │
-│    - Scans for LONG opportunities (breakouts,      │
-│      accumulation, oversold bounces)               │
-│    - Scans for SHORT opportunities (rejections,    │
-│      distribution, overbought reversals)           │
-│    - Validates with sentiment + volume analysis    │
+│    - Scans for LONG opportunities (breakouts,       │
+│      accumulation, oversold bounces)                │
+│    - Scans for SHORT opportunities (rejections,     │
+│      distribution, overbought reversals)            │
+│    - Validates with sentiment + volume analysis     │
 └─────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────┐
 │ Futures Analyzer Agent                              │
-│    - Deep technical analysis with direction logic  │
-│    - LONG: Stop below support, TP at resistance    │
-│    - SHORT: Stop above resistance, TP at support   │
-│    - Outputs: direction, entry, SL, TP, leverage   │
+│    - Deep technical analysis with direction logic   │
+│    - LONG: Stop below support, TP at resistance     │
+│    - SHORT: Stop above resistance, TP at support    │
+│    - Outputs: direction, entry, SL, TP, leverage    │
 └─────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────┐
 │ Signal Executor                                     │
-│    - Places market/limit orders via Hyperliquid    │
-│    - Sets trigger orders for stop-loss (stop-market│
-│      orders that execute when price crosses)       │
-│    - Manages position lifecycle                    │
+│    - Places market/limit orders via Hyperliquid     │
+│    - Sets trigger orders for stop-loss (stop-market │
+│      orders that execute when price crosses)        │
+│    - Manages position lifecycle                     │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -1078,7 +1078,7 @@ An **interactive chat interface** with persistent conversation history.
 
 ### 🔐 Tiered Access System
 
-**Tier Determination**: Based on RGE token holdings (ERC-20 on Ethereum mainnet).
+**Tier Determination**: Based on RGE token holdings (Fraxtal Chain).
 
 | Tier | Requirement | Benefits |
 |------|-------------|----------|
