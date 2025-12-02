@@ -9,7 +9,7 @@ export default function API() {
                 API Reference
             </h1>
             <p className="text-xl text-gray-400 leading-relaxed">
-                Complete documentation for all REST API endpoints. Base URL: <code className="text-teal-glow bg-white/5 px-2 py-1 rounded">https://rogue-6a0e7f8c39ad.herokuapp.com/api</code>
+                Complete documentation for all REST API endpoints. Base URL: <code className="text-teal-glow bg-white/5 px-2 py-1 rounded">https://rogue-backend-070dd3181dd4.herokuapp.com/api</code>
             </p>
         </div>
 
