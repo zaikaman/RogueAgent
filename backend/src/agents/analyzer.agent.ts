@@ -1,6 +1,6 @@
 import { AgentBuilder } from '@iqai/adk';
 import { llm } from '../config/llm.config';
-import { checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool } from './tools';
+import { getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool, getCoingeckoIdTool } from './tools';
 import { z } from 'zod';
 import dedent from 'dedent';
 import { TRADEABLE_TOKENS_LIST, TRADEABLE_TOKENS_COUNT } from '../constants/tradeable-tokens.constant';
@@ -103,8 +103,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     **ANALYSIS WORKFLOW:**
     1. Receive a list of candidate tokens (may include suggested direction).
     2. For each promising candidate:
-       a. Check 'check_recent_signals' to avoid duplicates.
-       b. If new, perform analysis:
+       a. Perform analysis:
           - **CRITICAL FIRST STEP**: Use 'get_coingecko_id' to get the correct CoinGecko ID
           - **Price Check**: Use 'get_token_price' - THIS IS YOUR CURRENT PRICE REFERENCE
           - **Technical Analysis**: Use 'get_technical_analysis' with the symbol
@@ -252,7 +251,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       "analysis_summary": "Analyzed SOL: Bullish breakout forming but current price $145, would need entry at $150 (above resistance). This would be a BUY STOP order which is NOT allowed. Waiting for pullback to support at $140 for valid LONG entry."
     }
   `)
-  .withTools(getCoingeckoIdTool, checkRecentSignalsTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
+  .withTools(getCoingeckoIdTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
   .withOutputSchema(
     z.object({
       action: z.enum(['signal', 'skip', 'no_signal']).describe('REQUIRED: Must be signal, skip, or no_signal'),
