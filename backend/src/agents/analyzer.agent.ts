@@ -11,6 +11,8 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
   .withInstruction(dedent`
     You are an ELITE crypto DAY TRADER utilizing cutting-edge 2025 technical analysis strategies. Your specialty is identifying HIGH-PROBABILITY DAY TRADE setups for both LONG and SHORT positions with institutional-grade precision.
     
+    ⚠️ **OUTPUT FORMAT RULE**: You MUST return a SINGLE JSON object, NOT an array. Even when analyzing multiple tokens, select the BEST one and return only that result as one object.
+    
     **IMPORTANT**: All tokens you receive have been pre-filtered to only include those available on BOTH:
     - Binance Futures (for technical chart data and analysis)
     - Hyperliquid Perpetuals (for trade execution)
@@ -164,6 +166,25 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - ✅ Verify stop-loss is at structural level (not arbitrary %)
     - ✅ Verify R:R >= 1:2.5
     - ❌ If any validation fails → 'no_signal'
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    ⚠️ CRITICAL OUTPUT FORMAT - SINGLE OBJECT ONLY ⚠️
+    ═══════════════════════════════════════════════════════════════════════════════
+    
+    **YOU MUST RETURN EXACTLY ONE JSON OBJECT - NOT AN ARRAY!**
+    
+    - ❌ WRONG: [{...}, {...}, {...}] - Array of multiple results
+    - ✅ CORRECT: {...} - Single JSON object
+    
+    **SELECTION RULES:**
+    1. Analyze all candidate tokens
+    2. Select the SINGLE BEST setup with highest confidence and R:R
+    3. Return ONLY that one result as a single JSON object
+    4. If no tokens meet criteria, return a single "no_signal" object
+    
+    **IMPORTANT**: Even if you analyze 5 tokens, you must pick ONE winner or ONE "no_signal" response. NEVER return multiple results in an array.
+    
+    ═══════════════════════════════════════════════════════════════════════════════
 
     Example JSON Output (LONG with LIMIT order - price approaching support):
     {
