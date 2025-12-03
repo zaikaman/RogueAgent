@@ -181,6 +181,37 @@ export class SupabaseService {
     return hasActive;
   }
 
+  /**
+   * Get all symbols that currently have active (non-closed) signals
+   * Active means the signal is not in a closed state (tp_hit, sl_hit, closed)
+   */
+  async getActiveSignalSymbols(): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('runs')
+      .select('content')
+      .eq('type', 'signal');
+
+    if (error) {
+      console.error('Error fetching active signal symbols:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) return [];
+
+    // Filter for active signals and extract unique symbols
+    const activeSymbols = new Set<string>();
+    for (const run of data) {
+      const status = run.content?.status;
+      const symbol = run.content?.token?.symbol;
+      // Active if NOT in closed state
+      if (symbol && !['tp_hit', 'sl_hit', 'closed'].includes(status)) {
+        activeSymbols.add(symbol);
+      }
+    }
+
+    return Array.from(activeSymbols);
+  }
+
   async getRecentSignalCount(hours: number = 24): Promise<number> {
     const timeAgo = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
     

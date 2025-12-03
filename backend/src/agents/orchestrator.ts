@@ -6,7 +6,7 @@ import { IntelAgent } from './intel.agent';
 import { YieldAgent, buildYieldPrompt, ExistingYield } from './yield.agent';
 import { AirdropAgent, buildAirdropPrompt, ExistingAirdrop } from './airdrop.agent';
 import { logger } from '../utils/logger.util';
-import { cleanSignalText } from '../utils/text.util';
+import { cleanSignalText, formatSignalTweet, formatIntelTweet } from '../utils/text.util';
 import { TechnicalAnalysis } from '../utils/ta.util';
 import { supabaseService } from '../services/supabase.service';
 import { binanceService } from '../services/binance.service';
@@ -306,6 +306,20 @@ export class Orchestrator extends EventEmitter {
         logger.info('Running Scanner Agent...');
         this.broadcast('Deploying Scanner Agent to determine market bias...', 'info');
         const { runner: scanner } = await ScannerAgent.build();
+        
+        // Get symbols with active (non-closed) signals to exclude
+        const activeSignalSymbols = await supabaseService.getActiveSignalSymbols();
+        const excludedSymbolsSection = activeSignalSymbols.length > 0 
+          ? `
+═══════════════════════════════════════════════════════════════════════════════
+🚫 EXCLUDED SYMBOLS (Active trades - DO NOT select these)
+═══════════════════════════════════════════════════════════════════════════════
+The following symbols already have ACTIVE trades (market orders or unfilled limit orders).
+DO NOT include any of these in your candidates list:
+${activeSignalSymbols.join(', ')}
+`
+          : '';
+        
         const scannerPrompt = `Determine the market bias and find matching trading opportunities.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -322,7 +336,7 @@ ${JSON.stringify(marketData, null, 2)}
 📝 RECENTLY POSTED CONTENT (Avoid repeating)
 ═══════════════════════════════════════════════════════════════════════════════
 ${JSON.stringify(recentPosts)}
-
+${excludedSymbolsSection}
 ═══════════════════════════════════════════════════════════════════════════════
 🔍 YOUR MISSION
 ═══════════════════════════════════════════════════════════════════════════════
@@ -534,9 +548,9 @@ IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates shou
         logger.info('Generator result:', generatorResult);
         this.broadcast('Content generated successfully.', 'success', generatorResult);
 
-        // Clean the content to remove errant backslashes from tweet formats
+        // Clean the content and format for proper tweet display
         const rawContent = generatorResult.formatted_content || generatorResult.tweet_text;
-        const content = rawContent ? cleanSignalText(rawContent) : null;
+        const content = rawContent ? formatSignalTweet(rawContent) : null;
 
         if (!content) {
             logger.error('Generator failed to produce content', generatorResult);
@@ -817,9 +831,9 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         // 3. Publisher (Tiered)
         logger.info(`Publishing Intel for run ${runId}...`);
         this.broadcast(`Publishing Intel for run ${runId}...`, 'info');
-        // Clean content to remove errant backslashes from tweet formats
+        // Clean and format intel tweet content for readability
         const rawTweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
-        const tweetContent = rawTweetContent ? cleanSignalText(rawTweetContent) : null;
+        const tweetContent = rawTweetContent ? formatIntelTweet(rawTweetContent) : null;
         const blogContent = generatorResult.blog_post || generatorResult.formatted_content;
         
         // Save run first to ensure ID exists for scheduled posts

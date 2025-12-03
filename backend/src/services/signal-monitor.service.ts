@@ -3,7 +3,7 @@ import { birdeyeService } from './birdeye.service';
 import { coingeckoService } from './coingecko.service';
 import { coinMarketCapService } from './coinmarketcap.service';
 import { logger } from '../utils/logger.util';
-import { cleanSignalText } from '../utils/text.util';
+import { cleanSignalText, formatSignalTweet } from '../utils/text.util';
 import { SignalContent } from '../../shared/types/signal.types';
 import { GeneratorAgent } from '../agents/generator.agent';
 import { telegramService } from './telegram.service';
@@ -251,8 +251,8 @@ export class SignalMonitorService {
 
                     const generatorResult = await generator.ask(generatorPrompt) as unknown as GeneratorResult;
                     
-                    // Clean content to remove errant backslashes from tweet formats
-                    content.formatted_tweet = cleanSignalText(generatorResult.formatted_content);
+                    // Clean and format tweet content
+                    content.formatted_tweet = formatSignalTweet(generatorResult.formatted_content);
                     content.status = 'active';
                     // Keep original entry_price for R:R calculation, log actual fill
                     logger.info(`Limit order filled at ${currentPrice} (Target was ${entryPrice})`);
