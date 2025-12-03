@@ -56,8 +56,10 @@ interface AnalyzerResult {
     address?: string | null;
   } | null;
   signal_details: {
+    direction?: 'LONG' | 'SHORT';
     order_type?: 'market' | 'limit';
     trading_style?: 'day_trade' | 'swing_trade';
+    current_price?: number;
     entry_price: number | null;
     target_price: number | null;
     stop_loss: number | null;
@@ -161,6 +163,32 @@ function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
   }
   if (!isLong && stop <= entry) {
     reasons.push('SHORT: Stop loss must be above entry price');
+  }
+
+  // 7. ENTRY PRICE VALIDATION - NO BUY/SELL STOP ORDERS
+  // This is critical: we only allow limit and market orders
+  const currentPrice = details.current_price;
+  const direction = details.direction;
+  
+  if (currentPrice && direction) {
+    if (direction === 'LONG' && entry > currentPrice) {
+      // Entry above current price for LONG = buy stop order (FORBIDDEN)
+      reasons.push(`LONG: Entry price $${entry.toFixed(4)} is ABOVE current price $${currentPrice.toFixed(4)} - this would be a BUY STOP order which is NOT allowed. Entry must be <= current price.`);
+    }
+    if (direction === 'SHORT' && entry < currentPrice) {
+      // Entry below current price for SHORT = sell stop order (FORBIDDEN)
+      reasons.push(`SHORT: Entry price $${entry.toFixed(4)} is BELOW current price $${currentPrice.toFixed(4)} - this would be a SELL STOP order which is NOT allowed. Entry must be >= current price.`);
+    }
+  } else if (!direction) {
+    // Infer direction from target vs entry if not provided
+    if (isLong && currentPrice && entry > currentPrice * 1.02) {
+      // Allow 2% tolerance for market orders, but reject clear buy stops
+      reasons.push(`LONG inferred: Entry price $${entry.toFixed(4)} is significantly above current price $${currentPrice?.toFixed(4) || 'unknown'} - possible buy stop order`);
+    }
+    if (!isLong && currentPrice && entry < currentPrice * 0.98) {
+      // Allow 2% tolerance for market orders, but reject clear sell stops
+      reasons.push(`SHORT inferred: Entry price $${entry.toFixed(4)} is significantly below current price $${currentPrice?.toFixed(4) || 'unknown'} - possible sell stop order`);
+    }
   }
 
   return {
@@ -518,17 +546,40 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
               const visionAnalyses: string[] = [];
               
               for (const chart of chartImages) {
-                const visionPrompt = `You are an expert crypto technical analyst. Analyze this ${chart.symbol}/USDT chart image and provide a concise technical analysis.
+                const visionPrompt = `You are an ELITE crypto technical analyst. Analyze this ${chart.symbol}/USDT chart and provide PRECISE, ACTIONABLE levels.
 
-Focus on:
-1. Trend direction (bullish/bearish/neutral)
-2. Key support and resistance levels visible
-3. Chart patterns (double bottom, head & shoulders, flags, etc.)
-4. Moving average positions (if visible)
-5. Volume characteristics
-6. Overall setup quality for trading
+**CRITICAL OUTPUT REQUIREMENTS:**
+You MUST provide EXACT PRICE LEVELS - these are used for automated stop-loss and take-profit placement.
 
-Provide a focused, actionable analysis in 150-200 words.`;
+**OUTPUT FORMAT (MANDATORY):**
+
+📈 TREND: [BULLISH/BEARISH/NEUTRAL]
+
+💰 CURRENT PRICE ZONE: $[exact price] - [description of where price is relative to structure]
+
+🟢 SUPPORT LEVELS (for LONG stop-loss placement):
+• S1: $[price] - [reason: e.g., "previous swing low", "order block", "200 SMA"]
+• S2: $[price] - [reason]
+• S3: $[price] - [reason: strongest/deepest support]
+
+🔴 RESISTANCE LEVELS (for SHORT stop-loss and LONG take-profit):
+• R1: $[price] - [reason: e.g., "recent swing high", "supply zone", "fib 0.618"]
+• R2: $[price] - [reason]
+• R3: $[price] - [reason: strongest resistance]
+
+📊 CHART PATTERNS: [identify any patterns: flags, triangles, H&S, double top/bottom, wedges]
+
+📉 VOLUME: [increasing/decreasing/neutral] - [implication for trend]
+
+⚡ TRADE SETUP:
+• Direction: [LONG/SHORT/NO TRADE]
+• Entry Zone: $[price range for limit order]
+• Stop Loss: $[exact price - must be at structural level]
+• Target 1: $[price]
+• Target 2: $[price]
+• Risk:Reward: [ratio]
+
+**IMPORTANT:** All prices must be EXACT numbers, not ranges like "around $X". These are used for automated order placement.`;
                 
                 const visionMessage = createVisionMessage(visionPrompt, chart.base64, chart.mimeType);
                 const visionResponse = await callVisionLLM([visionMessage], { maxTokens: 1024 });
