@@ -1088,7 +1088,7 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
 
   private async runAgentWithRetry<T>(agentRunner: any, prompt: string, agentName: string): Promise<T> {
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 10;
     let lastError: any;
 
     while (attempts < maxAttempts) {
