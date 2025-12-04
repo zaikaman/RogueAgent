@@ -718,9 +718,16 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
 ⚡ TRADE RECOMMENDATION
 ═══════════════════════════════════════════════════════════════════════════════
 
+**⚠️ ORDER TYPE RESTRICTION:** We can ONLY place MARKET orders or LIMIT orders.
+- MARKET ORDER: Enter immediately at current price (for breakouts, momentum plays)
+- LIMIT ORDER: Set a limit buy/sell at a specific price BELOW current price for LONG, ABOVE for SHORT
+- ❌ NO BUY STOP / SELL STOP orders (cannot enter on breakout above/below current price)
+- If your strategy requires entering on a breakout ABOVE current price (buy stop) → recommend MARKET order when price reaches that level OR skip the trade
+
 • **Direction**: [LONG / SHORT / NO TRADE]
 • **Confidence**: [HIGH / MEDIUM / LOW] - [reason based on TF alignment]
-• **Entry Strategy**: [market / limit at $X / scaled entries]
+• **Order Type**: [MARKET / LIMIT] - remember: NO buy stop or sell stop orders allowed
+• **Entry Strategy**: [market now / limit at $X below current for LONG, above current for SHORT]
 • **Optimal Entry Zone**: $[price] to $[price]
 • **Stop Loss**: $[exact price] - [must be beyond structural level]
 • **Take Profit 1**: $[price] - [reason - e.g., "1H resistance"]
