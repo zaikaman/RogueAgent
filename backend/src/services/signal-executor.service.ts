@@ -196,12 +196,39 @@ class SignalExecutorService {
         (signal.target_price > signal.entry_price ? 'LONG' : 'SHORT');
       
       // Calculate prices
-      const entryPrice = signal.entry_price;
+      let entryPrice = signal.entry_price;
       const takeProfitPrice = signal.target_price;
       const stopLossPrice = signal.stop_loss;
       
       // Determine order type (market or limit)
       const orderType = signal.order_type || 'market';
+      
+      // ═══════════════════════════════════════════════════════════════════
+      // PRICE VALIDATION SAFEGUARD - Secondary check before trade execution
+      // This catches any hallucinated prices that slipped through orchestrator
+      // ═══════════════════════════════════════════════════════════════════
+      try {
+        const realPrice = await hyperliquid.getPrice(futuresSymbol);
+        const priceDeviation = Math.abs((entryPrice - realPrice) / realPrice) * 100;
+        const maxDeviation = orderType === 'market' ? 5 : 15; // 5% for market, 15% for limit
+        
+        if (priceDeviation > maxDeviation) {
+          result.error = `Price validation failed: Entry $${entryPrice} is ${priceDeviation.toFixed(1)}% from real price $${realPrice.toFixed(4)}. Possible LLM hallucination.`;
+          logger.error(`❌ TRADE BLOCKED for ${agent.name}: ${result.error}`);
+          return result;
+        }
+        
+        // For market orders, use the real price instead of potentially stale entry price
+        if (orderType === 'market' && priceDeviation > 1) {
+          logger.info(`Adjusting market order entry from $${entryPrice} to real price $${realPrice.toFixed(4)} (${priceDeviation.toFixed(1)}% deviation)`);
+          entryPrice = realPrice;
+        }
+        
+        logger.info(`✅ Price validated for ${futuresSymbol}: Entry $${entryPrice}, Real $${realPrice.toFixed(4)} (${priceDeviation.toFixed(1)}% deviation)`);
+      } catch (priceCheckError) {
+        logger.warn(`Price validation warning for ${futuresSymbol}: ${priceCheckError}. Proceeding with caution.`);
+        // Don't block the trade if price check fails, but log the warning
+      }
       
       // Get max leverage for this specific asset from Hyperliquid
       const assetMaxLeverage = await hyperliquid.getMaxLeverage(futuresSymbol);

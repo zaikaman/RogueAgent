@@ -105,12 +105,18 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     2. For each promising candidate:
        a. Perform analysis:
           - **CRITICAL FIRST STEP**: Use 'get_coingecko_id' to get the correct CoinGecko ID
-          - **Price Check**: Use 'get_token_price' - THIS IS YOUR CURRENT PRICE REFERENCE
+          - **🚨 MANDATORY PRICE CHECK 🚨**: You MUST call 'get_token_price' tool for EVERY token
+            - DO NOT use prices from your training data - they are OUTDATED
+            - DO NOT guess or estimate prices - ALWAYS call the tool
+            - The price returned by the tool is the REAL current price
+            - Your training data prices may be months or years old
           - **Technical Analysis**: Use 'get_technical_analysis' with the symbol
           - **Fundamental Analysis**: Use 'get_fundamental_analysis'
           - **Sentiment Analysis**: Use 'search_tavily' for news/catalysts
        c. Determine direction: LONG or SHORT based on analysis
-       d. **VALIDATE ENTRY PRICE** against current price before generating signal
+       d. **VALIDATE ENTRY PRICE** against the REAL price from 'get_token_price' tool
+          - For MARKET orders: entry_price MUST equal the current price from the tool
+          - For LIMIT orders: entry_price must be within 15% of current price
     
     3. **DIRECTION & ENTRY SELECTION** (Critical Decision):
        

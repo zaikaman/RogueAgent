@@ -25,6 +25,74 @@ import { getCoingeckoId } from '../constants/coingecko-ids.constant';
 import { signalExecutorService } from '../services/signal-executor.service';
 import { EventEmitter } from 'events';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRICE VALIDATION UTILITY
+// Prevents hallucinated prices from LLM from causing bad trades
+// ═══════════════════════════════════════════════════════════════════════════════
+async function validateSignalPrice(
+  symbol: string,
+  entryPrice: number,
+  orderType: 'market' | 'limit' = 'market'
+): Promise<{ valid: boolean; realPrice: number | null; deviation: number | null; error?: string }> {
+  try {
+    // Try to get real price from Binance (most reliable for futures symbols)
+    let realPrice: number | null = null;
+    
+    try {
+      realPrice = await binanceService.getPrice(symbol);
+    } catch (e) {
+      logger.warn(`Failed to get Binance price for ${symbol}, trying CoinMarketCap...`);
+    }
+    
+    // Fallback to CoinMarketCap
+    if (!realPrice) {
+      try {
+        const cmcData = await coinMarketCapService.getPriceWithChange(symbol);
+        realPrice = cmcData?.price || null;
+      } catch (e) {
+        logger.warn(`Failed to get CMC price for ${symbol}, trying CoinGecko...`);
+      }
+    }
+    
+    // Fallback to CoinGecko
+    if (!realPrice) {
+      try {
+        const coingeckoId = getCoingeckoId(symbol);
+        if (coingeckoId) {
+          realPrice = await coingeckoService.getPrice(coingeckoId);
+        }
+      } catch (e) {
+        logger.warn(`Failed to get CoinGecko price for ${symbol}`);
+      }
+    }
+    
+    if (!realPrice) {
+      return { valid: false, realPrice: null, deviation: null, error: `Could not fetch real price for ${symbol}` };
+    }
+    
+    // Calculate deviation
+    const deviation = Math.abs((entryPrice - realPrice) / realPrice) * 100;
+    
+    // Market orders: entry price should be very close to current price (within 5%)
+    // Limit orders: more lenient (within 15%) since they're waiting for a specific price
+    const maxDeviation = orderType === 'market' ? 5 : 15;
+    
+    if (deviation > maxDeviation) {
+      return {
+        valid: false,
+        realPrice,
+        deviation,
+        error: `Entry price $${entryPrice} deviates ${deviation.toFixed(1)}% from real price $${realPrice.toFixed(4)}. Max allowed: ${maxDeviation}% for ${orderType} orders. LLM may have hallucinated the price.`
+      };
+    }
+    
+    return { valid: true, realPrice, deviation };
+  } catch (error) {
+    logger.error(`Price validation error for ${symbol}:`, error);
+    return { valid: false, realPrice: null, deviation: null, error: `Price validation failed: ${error}` };
+  }
+}
+
 interface ScannerResult {
   candidates?: Array<{
     symbol: string;
@@ -500,10 +568,43 @@ IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates shou
           logger.info('Analyzer result:', analyzerResult);
 
           if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
-            // Trust the LLM's judgment - no quality gate filtering
-            logger.info(`Signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`);
-            this.broadcast(`High-conviction signal detected for ${analyzerResult.selected_token.symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
-            signalGenerated = true;
+            // ═══════════════════════════════════════════════════════════════════
+            // PRICE VALIDATION - Catch hallucinated prices before executing trades
+            // ═══════════════════════════════════════════════════════════════════
+            const symbol = analyzerResult.selected_token.symbol;
+            const entryPrice = analyzerResult.signal_details.entry_price;
+            const orderType = analyzerResult.signal_details.order_type || 'market';
+            
+            if (symbol && entryPrice) {
+              logger.info(`Validating entry price for ${symbol}: $${entryPrice} (${orderType} order)...`);
+              const priceValidation = await validateSignalPrice(symbol, entryPrice, orderType);
+              
+              if (!priceValidation.valid) {
+                logger.error(`❌ PRICE VALIDATION FAILED for ${symbol}:`, priceValidation.error);
+                logger.error(`Signal entry: $${entryPrice}, Real price: $${priceValidation.realPrice}, Deviation: ${priceValidation.deviation?.toFixed(1)}%`);
+                this.broadcast(`⚠️ Signal rejected: ${symbol} entry price ($${entryPrice}) too far from real price ($${priceValidation.realPrice?.toFixed(4)}). LLM may have hallucinated the price.`, 'warning');
+                
+                // Don't proceed with hallucinated price signal
+                signalGenerated = false;
+              } else {
+                logger.info(`✅ Price validated for ${symbol}: Entry $${entryPrice}, Real $${priceValidation.realPrice?.toFixed(4)} (${priceValidation.deviation?.toFixed(1)}% deviation)`);
+                
+                // Update signal with validated real price if available
+                if (priceValidation.realPrice && orderType === 'market') {
+                  // For market orders, use real price as the entry price
+                  analyzerResult.signal_details.current_price = priceValidation.realPrice;
+                  analyzerResult.signal_details.entry_price = priceValidation.realPrice;
+                  logger.info(`Updated market order entry price to real price: $${priceValidation.realPrice.toFixed(4)}`);
+                }
+                
+                logger.info(`Signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`);
+                this.broadcast(`High-conviction signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
+                signalGenerated = true;
+              }
+            } else {
+              logger.warn(`Cannot validate price: missing symbol (${symbol}) or entry price (${entryPrice})`);
+              signalGenerated = false;
+            }
           } else {
             this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
             logger.info('Analyzer decided to skip signal generation.');
