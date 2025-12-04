@@ -143,6 +143,135 @@ interface AnalyzerResult {
   } | null;
 }
 
+/**
+ * Signal Quality Validator - Programmatic enforcement of strict quality criteria
+ * This catches signals that slip through the LLM's judgment
+ */
+interface SignalQualityResult {
+  isValid: boolean;
+  reasons: string[];
+  metrics: {
+    confidence: number;
+    riskRewardRatio: number;
+    stopLossPercent: number;
+    confluencesCount: number;
+    mtfAlignmentScore: number;
+  };
+}
+
+function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
+  const reasons: string[] = [];
+  const details = result.signal_details;
+  
+  if (!details || !details.entry_price || !details.target_price || !details.stop_loss) {
+    return {
+      isValid: false,
+      reasons: ['Missing required price levels'],
+      metrics: { confidence: 0, riskRewardRatio: 0, stopLossPercent: 0, confluencesCount: 0, mtfAlignmentScore: 0 }
+    };
+  }
+
+  const entry = details.entry_price;
+  const target = details.target_price;
+  const stop = details.stop_loss;
+  const confidence = details.confidence;
+  
+  // Determine direction
+  const isLong = target > entry;
+  
+  // Calculate R:R
+  const risk = isLong ? Math.abs(entry - stop) : Math.abs(stop - entry);
+  const reward = isLong ? Math.abs(target - entry) : Math.abs(entry - target);
+  const riskRewardRatio = risk > 0 ? reward / risk : 0;
+  
+  // Calculate stop loss percentage
+  const stopLossPercent = isLong 
+    ? ((entry - stop) / entry) * 100 
+    : ((stop - entry) / entry) * 100;
+  
+  // Get optional quality metrics (default to passing if not provided)
+  const confluencesCount = details.confluences_count || 2; // Assume minimum if not specified
+  const mtfAlignmentScore = details.mtf_alignment_score || 50; // Assume minimum if not specified
+
+  // VALIDATION RULES (balanced - selective but not impossible)
+  
+  // 1. Confidence must be >= 85
+  if (confidence < 85) {
+    reasons.push(`Confidence ${confidence}% is below minimum 85%`);
+  }
+  
+  // 2. Risk:Reward must be >= 1:2.5
+  if (riskRewardRatio < 2.5) {
+    reasons.push(`R:R ratio ${riskRewardRatio.toFixed(2)} is below minimum 1:2.5`);
+  }
+  
+  // 3. Stop loss must be >= 4.5% from entry
+  if (stopLossPercent < 4.5) {
+    reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% is below minimum 4.5%`);
+  }
+  
+  // 4. Stop loss shouldn't be too wide (> 15% for day trades, > 20% for swings)
+  const maxStop = details.trading_style === 'swing_trade' ? 20 : 15;
+  if (stopLossPercent > maxStop) {
+    reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% exceeds maximum ${maxStop}% for ${details.trading_style || 'day_trade'}`);
+  }
+  
+  // 5. Target should be realistic (not more than 50% for day trades, 100% for swings)
+  const targetPercent = isLong 
+    ? ((target - entry) / entry) * 100 
+    : ((entry - target) / entry) * 100;
+  const maxTarget = details.trading_style === 'swing_trade' ? 100 : 50;
+  if (targetPercent > maxTarget) {
+    reasons.push(`Target ${targetPercent.toFixed(1)}% seems unrealistic for ${details.trading_style || 'day_trade'}`);
+  }
+  
+  // 6. Entry, stop, and target must make logical sense
+  if (isLong && stop >= entry) {
+    reasons.push('LONG: Stop loss must be below entry price');
+  }
+  if (!isLong && stop <= entry) {
+    reasons.push('SHORT: Stop loss must be above entry price');
+  }
+
+  // 7. ENTRY PRICE VALIDATION - NO BUY/SELL STOP ORDERS
+  // This is critical: we only allow limit and market orders
+  const currentPrice = details.current_price;
+  const direction = details.direction;
+  
+  if (currentPrice && direction) {
+    if (direction === 'LONG' && entry > currentPrice) {
+      // Entry above current price for LONG = buy stop order (FORBIDDEN)
+      reasons.push(`LONG: Entry price $${entry.toFixed(4)} is ABOVE current price $${currentPrice.toFixed(4)} - this would be a BUY STOP order which is NOT allowed. Entry must be <= current price.`);
+    }
+    if (direction === 'SHORT' && entry < currentPrice) {
+      // Entry below current price for SHORT = sell stop order (FORBIDDEN)
+      reasons.push(`SHORT: Entry price $${entry.toFixed(4)} is BELOW current price $${currentPrice.toFixed(4)} - this would be a SELL STOP order which is NOT allowed. Entry must be >= current price.`);
+    }
+  } else if (!direction) {
+    // Infer direction from target vs entry if not provided
+    if (isLong && currentPrice && entry > currentPrice * 1.02) {
+      // Allow 2% tolerance for market orders, but reject clear buy stops
+      reasons.push(`LONG inferred: Entry price $${entry.toFixed(4)} is significantly above current price $${currentPrice?.toFixed(4) || 'unknown'} - possible buy stop order`);
+    }
+    if (!isLong && currentPrice && entry < currentPrice * 0.98) {
+      // Allow 2% tolerance for market orders, but reject clear sell stops
+      reasons.push(`SHORT inferred: Entry price $${entry.toFixed(4)} is significantly below current price $${currentPrice?.toFixed(4) || 'unknown'} - possible sell stop order`);
+    }
+  }
+
+  return {
+    isValid: reasons.length === 0,
+    reasons,
+    metrics: {
+      confidence,
+      riskRewardRatio,
+      stopLossPercent,
+      confluencesCount,
+      mtfAlignmentScore
+    }
+  };
+}
+
 interface GeneratorResult {
   formatted_content: string;
   tweet_text?: string;
@@ -597,9 +726,24 @@ IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates shou
                   logger.info(`Updated market order entry price to real price: $${priceValidation.realPrice.toFixed(4)}`);
                 }
                 
-                logger.info(`Signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`);
-                this.broadcast(`High-conviction signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}%`, 'success', analyzerResult);
-                signalGenerated = true;
+                // QUALITY GATE: Programmatic validation to catch signals that slip through
+                const qualityCheck = validateSignalQuality(analyzerResult);
+                
+                if (!qualityCheck.isValid) {
+                  logger.warn(`Signal REJECTED by quality gate for ${symbol}:`, qualityCheck.reasons);
+                  logger.info('Signal quality metrics:', qualityCheck.metrics);
+                  this.broadcast(
+                    `Signal for ${symbol} rejected by quality gate: ${qualityCheck.reasons.join(', ')}`,
+                    'warning',
+                    { analyzerResult, qualityCheck }
+                  );
+                  // Force no signal
+                  signalGenerated = false;
+                } else {
+                  logger.info(`Signal PASSED quality gate for ${symbol}:`, qualityCheck.metrics);
+                  this.broadcast(`High-conviction signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}% | R:R: 1:${qualityCheck.metrics.riskRewardRatio.toFixed(1)} | Stop: ${qualityCheck.metrics.stopLossPercent.toFixed(1)}%`, 'success', analyzerResult);
+                  signalGenerated = true;
+                }
               }
             } else {
               logger.warn(`Cannot validate price: missing symbol (${symbol}) or entry price (${entryPrice})`);
