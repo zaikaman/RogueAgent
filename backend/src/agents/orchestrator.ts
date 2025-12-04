@@ -584,10 +584,10 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
           // Generate multi-timeframe chart images for top candidates (limit to 3 candidates)
           // Each candidate gets 3 timeframes: 4H (higher timeframe), 1H (execution timeframe), 15m (precision entries)
           const topCandidates = scannerResult.candidates.slice(0, 3);
-          const timeframes: Array<{ interval: '15m' | '1h' | '4h'; label: string; candles: number }> = [
-            { interval: '4h', label: '4H', candles: 100 },    // ~17 days - higher timeframe trend
-            { interval: '1h', label: '1H', candles: 96 },     // 4 days - execution timeframe
-            { interval: '15m', label: '15m', candles: 96 },   // 1 day - precision entries
+          const timeframes: Array<{ interval: '15m' | '1h' | '4h'; label: string; days: number; maxCandles: number }> = [
+            { interval: '4h', label: '4H', days: 30, maxCandles: 100 },    // Fetch 30 days, use last 100 candles
+            { interval: '1h', label: '1H', days: 7, maxCandles: 100 },     // Fetch 7 days, use last 100 candles
+            { interval: '15m', label: '15m', days: 3, maxCandles: 100 },   // Fetch 3 days, use last 100 candles
           ];
           
           // Store charts grouped by symbol with all timeframes
@@ -602,8 +602,10 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
             for (const tf of timeframes) {
               try {
                 logger.info(`Generating ${tf.label} chart for ${candidate.symbol}...`);
-                const ohlcv = await binanceService.getOHLCV(candidate.symbol, tf.interval, tf.candles);
-                if (ohlcv && ohlcv.length >= 20) {
+                const allOhlcv = await binanceService.getOHLCV(candidate.symbol, tf.interval, tf.days);
+                if (allOhlcv && allOhlcv.length >= 20) {
+                  // Limit to maxCandles for cleaner, more readable charts
+                  const ohlcv = allOhlcv.slice(-tf.maxCandles);
                   const chartResult = await proChartService.generateCandlestickChart(
                     ohlcv,
                     candidate.symbol,
@@ -622,7 +624,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
                     base64: chartResult.base64,
                     mimeType: chartResult.mimeType,
                   });
-                  logger.info(`${tf.label} chart generated for ${candidate.symbol}`);
+                  logger.info(`${tf.label} chart generated for ${candidate.symbol} (${ohlcv.length} candles)`);
                 }
               } catch (e) {
                 logger.warn(`Failed to generate ${tf.label} chart for ${candidate.symbol}:`, e);
@@ -729,14 +731,22 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
 • **Order Type**: [MARKET / LIMIT] - remember: NO buy stop or sell stop orders allowed
 • **Entry Strategy**: [market now / limit at $X below current for LONG, above current for SHORT]
 • **Optimal Entry Zone**: $[price] to $[price]
-• **Stop Loss**: $[exact price] - [must be beyond structural level]
+• **Stop Loss**: $[exact price] - ⚠️ MUST BE >= 3% FROM ENTRY (minimum 3% stop distance required)
+  - For LONG: stop must be at least 3% BELOW entry price
+  - For SHORT: stop must be at least 3% ABOVE entry price
+  - Example: If entry is $100, LONG stop must be $97 or lower, SHORT stop must be $103 or higher
 • **Take Profit 1**: $[price] - [reason - e.g., "1H resistance"]
 • **Take Profit 2**: $[price] - [reason - e.g., "4H swing high"]
 • **Take Profit 3**: $[price] - [reason - e.g., "major resistance zone"]
 • **Risk:Reward**: [ratio]
 • **Timeframe Alignment Score**: [3/3 aligned, 2/3 aligned, conflicting]
 
-**CRITICAL:** All prices must be EXACT numbers read from the charts. These will be used for automated order placement. Do NOT estimate or use ranges like "around $X".`;
+**CRITICAL PRICE EXTRACTION INSTRUCTIONS:**
+1. Read the Y-axis price labels carefully - they show exact price levels
+2. All prices must be EXACT numbers read from the charts - these will be used for automated order placement
+3. Do NOT estimate or use ranges like "around $X" - use EXACT prices from the chart scale
+4. The charts display multiple price levels on the right side - use these for precision
+5. ⚠️ STOP-LOSS MUST BE >= 3% FROM ENTRY - verify your calculation before suggesting`;
                 
                 // Create multi-image message with all timeframes for this symbol
                 const images = symbolData.charts.map(c => ({ base64: c.base64, mimeType: c.mimeType }));

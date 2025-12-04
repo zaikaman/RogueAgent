@@ -200,8 +200,8 @@ class ProChartService {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Chart dimensions
-    const padding = { top: 60, right: 100, bottom: 80, left: 20 };
+    // Chart dimensions - increased right padding for better price label visibility
+    const padding = { top: 60, right: 120, bottom: 80, left: 20 };
     const volumeHeight = showVolume ? 100 : 0;
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom - volumeHeight - 20;
@@ -250,8 +250,8 @@ class ProChartService {
       ctx.strokeStyle = COLORS.gridLight;
       ctx.lineWidth = 0.5;
 
-      // Horizontal grid lines (price levels)
-      const priceStep = this.calculateNiceStep(maxPrice - minPrice, 8);
+      // Horizontal grid lines (price levels) - More lines for better price visibility
+      const priceStep = this.calculateNiceStep(maxPrice - minPrice, 15);
       const startPrice = Math.ceil(minPrice / priceStep) * priceStep;
       
       for (let price = startPrice; price <= maxPrice; price += priceStep) {
@@ -261,11 +261,11 @@ class ProChartService {
         ctx.lineTo(width - padding.right, y);
         ctx.stroke();
 
-        // Price labels
-        ctx.fillStyle = COLORS.textMuted;
-        ctx.font = '11px Arial';
+        // Price labels - larger font for better LLM vision readability
+        ctx.fillStyle = COLORS.text;
+        ctx.font = 'bold 13px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText(this.formatPrice(price), width - padding.right + 10, y + 4);
+        ctx.fillText(this.formatPrice(price), width - padding.right + 8, y + 5);
       }
 
       // Vertical grid lines (time)

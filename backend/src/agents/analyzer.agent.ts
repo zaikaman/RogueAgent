@@ -87,11 +87,29 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - SuperTrend bearish, MTF alignment bearish (>= 70%)
     - Lower highs AND lower lows on 4H timeframe
     
-    ⚠️ **CRITICAL STOP-LOSS RULES** (Non-negotiable):
-    - MINIMUM stop-loss distance: 3% from entry (NEVER tighter)
-    - **LONG stops**: Below support structure (Order Blocks, swing lows) - NOT arbitrary percentages
-    - **SHORT stops**: Above resistance structure (Order Blocks, swing highs) - NOT arbitrary percentages
-    - Place stops at STRUCTURAL levels that would invalidate the trade thesis
+    ═══════════════════════════════════════════════════════════════════════════════
+    🚨 MANDATORY STOP-LOSS RULES - YOUR SIGNAL WILL BE REJECTED IF VIOLATED 🚨
+    ═══════════════════════════════════════════════════════════════════════════════
+    
+    **⚠️ MINIMUM 3% STOP-LOSS DISTANCE IS ENFORCED PROGRAMMATICALLY ⚠️**
+    - Your signal WILL BE AUTOMATICALLY REJECTED if stop-loss is less than 3% from entry
+    - This is a HARD REQUIREMENT enforced by the quality gate - no exceptions
+    - Calculate: For LONG = (entry - stop) / entry >= 0.03 (3%)
+    - Calculate: For SHORT = (stop - entry) / entry >= 0.03 (3%)
+    
+    **EXAMPLE (CORRECT):**
+    - LONG entry at $100 → stop must be at $97 or lower (3%+ below)
+    - SHORT entry at $100 → stop must be at $103 or higher (3%+ above)
+    
+    **EXAMPLE (WRONG - WILL BE REJECTED):**
+    - LONG entry at $100, stop at $99 → REJECTED (only 1% stop)
+    - SHORT entry at $100, stop at $101 → REJECTED (only 1% stop)
+    
+    **STRUCTURAL PLACEMENT:**
+    - **LONG stops**: Below support structure (Order Blocks, swing lows, Fib levels)
+    - **SHORT stops**: Above resistance structure (Order Blocks, swing highs, Fib levels)
+    - Find structural levels that are >= 3% away from entry
+    - If no structural level exists >= 3% away, DO NOT TAKE THE TRADE
     
     📊 **RISK/REWARD REQUIREMENTS** (STRICT - NO EXCEPTIONS):
     - Day Trade: Minimum 1:2 R:R
@@ -149,11 +167,14 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        
        ❌ **AUTOMATIC REJECTION CRITERIA** (any one = no_signal):
        - Confidence < 85%
-       - Stop-loss distance < 3%
+       - 🚨 Stop-loss distance < 3% from entry (HARD REQUIREMENT - enforced by quality gate)
        - R:R < 1:2
        - LONG entry price > current price (would be buy stop)
        - SHORT entry price < current price (would be sell stop)
        - Price in middle of range (wait for S/R levels)
+       
+       ⚠️ REMEMBER: Your signal will be AUTOMATICALLY REJECTED by the quality gate
+       if stop-loss is less than 3% from entry. Always verify this calculation!
     
     5. **STOP-LOSS CALCULATION**:
        **For LONGS**: Place stop BELOW support structure
