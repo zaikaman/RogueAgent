@@ -720,33 +720,57 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
 ⚡ TRADE RECOMMENDATION
 ═══════════════════════════════════════════════════════════════════════════════
 
-**⚠️ ORDER TYPE RESTRICTION:** We can ONLY place MARKET orders or LIMIT orders.
-- MARKET ORDER: Enter immediately at current price (for breakouts, momentum plays)
-- LIMIT ORDER: Set a limit buy/sell at a specific price BELOW current price for LONG, ABOVE for SHORT
+**⚠️ STRICT TRADING RULES (NON-NEGOTIABLE):**
+
+📌 **ORDER TYPE RESTRICTION:**
+- ✅ MARKET ORDER: Enter immediately at current price
+- ✅ LIMIT ORDER: Set limit buy BELOW current price for LONG, ABOVE current price for SHORT
 - ❌ NO BUY STOP / SELL STOP orders (cannot enter on breakout above/below current price)
-- If your strategy requires entering on a breakout ABOVE current price (buy stop) → recommend MARKET order when price reaches that level OR skip the trade
+- If your strategy requires entering on a breakout ABOVE current price → recommend MARKET order when price reaches level OR skip
+
+📌 **STOP-LOSS RULES (ENFORCED - SIGNAL WILL BE REJECTED IF VIOLATED):**
+- ⚠️ MINIMUM 3% STOP-LOSS DISTANCE IS REQUIRED
+- For LONG: stop must be at least 3% BELOW entry price → (entry - stop) / entry >= 0.03
+- For SHORT: stop must be at least 3% ABOVE entry price → (stop - entry) / entry >= 0.03
+- Example: Entry $100 → LONG stop must be $97 or lower, SHORT stop must be $103 or higher
+- Maximum stop: 15% for day trades, 20% for swing trades
+
+📌 **RISK:REWARD REQUIREMENT:**
+- ⚠️ MINIMUM 1:2 RISK:REWARD RATIO IS REQUIRED
+- R:R = (Target - Entry) / (Entry - Stop) for LONG
+- R:R = (Entry - Target) / (Stop - Entry) for SHORT
+- If R:R < 2.0, DO NOT recommend the trade
+
+📌 **SINGLE TARGET RULE:**
+- Provide ONLY ONE Take Profit level (the primary target)
+- Do NOT provide multiple TPs (TP1, TP2, TP3) - the system uses a single target for R:R calculation
+- Choose the most realistic target that gives R:R >= 2.0
 
 • **Direction**: [LONG / SHORT / NO TRADE]
 • **Confidence**: [HIGH / MEDIUM / LOW] - [reason based on TF alignment]
 • **Order Type**: [MARKET / LIMIT] - remember: NO buy stop or sell stop orders allowed
 • **Entry Strategy**: [market now / limit at $X below current for LONG, above current for SHORT]
 • **Optimal Entry Zone**: $[price] to $[price]
-• **Stop Loss**: $[exact price] - ⚠️ MUST BE >= 3% FROM ENTRY (minimum 3% stop distance required)
-  - For LONG: stop must be at least 3% BELOW entry price
-  - For SHORT: stop must be at least 3% ABOVE entry price
-  - Example: If entry is $100, LONG stop must be $97 or lower, SHORT stop must be $103 or higher
-• **Take Profit 1**: $[price] - [reason - e.g., "1H resistance"]
-• **Take Profit 2**: $[price] - [reason - e.g., "4H swing high"]
-• **Take Profit 3**: $[price] - [reason - e.g., "major resistance zone"]
-• **Risk:Reward**: [ratio]
+• **Stop Loss**: $[exact price] - ⚠️ MUST BE >= 3% FROM ENTRY (verify calculation!)
+• **Take Profit**: $[exact price] - ONE target only, must give R:R >= 2.0
+• **Risk:Reward**: [ratio] - MUST be >= 1:2 (2.0 or higher)
 • **Timeframe Alignment Score**: [3/3 aligned, 2/3 aligned, conflicting]
+
+═══════════════════════════════════════════════════════════════════════════════
+🔢 VALIDATION CHECKLIST (Must pass ALL before recommending trade)
+═══════════════════════════════════════════════════════════════════════════════
+□ Stop-loss distance >= 3% from entry
+□ Risk:Reward ratio >= 1:2
+□ LONG entry <= current price (no buy stops)
+□ SHORT entry >= current price (no sell stops)
+□ Only ONE stop-loss and ONE take-profit provided
 
 **CRITICAL PRICE EXTRACTION INSTRUCTIONS:**
 1. Read the Y-axis price labels carefully - they show exact price levels
 2. All prices must be EXACT numbers read from the charts - these will be used for automated order placement
 3. Do NOT estimate or use ranges like "around $X" - use EXACT prices from the chart scale
 4. The charts display multiple price levels on the right side - use these for precision
-5. ⚠️ STOP-LOSS MUST BE >= 3% FROM ENTRY - verify your calculation before suggesting`;
+5. ⚠️ ALWAYS verify: (entry - stop) / entry >= 0.03 for LONG, (stop - entry) / entry >= 0.03 for SHORT`;
                 
                 // Create multi-image message with all timeframes for this symbol
                 const images = symbolData.charts.map(c => ({ base64: c.base64, mimeType: c.mimeType }));
