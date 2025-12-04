@@ -734,7 +734,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
                 // Create multi-image message with all timeframes for this symbol
                 const images = symbolData.charts.map(c => ({ base64: c.base64, mimeType: c.mimeType }));
                 const visionMessage = createMultiImageVisionMessage(visionPrompt, images);
-                const visionResponse = await callVisionLLM([visionMessage], { maxTokens: 2048 });
+                const visionResponse = await callVisionLLM([visionMessage], { maxTokens: 110000 });
                 visionAnalyses.push(`**${symbolData.symbol} Multi-Timeframe Analysis (${timeframeLabels}):**\n${visionResponse}`);
                 logger.info(`Multi-timeframe vision analysis complete for ${symbolData.symbol}`);
               }
