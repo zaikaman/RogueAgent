@@ -788,7 +788,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
             }
           }
           
-          const analyzerPromptText = `Analyze these ${marketBias} candidates for high-probability trading signals:
+          const baseAnalyzerPrompt = `Analyze these ${marketBias} candidates for high-probability trading signals:
 
 Market Bias: ${marketBias}
 Bias Reasoning: ${biasReasoning}
@@ -799,70 +799,125 @@ Global Market Context: ${JSON.stringify(marketData.global_market_context)}
 
 IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.${chartAnalysisText}`;
           
-          // Use standard text-based agent call with the visual analysis embedded
-          analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
-            analyzer,
-            analyzerPromptText,
-            'Analyzer Agent'
-          );
-          logger.info('Analyzer result:', analyzerResult);
-
-          if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
-            // ═══════════════════════════════════════════════════════════════════
-            // PRICE VALIDATION - Catch hallucinated prices before executing trades
-            // ═══════════════════════════════════════════════════════════════════
-            const symbol = analyzerResult.selected_token.symbol;
-            const entryPrice = analyzerResult.signal_details.entry_price;
-            const orderType = analyzerResult.signal_details.order_type || 'market';
+          // ═══════════════════════════════════════════════════════════════════════════════
+          // ANALYZER WITH QUALITY GATE RETRY LOOP
+          // Retry up to 10 times if signal fails quality validation
+          // ═══════════════════════════════════════════════════════════════════════════════
+          const MAX_QUALITY_RETRIES = 10;
+          let qualityRetryAttempt = 0;
+          let lastQualityFailureReasons: string[] = [];
+          
+          while (qualityRetryAttempt < MAX_QUALITY_RETRIES) {
+            qualityRetryAttempt++;
             
-            if (symbol && entryPrice) {
-              logger.info(`Validating entry price for ${symbol}: $${entryPrice} (${orderType} order)...`);
-              const priceValidation = await validateSignalPrice(symbol, entryPrice, orderType);
+            // Build prompt with quality feedback if this is a retry
+            let analyzerPromptText = baseAnalyzerPrompt;
+            if (lastQualityFailureReasons.length > 0) {
+              analyzerPromptText += `\n\n⚠️ CRITICAL QUALITY FEEDBACK (Attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES}):
+Your previous signal was REJECTED by the quality gate for the following reasons:
+${lastQualityFailureReasons.map(r => `• ${r}`).join('\n')}
+
+MANDATORY REQUIREMENTS - Your signal MUST satisfy ALL of these:
+1. Stop-loss distance >= 3% from entry (CRITICAL - this was the issue)
+2. Risk:Reward ratio >= 1:2 (2.0 or higher)
+3. Confidence >= 85%
+4. LONG entry <= current price (no buy stops)
+5. SHORT entry >= current price (no sell stops)
+
+Please provide a corrected signal that meets ALL quality requirements, or return action: "skip" if no valid setup exists.`;
+            }
+            
+            logger.info(`Running Analyzer Agent (attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES})...`);
+            
+            // Use standard text-based agent call with the visual analysis embedded
+            analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
+              analyzer,
+              analyzerPromptText,
+              'Analyzer Agent'
+            );
+            logger.info('Analyzer result:', analyzerResult);
+
+            if (analyzerResult.action === 'signal' && analyzerResult.selected_token && analyzerResult.signal_details) {
+              // ═══════════════════════════════════════════════════════════════════
+              // PRICE VALIDATION - Catch hallucinated prices before executing trades
+              // ═══════════════════════════════════════════════════════════════════
+              const symbol = analyzerResult.selected_token.symbol;
+              const entryPrice = analyzerResult.signal_details.entry_price;
+              const orderType = analyzerResult.signal_details.order_type || 'market';
               
-              if (!priceValidation.valid) {
-                logger.error(`❌ PRICE VALIDATION FAILED for ${symbol}:`, priceValidation.error);
-                logger.error(`Signal entry: $${entryPrice}, Real price: $${priceValidation.realPrice}, Deviation: ${priceValidation.deviation?.toFixed(1)}%`);
-                this.broadcast(`⚠️ Signal rejected: ${symbol} entry price ($${entryPrice}) too far from real price ($${priceValidation.realPrice?.toFixed(4)}). LLM may have hallucinated the price.`, 'warning');
+              if (symbol && entryPrice) {
+                logger.info(`Validating entry price for ${symbol}: $${entryPrice} (${orderType} order)...`);
+                const priceValidation = await validateSignalPrice(symbol, entryPrice, orderType);
                 
-                // Don't proceed with hallucinated price signal
-                signalGenerated = false;
-              } else {
-                logger.info(`✅ Price validated for ${symbol}: Entry $${entryPrice}, Real $${priceValidation.realPrice?.toFixed(4)} (${priceValidation.deviation?.toFixed(1)}% deviation)`);
-                
-                // Update signal with validated real price if available
-                if (priceValidation.realPrice && orderType === 'market') {
-                  // For market orders, use real price as the entry price
-                  analyzerResult.signal_details.current_price = priceValidation.realPrice;
-                  analyzerResult.signal_details.entry_price = priceValidation.realPrice;
-                  logger.info(`Updated market order entry price to real price: $${priceValidation.realPrice.toFixed(4)}`);
-                }
-                
-                // QUALITY GATE: Programmatic validation to catch signals that slip through
-                const qualityCheck = validateSignalQuality(analyzerResult);
-                
-                if (!qualityCheck.isValid) {
-                  logger.warn(`Signal REJECTED by quality gate for ${symbol}:`, qualityCheck.reasons);
-                  logger.info('Signal quality metrics:', qualityCheck.metrics);
-                  this.broadcast(
-                    `Signal for ${symbol} rejected by quality gate: ${qualityCheck.reasons.join(', ')}`,
-                    'warning',
-                    { analyzerResult, qualityCheck }
-                  );
-                  // Force no signal
+                if (!priceValidation.valid) {
+                  logger.error(`❌ PRICE VALIDATION FAILED for ${symbol}:`, priceValidation.error);
+                  logger.error(`Signal entry: $${entryPrice}, Real price: $${priceValidation.realPrice}, Deviation: ${priceValidation.deviation?.toFixed(1)}%`);
+                  this.broadcast(`⚠️ Signal rejected: ${symbol} entry price ($${entryPrice}) too far from real price ($${priceValidation.realPrice?.toFixed(4)}). LLM may have hallucinated the price.`, 'warning');
+                  
+                  // Don't proceed with hallucinated price signal
                   signalGenerated = false;
+                  break; // Price hallucination is not recoverable by retry
                 } else {
-                  logger.info(`Signal PASSED quality gate for ${symbol}:`, qualityCheck.metrics);
-                  this.broadcast(`High-conviction signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}% | R:R: 1:${qualityCheck.metrics.riskRewardRatio.toFixed(1)} | Stop: ${qualityCheck.metrics.stopLossPercent.toFixed(1)}%`, 'success', analyzerResult);
-                  signalGenerated = true;
+                  logger.info(`✅ Price validated for ${symbol}: Entry $${entryPrice}, Real $${priceValidation.realPrice?.toFixed(4)} (${priceValidation.deviation?.toFixed(1)}% deviation)`);
+                  
+                  // Update signal with validated real price if available
+                  if (priceValidation.realPrice && orderType === 'market') {
+                    // For market orders, use real price as the entry price
+                    analyzerResult.signal_details.current_price = priceValidation.realPrice;
+                    analyzerResult.signal_details.entry_price = priceValidation.realPrice;
+                    logger.info(`Updated market order entry price to real price: $${priceValidation.realPrice.toFixed(4)}`);
+                  }
+                  
+                  // QUALITY GATE: Programmatic validation to catch signals that slip through
+                  const qualityCheck = validateSignalQuality(analyzerResult);
+                  
+                  if (!qualityCheck.isValid) {
+                    logger.warn(`Signal REJECTED by quality gate for ${symbol} (attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES}):`, qualityCheck.reasons);
+                    logger.info('Signal quality metrics:', qualityCheck.metrics);
+                    
+                    // Store failure reasons for next retry
+                    lastQualityFailureReasons = qualityCheck.reasons;
+                    
+                    if (qualityRetryAttempt < MAX_QUALITY_RETRIES) {
+                      this.broadcast(
+                        `Signal for ${symbol} rejected by quality gate (attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES}): ${qualityCheck.reasons.join(', ')}. Retrying...`,
+                        'warning',
+                        { analyzerResult, qualityCheck }
+                      );
+                      // Continue to next iteration for retry
+                      continue;
+                    } else {
+                      // Max retries reached
+                      this.broadcast(
+                        `Signal for ${symbol} rejected by quality gate after ${MAX_QUALITY_RETRIES} attempts: ${qualityCheck.reasons.join(', ')}`,
+                        'error',
+                        { analyzerResult, qualityCheck }
+                      );
+                      signalGenerated = false;
+                      break;
+                    }
+                  } else {
+                    logger.info(`Signal PASSED quality gate for ${symbol}:`, qualityCheck.metrics);
+                    if (qualityRetryAttempt > 1) {
+                      this.broadcast(`High-conviction signal detected for ${symbol} after ${qualityRetryAttempt} attempts. Confidence: ${analyzerResult.signal_details.confidence}% | R:R: 1:${qualityCheck.metrics.riskRewardRatio.toFixed(1)} | Stop: ${qualityCheck.metrics.stopLossPercent.toFixed(1)}%`, 'success', analyzerResult);
+                    } else {
+                      this.broadcast(`High-conviction signal detected for ${symbol}. Confidence: ${analyzerResult.signal_details.confidence}% | R:R: 1:${qualityCheck.metrics.riskRewardRatio.toFixed(1)} | Stop: ${qualityCheck.metrics.stopLossPercent.toFixed(1)}%`, 'success', analyzerResult);
+                    }
+                    signalGenerated = true;
+                    break; // Success! Exit retry loop
+                  }
                 }
+              } else {
+                logger.warn(`Cannot validate price: missing symbol (${symbol}) or entry price (${entryPrice})`);
+                signalGenerated = false;
+                break; // Can't retry without price info
               }
             } else {
-              logger.warn(`Cannot validate price: missing symbol (${symbol}) or entry price (${entryPrice})`);
+              this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
+              logger.info('Analyzer decided to skip signal generation.');
               signalGenerated = false;
+              break; // Agent decided to skip, don't retry
             }
-          } else {
-            this.broadcast('Analyzer Agent filtered out candidates. No high-conviction signal found.', 'warning');
-            logger.info('Analyzer decided to skip signal generation.');
           }
         } else {
           this.broadcast('No significant anomalies found by Scanner Agent.', 'warning');
