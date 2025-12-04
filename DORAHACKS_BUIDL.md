@@ -165,7 +165,7 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 | Metric | Minimum | Preferred |
 |--------|---------|----------|
 | Confidence Score | **85%** | 90%+ |
-| Risk/Reward Ratio | **1:2.5** | 1:3+ |
+| Risk/Reward Ratio | **1:2** | 1:2.5+ |
 | MTF Alignment | **50%** | 70%+ |
 | Confluences | **2+** | 5+ |
 | Stop-Loss Distance | **5%** | 5-8% |
@@ -174,8 +174,8 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 
 | Score | Quality | Requirements |
 |-------|---------|---------------|
-| 92-100 | 🔥 TIER 1 | 5+ confluences, 1:3+ R:R |
-| 85-91 | ✅ TIER 2 | 2+ confluences, 1:2.5+ R:R, 50%+ MTF |
+| 92-100 | 🔥 TIER 1 | 5+ confluences, 1:2.5+ R:R |
+| 85-91 | ✅ TIER 2 | 2+ confluences, 1:2+ R:R, 50%+ MTF |
 | < 85 | ❌ REJECTED | Below quality gate |
 
 ---

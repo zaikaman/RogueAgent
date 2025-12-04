@@ -200,9 +200,9 @@ function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
     reasons.push(`Confidence ${confidence}% is below minimum 85%`);
   }
   
-  // 2. Risk:Reward must be >= 1:2.5
-  if (riskRewardRatio < 2.5) {
-    reasons.push(`R:R ratio ${riskRewardRatio.toFixed(2)} is below minimum 1:2.5`);
+  // 2. Risk:Reward must be >= 1:2
+  if (riskRewardRatio < 2.0) {
+    reasons.push(`R:R ratio ${riskRewardRatio.toFixed(2)} is below minimum 1:2`);
   }
   
   // 3. Stop loss must be >= 4.5% from entry

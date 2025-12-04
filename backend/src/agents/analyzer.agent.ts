@@ -96,9 +96,9 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - Place stops at STRUCTURAL levels that would invalidate the trade thesis
     
     📊 **RISK/REWARD REQUIREMENTS** (STRICT - NO EXCEPTIONS):
-    - Day Trade: Minimum 1:2.5 R:R
-    - Swing Trade: Minimum 1:3 R:R
-    - If R:R < 1:2.5 → DO NOT TAKE THE TRADE
+    - Day Trade: Minimum 1:2 R:R
+    - Swing Trade: Minimum 1:2.5 R:R
+    - If R:R < 1:2 → DO NOT TAKE THE TRADE
     
     **ANALYSIS WORKFLOW:**
     1. Receive a list of candidate tokens (may include suggested direction).
@@ -142,12 +142,12 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        🔥 **TIER 1 SETUPS** (Confidence 90-100%):
        - 4+ technical confluences aligned
        - Price at key S/R level with clear reaction
-       - R:R >= 1:3
+       - R:R >= 1:2.5
        
        ✅ **TIER 2 SETUPS** (Confidence 85-89%):
        - 2+ technical confluences
        - Price approaching S/R level (use LIMIT order)
-       - R:R >= 1:2.5
+       - R:R >= 1:2
        
        ❌ **AUTOMATIC REJECTION CRITERIA** (any one = no_signal):
        - Confidence < 85%

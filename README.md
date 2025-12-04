@@ -68,7 +68,7 @@ Stricter thresholds for higher-quality signals:
 | Metric | Old | New |
 |--------|-----|-----|
 | Confidence | 80% | **85%** |
-| Risk/Reward | 1:2 | **1:2.5** |
+| Risk/Reward | 1:1.5 | **1:2** |
 | MTF Alignment | N/A | **50%** |
 | Confluences | N/A | **2+** |
 | Min Stop-Loss | 4% | **5%** |
@@ -316,7 +316,7 @@ The **Orchestrator** is the conductor of the entire operation. It:
 | Metric | Minimum | Preferred |
 |--------|---------|-----------|
 | Confidence Score | **85%** | 90%+ |
-| Risk/Reward Ratio | **1:2.5** | 1:3+ |
+| Risk/Reward Ratio | **1:2** | 1:2.5+ |
 | MTF Alignment | **50%** | 70%+ |
 | Confluences | **2+** | 5+ |
 | Stop-Loss Distance | **5%** | 5-8% |
@@ -329,9 +329,9 @@ The **Orchestrator** is the conductor of the entire operation. It:
 - ❌ If structural level requires < 5% stop → **SKIP THE TRADE**
 
 **Risk/Reward Requirements**:
-- Day Trade: Minimum **1:2.5 R:R**, prefer 1:3
-- Swing Trade: Minimum **1:3 R:R**, prefer 1:3 to 1:4
-- If R:R < 1:2.5 → **DO NOT TAKE THE TRADE**
+- Day Trade: Minimum **1:2 R:R**, prefer 1:2.5
+- Swing Trade: Minimum **1:2.5 R:R**, prefer 1:3 to 1:4
+- If R:R < 1:2 → **DO NOT TAKE THE TRADE**
 
 **Trading Style Selection**:
 | Choose Day Trade When | Choose Swing Trade When |
