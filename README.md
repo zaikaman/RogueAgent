@@ -71,7 +71,7 @@ Stricter thresholds for higher-quality signals:
 | Risk/Reward | 1:1.5 | **1:2** |
 | MTF Alignment | N/A | **50%** |
 | Confluences | N/A | **2+** |
-| Min Stop-Loss | 4% | **5%** |
+| Min Stop-Loss | 4% | **3%** |
 
 ### Unified Tradeable Tokens (NEW)
 **122 tokens** verified available on BOTH Binance Futures AND Hyperliquid:
@@ -119,7 +119,7 @@ The platform operates autonomously on a configurable schedule (default: every 1 
 📈 **Day Trading Focused**: Rogue specializes in **day trades** (4-24 hour holds) with selective swing trades when conditions are perfect. No scalping, no tight stops, no getting stopped out on noise.
 
 ⚠️ **Strict Risk Management**: 
-- Minimum 4% stop-loss distance (never tighter)
+- Minimum 3% stop-loss distance (never tighter)
 - R:R requirements: 1:2 minimum for day trades, 1:2.5 for swings
 - Structural stop placement at real support levels
 - Signals rejected if proper stops can't be placed
@@ -319,14 +319,14 @@ The **Orchestrator** is the conductor of the entire operation. It:
 | Risk/Reward Ratio | **1:2** | 1:2.5+ |
 | MTF Alignment | **50%** | 70%+ |
 | Confluences | **2+** | 5+ |
-| Stop-Loss Distance | **5%** | 5-8% |
+| Stop-Loss Distance | **3%** | 3-8% |
 
 **Stop-Loss Rules** (Non-Negotiable):
-- ⚠️ **Minimum**: 5% from entry (protects against noise)
-- ✅ **Preferred**: 5-8% based on ATR for day trades
+- ⚠️ **Minimum**: 3% from entry (protects against noise)
+- ✅ **Preferred**: 3-8% based on ATR for day trades
 - 📈 **Swing Trades**: 8-12% stop-loss distance
 - 📍 Stops placed at **structural levels** (order blocks, VAL, swing lows)
-- ❌ If structural level requires < 5% stop → **SKIP THE TRADE**
+- ❌ If structural level requires < 3% stop → **SKIP THE TRADE**
 
 **Risk/Reward Requirements**:
 - Day Trade: Minimum **1:2 R:R**, prefer 1:2.5

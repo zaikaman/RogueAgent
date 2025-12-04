@@ -175,7 +175,7 @@ export default function Introduction() {
                         <h3 className="text-white font-semibold text-lg mb-2">Day Trading Focused</h3>
                         <p className="text-gray-400 mb-2">Rogue specializes in <strong className="text-white">day trades</strong> (4-24h holds) with selective swing trades:</p>
                         <ul className="text-sm text-gray-400 space-y-1">
-                            <li>• Minimum <strong className="text-white">4% stop-loss</strong> distance (never tighter)</li>
+                            <li>• Minimum <strong className="text-white">3% stop-loss</strong> distance (never tighter)</li>
                             <li>• <strong className="text-white">1:2 minimum R:R</strong> for all trades</li>
                             <li>• Structural stops at real support levels</li>
                             <li>• No scalping, no tight stops, no noise</li>

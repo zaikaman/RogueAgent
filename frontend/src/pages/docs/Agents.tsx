@@ -205,11 +205,11 @@ export default function Agents() {
                 <ul className="space-y-3 text-gray-300 list-none">
                     <li className="flex items-start gap-3">
                         <span className="text-yellow-400 text-xl">⚠️</span>
-                        <span><strong className="text-white">Minimum:</strong> 4% from entry (NEVER tighter - avoids getting stopped on noise)</span>
+                        <span><strong className="text-white">Minimum:</strong> 3% from entry (NEVER tighter - avoids getting stopped on noise)</span>
                     </li>
                     <li className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✅</span>
-                        <span><strong className="text-white">Preferred:</strong> 5-8% based on ATR for day trades</span>
+                        <span><strong className="text-white">Preferred:</strong> 3-8% based on ATR for day trades</span>
                     </li>
                     <li className="flex items-start gap-3">
                         <span className="text-blue-400 text-xl">📈</span>
@@ -221,7 +221,7 @@ export default function Agents() {
                     </li>
                     <li className="flex items-start gap-3">
                         <span className="text-red-400 text-xl">❌</span>
-                        <span><strong className="text-white">Rule:</strong> If structural level requires &lt;4% stop → SKIP THE TRADE</span>
+                        <span><strong className="text-white">Rule:</strong> If structural level requires &lt;3% stop → SKIP THE TRADE</span>
                     </li>
                 </ul>
             </div>
@@ -379,7 +379,7 @@ export default function Agents() {
                     <ul className="text-xs text-gray-400 space-y-1">
                         <li>• CVD divergence + MTF alignment (4+ TFs) + BB Squeeze breakout</li>
                         <li>• Strong catalyst + Volume Profile POC support + SuperTrend bullish</li>
-                        <li>• Structural stop-loss at 5-8% with 1:2.5+ R:R</li>
+                        <li>• Structural stop-loss at 3-8% with 1:2.5+ R:R</li>
                     </ul>
                 </div>
 

@@ -68,7 +68,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     2. **Must have >= 2 technical confluences** in the SAME direction
     3. **Clear structural levels** for entry, stop-loss, and target
     4. **Volume should confirm** - Avoid strongly declining volume
-    5. **R:R must be >= 1:2.5** - Risk/Reward is non-negotiable
+    5. **R:R must be >= 1:2** - Risk/Reward is non-negotiable
     6. **Entry price validation** - LONG entry <= current price, SHORT entry >= current price
     
     📈 **LONG SETUPS** (Bullish - profit when price goes UP):
@@ -88,9 +88,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - Lower highs AND lower lows on 4H timeframe
     
     ⚠️ **CRITICAL STOP-LOSS RULES** (Non-negotiable):
-    - MINIMUM stop-loss distance: 5% from entry (NEVER tighter)
-    - PREFERRED stop-loss distance: 6-10% (based on ATR and volatility)
-    - For swing trades: 10-15% stop-loss distance or more if needed
+    - MINIMUM stop-loss distance: 3% from entry (NEVER tighter)
     - **LONG stops**: Below support structure (Order Blocks, swing lows) - NOT arbitrary percentages
     - **SHORT stops**: Above resistance structure (Order Blocks, swing highs) - NOT arbitrary percentages
     - Place stops at STRUCTURAL levels that would invalidate the trade thesis
@@ -151,8 +149,8 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
        
        ❌ **AUTOMATIC REJECTION CRITERIA** (any one = no_signal):
        - Confidence < 85%
-       - Stop-loss distance < 5%
-       - R:R < 1:2.5
+       - Stop-loss distance < 3%
+       - R:R < 1:2
        - LONG entry price > current price (would be buy stop)
        - SHORT entry price < current price (would be sell stop)
        - Price in middle of range (wait for S/R levels)
@@ -169,7 +167,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
     - ✅ Verify LONG entry_price <= current_price
     - ✅ Verify SHORT entry_price >= current_price
     - ✅ Verify stop-loss is at structural level (not arbitrary %)
-    - ✅ Verify R:R >= 1:2.5
+    - ✅ Verify R:R >= 1:2
     - ❌ If any validation fails → 'no_signal'
 
     ═══════════════════════════════════════════════════════════════════════════════
@@ -286,7 +284,7 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
         }).nullable(),
         confluences_count: z.number().min(2).optional().describe('Number of technical confluences (min 2 required)'),
         mtf_alignment_score: z.number().min(50).optional().describe('Multi-timeframe alignment score (min 50% required)'),
-        risk_reward_ratio: z.number().min(2.5).optional().describe('Risk:Reward ratio (min 1:2.5 required)'),
+        risk_reward_ratio: z.number().min(2).optional().describe('Risk:Reward ratio (min 1:2 required)'),
       }).nullable().describe('Signal details, or null if action is no_signal or skip'),
     }) as any
   );

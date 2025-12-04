@@ -46,7 +46,7 @@
 🎯 **Autonomous Operation**: Runs 24/7 without manual input  
 🧠 **Multi-Agent Intelligence**: 10+ specialized agents for scanning, analysis, execution, and distribution  
 📈 **From Analysis to Execution**: Trades LONG/SHORT positions on Hyperliquid with dynamic leverage  
-⚠️ **Strict Risk Management**: Minimum **5% SL**, **1:2.5 R:R** requirement, **85%+ confidence**, structural stop placement  
+⚠️ **Strict Risk Management**: Minimum **3% SL**, **1:2.5 R:R** requirement, **85%+ confidence**, structural stop placement  
 🔄 **Bias-First Scanning**: Determines LONG/SHORT/NEUTRAL market bias before finding matching opportunities  
 📊 **Visual Chart Analysis**: TradingView chart images for pattern confirmation  
 🗣️ **Voice AI Interface**: Speak to Rogue using natural language via VAPI  
@@ -168,7 +168,7 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 | Risk/Reward Ratio | **1:2** | 1:2.5+ |
 | MTF Alignment | **50%** | 70%+ |
 | Confluences | **2+** | 5+ |
-| Stop-Loss Distance | **5%** | 5-8% |
+| Stop-Loss Distance | **3%** | 3-8% |
 
 **Signal Tiers**:
 
@@ -226,7 +226,7 @@ Stricter thresholds for higher win rates:
 - R:R: 1:2 → **1:2.5**
 - MTF Alignment: **50% minimum**
 - Confluences: **2+ minimum**
-- Stop-Loss: 4% → **5%**
+- Stop-Loss: 4% → **3%**
 
 ### Unified Tradeable Tokens (NEW)
 **122 tokens** verified on BOTH Binance Futures AND Hyperliquid:

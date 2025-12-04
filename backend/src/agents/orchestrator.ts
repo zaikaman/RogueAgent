@@ -11,7 +11,7 @@ import { TechnicalAnalysis } from '../utils/ta.util';
 import { supabaseService } from '../services/supabase.service';
 import { binanceService } from '../services/binance.service';
 import { proChartService } from '../services/pro-chart.service';
-import { callVisionLLM, createVisionMessage } from '../services/vision-llm.service';
+import { callVisionLLM, createVisionMessage, createMultiImageVisionMessage } from '../services/vision-llm.service';
 import { randomUUID } from 'crypto';
 import { telegramService } from '../services/telegram.service';
 import { coingeckoService } from '../services/coingecko.service';
@@ -205,9 +205,9 @@ function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
     reasons.push(`R:R ratio ${riskRewardRatio.toFixed(2)} is below minimum 1:2`);
   }
   
-  // 3. Stop loss must be >= 4.5% from entry
-  if (stopLossPercent < 4.5) {
-    reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% is below minimum 4.5%`);
+  // 3. Stop loss must be >= 3% from entry
+  if (stopLossPercent < 3.0) {
+    reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% is below minimum 3%`);
   }
   
   // 4. Stop loss shouldn't be too wide (> 15% for day trades, > 20% for swings)
@@ -581,99 +581,169 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
           logger.info('Running Analyzer Agent...');
           this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
           
-          // Generate chart images for top candidates (limit to 3 to avoid token overflow)
+          // Generate multi-timeframe chart images for top candidates (limit to 3 candidates)
+          // Each candidate gets 3 timeframes: 4H (higher timeframe), 1H (execution timeframe), 15m (precision entries)
           const topCandidates = scannerResult.candidates.slice(0, 3);
-          const chartImages: Array<{ symbol: string; base64: string; mimeType: string }> = [];
+          const timeframes: Array<{ interval: '15m' | '1h' | '4h'; label: string; candles: number }> = [
+            { interval: '4h', label: '4H', candles: 100 },    // ~17 days - higher timeframe trend
+            { interval: '1h', label: '1H', candles: 96 },     // 4 days - execution timeframe
+            { interval: '15m', label: '15m', candles: 96 },   // 1 day - precision entries
+          ];
+          
+          // Store charts grouped by symbol with all timeframes
+          const multiTimeframeCharts: Array<{
+            symbol: string;
+            charts: Array<{ timeframe: string; base64: string; mimeType: string }>;
+          }> = [];
           
           for (const candidate of topCandidates) {
-            try {
-              logger.info(`Generating chart image for ${candidate.symbol}...`);
-              const ohlcv = await binanceService.getOHLCV(candidate.symbol, '4h', 100);
-              if (ohlcv && ohlcv.length >= 20) {
-                const chartResult = await proChartService.generateCandlestickChart(
-                  ohlcv,
-                  candidate.symbol,
-                  {
-                    title: `${candidate.symbol}/USDT - 4H`,
-                    width: 1400,
-                    height: 900,
-                    showVolume: true,
-                    showSMA: [20, 50],
-                    showBollingerBands: true,
-                    darkMode: true,
-                  }
-                );
-                chartImages.push({
-                  symbol: candidate.symbol,
-                  base64: chartResult.base64,
-                  mimeType: chartResult.mimeType,
-                });
-                logger.info(`Chart image generated for ${candidate.symbol}`);
+            const symbolCharts: Array<{ timeframe: string; base64: string; mimeType: string }> = [];
+            
+            for (const tf of timeframes) {
+              try {
+                logger.info(`Generating ${tf.label} chart for ${candidate.symbol}...`);
+                const ohlcv = await binanceService.getOHLCV(candidate.symbol, tf.interval, tf.candles);
+                if (ohlcv && ohlcv.length >= 20) {
+                  const chartResult = await proChartService.generateCandlestickChart(
+                    ohlcv,
+                    candidate.symbol,
+                    {
+                      title: `${candidate.symbol}/USDT - ${tf.label}`,
+                      width: 1400,
+                      height: 900,
+                      showVolume: true,
+                      showSMA: [20, 50],
+                      showBollingerBands: true,
+                      darkMode: true,
+                    }
+                  );
+                  symbolCharts.push({
+                    timeframe: tf.label,
+                    base64: chartResult.base64,
+                    mimeType: chartResult.mimeType,
+                  });
+                  logger.info(`${tf.label} chart generated for ${candidate.symbol}`);
+                }
+              } catch (e) {
+                logger.warn(`Failed to generate ${tf.label} chart for ${candidate.symbol}:`, e);
               }
-            } catch (e) {
-              logger.warn(`Failed to generate chart for ${candidate.symbol}:`, e);
+            }
+            
+            if (symbolCharts.length > 0) {
+              multiTimeframeCharts.push({
+                symbol: candidate.symbol,
+                charts: symbolCharts,
+              });
             }
           }
           
           const { runner: analyzer } = await AnalyzerAgent.build();
           
-          // If we have chart images, use vision API to get visual analysis first
+          // If we have multi-timeframe chart images, use vision API for comprehensive analysis
           let chartAnalysisText = '';
-          if (chartImages.length > 0) {
-            logger.info(`Performing visual chart analysis for ${chartImages.length} chart(s)...`);
-            this.broadcast(`Analyzing ${chartImages.length} chart image(s) with vision model...`, 'info');
+          if (multiTimeframeCharts.length > 0) {
+            const totalCharts = multiTimeframeCharts.reduce((sum, m) => sum + m.charts.length, 0);
+            logger.info(`Performing multi-timeframe visual analysis for ${multiTimeframeCharts.length} coin(s), ${totalCharts} total chart(s)...`);
+            this.broadcast(`Analyzing ${totalCharts} multi-timeframe charts with vision model (4H/1H/15m)...`, 'info');
             
             try {
-              // Build vision messages - one per chart for clarity
+              // Build vision messages - analyze all timeframes together per symbol for coherent MTF analysis
               const visionAnalyses: string[] = [];
               
-              for (const chart of chartImages) {
-                const visionPrompt = `You are an ELITE crypto technical analyst. Analyze this ${chart.symbol}/USDT chart and provide PRECISE, ACTIONABLE levels.
-
-**CRITICAL OUTPUT REQUIREMENTS:**
-You MUST provide EXACT PRICE LEVELS - these are used for automated stop-loss and take-profit placement.
-
-**OUTPUT FORMAT (MANDATORY):**
-
-📈 TREND: [BULLISH/BEARISH/NEUTRAL]
-
-💰 CURRENT PRICE ZONE: $[exact price] - [description of where price is relative to structure]
-
-🟢 SUPPORT LEVELS (for LONG stop-loss placement):
-• S1: $[price] - [reason: e.g., "previous swing low", "order block", "200 SMA"]
-• S2: $[price] - [reason]
-• S3: $[price] - [reason: strongest/deepest support]
-
-🔴 RESISTANCE LEVELS (for SHORT stop-loss and LONG take-profit):
-• R1: $[price] - [reason: e.g., "recent swing high", "supply zone", "fib 0.618"]
-• R2: $[price] - [reason]
-• R3: $[price] - [reason: strongest resistance]
-
-📊 CHART PATTERNS: [identify any patterns: flags, triangles, H&S, double top/bottom, wedges]
-
-📉 VOLUME: [increasing/decreasing/neutral] - [implication for trend]
-
-⚡ TRADE SETUP:
-• Direction: [LONG/SHORT/NO TRADE]
-• Entry Zone: $[price range for limit order]
-• Stop Loss: $[exact price - must be at structural level]
-• Target 1: $[price]
-• Target 2: $[price]
-• Risk:Reward: [ratio]
-
-**IMPORTANT:** All prices must be EXACT numbers, not ranges like "around $X". These are used for automated order placement.`;
+              for (const symbolData of multiTimeframeCharts) {
+                const timeframeLabels = symbolData.charts.map(c => c.timeframe).join(', ');
+                logger.info(`Analyzing ${symbolData.symbol} across ${timeframeLabels}...`);
                 
-                const visionMessage = createVisionMessage(visionPrompt, chart.base64, chart.mimeType);
-                const visionResponse = await callVisionLLM([visionMessage], { maxTokens: 1024 });
-                visionAnalyses.push(`**${chart.symbol} Chart Analysis:**\n${visionResponse}`);
-                logger.info(`Vision analysis complete for ${chart.symbol}`);
+                const visionPrompt = `You are an ELITE multi-timeframe crypto technical analyst. You are viewing ${symbolData.charts.length} charts for ${symbolData.symbol}/USDT across different timeframes (${timeframeLabels}).
+
+**YOUR TASK:** Provide a COMPREHENSIVE multi-timeframe analysis with EXACT PRICE LEVELS for automated trading.
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 MULTI-TIMEFRAME STRUCTURE ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════
+
+**4H TIMEFRAME (Higher Timeframe - Trend Direction):**
+• Overall Trend: [STRONG BULLISH / BULLISH / NEUTRAL / BEARISH / STRONG BEARISH]
+• Market Structure: [Higher highs & higher lows / Lower highs & lower lows / Ranging]
+• Key Swing Points: 
+  - Last Swing High: $[exact price]
+  - Last Swing Low: $[exact price]
+• Major Support: $[price] - [reason]
+• Major Resistance: $[price] - [reason]
+• SMA/EMA Position: [Price above/below 20 & 50 SMA - bullish/bearish]
+• Bollinger Band Position: [Upper/Middle/Lower band - implication]
+
+**1H TIMEFRAME (Execution Timeframe - Entry Zones):**
+• Trend Alignment with 4H: [ALIGNED / DIVERGENT / TRANSITIONING]
+• Current Price Action: [describe recent 24-48h movement]
+• Immediate Support: $[price] - [structural reason]
+• Immediate Resistance: $[price] - [structural reason]
+• Order Blocks/Fair Value Gaps: [identify any, with prices]
+• Volume Profile: [increasing/decreasing on moves]
+
+**15M TIMEFRAME (Precision - Exact Entries):**
+• Short-term Momentum: [BULLISH / BEARISH / CONSOLIDATING]
+• Micro Structure: [describe last few hours of price action]
+• Precision Entry Zone: $[price] to $[price]
+• Immediate Invalidation: $[price]
+• Scalp Support: $[price]
+• Scalp Resistance: $[price]
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 CONSOLIDATED PRICE LEVELS (ALL TIMEFRAMES)
+═══════════════════════════════════════════════════════════════════════════════
+
+🟢 **SUPPORT LEVELS** (ranked by strength):
+• S1 (15m): $[price] - [reason] - [timeframe origin]
+• S2 (1H): $[price] - [reason] - [timeframe origin]
+• S3 (4H): $[price] - [reason] - [timeframe origin]
+• S4 (Major): $[price] - [reason] - [confluence of timeframes]
+
+🔴 **RESISTANCE LEVELS** (ranked by strength):
+• R1 (15m): $[price] - [reason] - [timeframe origin]
+• R2 (1H): $[price] - [reason] - [timeframe origin]
+• R3 (4H): $[price] - [reason] - [timeframe origin]
+• R4 (Major): $[price] - [reason] - [confluence of timeframes]
+
+═══════════════════════════════════════════════════════════════════════════════
+📐 CHART PATTERNS & CONFLUENCES
+═══════════════════════════════════════════════════════════════════════════════
+
+• 4H Patterns: [flags, triangles, H&S, wedges, channels - with target prices]
+• 1H Patterns: [any patterns forming - with breakout levels]
+• 15m Patterns: [micro patterns for entry timing]
+• Multi-TF Confluence Zones: [where multiple timeframes agree on S/R]
+
+═══════════════════════════════════════════════════════════════════════════════
+⚡ TRADE RECOMMENDATION
+═══════════════════════════════════════════════════════════════════════════════
+
+• **Direction**: [LONG / SHORT / NO TRADE]
+• **Confidence**: [HIGH / MEDIUM / LOW] - [reason based on TF alignment]
+• **Entry Strategy**: [market / limit at $X / scaled entries]
+• **Optimal Entry Zone**: $[price] to $[price]
+• **Stop Loss**: $[exact price] - [must be beyond structural level]
+• **Take Profit 1**: $[price] - [reason - e.g., "1H resistance"]
+• **Take Profit 2**: $[price] - [reason - e.g., "4H swing high"]
+• **Take Profit 3**: $[price] - [reason - e.g., "major resistance zone"]
+• **Risk:Reward**: [ratio]
+• **Timeframe Alignment Score**: [3/3 aligned, 2/3 aligned, conflicting]
+
+**CRITICAL:** All prices must be EXACT numbers read from the charts. These will be used for automated order placement. Do NOT estimate or use ranges like "around $X".`;
+                
+                // Create multi-image message with all timeframes for this symbol
+                const images = symbolData.charts.map(c => ({ base64: c.base64, mimeType: c.mimeType }));
+                const visionMessage = createMultiImageVisionMessage(visionPrompt, images);
+                const visionResponse = await callVisionLLM([visionMessage], { maxTokens: 2048 });
+                visionAnalyses.push(`**${symbolData.symbol} Multi-Timeframe Analysis (${timeframeLabels}):**\n${visionResponse}`);
+                logger.info(`Multi-timeframe vision analysis complete for ${symbolData.symbol}`);
               }
               
-              chartAnalysisText = `\n\n📊 VISUAL CHART ANALYSIS (from vision model):\n${visionAnalyses.join('\n\n')}`;
-              logger.info('All chart visual analyses complete');
+              chartAnalysisText = `\n\n📊 MULTI-TIMEFRAME VISUAL CHART ANALYSIS (4H/1H/15m from vision model):\n${visionAnalyses.join('\n\n' + '═'.repeat(80) + '\n\n')}`;
+              logger.info('All multi-timeframe chart analyses complete');
             } catch (e) {
-              logger.warn('Vision analysis failed, proceeding without chart images:', e);
-              chartAnalysisText = '\n\n⚠️ Chart image analysis unavailable - proceeding with numerical data only.';
+              logger.warn('Multi-timeframe vision analysis failed, proceeding without chart images:', e);
+              chartAnalysisText = '\n\n⚠️ Multi-timeframe chart image analysis unavailable - proceeding with numerical data only.';
             }
           }
           
