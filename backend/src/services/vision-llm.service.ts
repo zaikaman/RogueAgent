@@ -33,7 +33,7 @@ export async function callVisionLLM(
 ): Promise<string> {
   const {
     model = config.OPENAI_MODEL,
-    temperature = 0.7,
+    temperature = 1.0,
   } = options;
 
   const requestBody = {
