@@ -53,6 +53,17 @@ export async function callVisionLLM(
   }, 0);
   
   logger.info(`VisionLLM: Request contains ${imageCount} image(s)`);
+  
+  // Log the text prompts being sent (not the base64 images)
+  messages.forEach((msg, i) => {
+    if (Array.isArray(msg.content)) {
+      const textParts = msg.content.filter(c => c.type === 'text').map(c => (c as { type: 'text'; text: string }).text);
+      if (textParts.length > 0) {
+        const promptPreview = textParts.join('\n').substring(0, 500);
+        logger.info(`VisionLLM: Message ${i} prompt: ${promptPreview}${textParts.join('\n').length > 500 ? '...' : ''}`);
+      }
+    }
+  });
 
   const response = await fetch(`${config.OPENAI_BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -71,8 +82,13 @@ export async function callVisionLLM(
 
   const data = await response.json();
   
-  // Debug: log the full response structure
-  logger.debug('VisionLLM: Full API response:', JSON.stringify(data, null, 2).substring(0, 1000));
+  // Log the API response metadata
+  logger.info('VisionLLM: API response received', {
+    model: data.model,
+    id: data.id,
+    usage: data.usage,
+    finish_reason: data.choices?.[0]?.finish_reason,
+  });
   
   const content = data.choices?.[0]?.message?.content || '';
   
@@ -81,7 +97,12 @@ export async function callVisionLLM(
     logger.warn('VisionLLM: Empty content but message exists:', JSON.stringify(data.choices[0].message));
   }
   
-  logger.info(`VisionLLM: Response received (${content.length} chars)`);
+  // Log the full response content (truncated for very long responses)
+  const contentPreview = content.length > 2000 ? content.substring(0, 2000) + '...[truncated]' : content;
+  logger.info(`VisionLLM: Response content (${content.length} chars):\n${contentPreview}`);
+  
+  // Log first 500 chars separately for easier viewing in logs
+  logger.info(`VisionLLM: Response preview: ${content.substring(0, 500)}${content.length > 500 ? '...' : ''}`);
   
   return content;
 }
