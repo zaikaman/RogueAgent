@@ -136,14 +136,30 @@ The Orchestrator calls each agent sequentially via the `.runner` interface. The 
 **Autonomous perpetual futures trading** with support for Mainnet (real funds) and Testnet (paper trading).
 
 | Feature | Details |
-|---------|---------|
+|---------|---------|------|
 | **Network** | Mainnet or Testnet - switchable in UI |
 | **Authentication** | EIP-712 typed data signing |
 | **Directions** | LONG and SHORT positions |
 | **Max Leverage** | Dynamic per asset (BTC: 50x, memecoins: 3-5x) |
 | **Order Types** | Market, Limit, Trigger (stop-loss/take-profit) |
+| **Agent Types** | Classic (auto-copy all signals) OR Custom (filter via user prompt) |
 
-**Architecture**: Futures Scanner Agent (finds LONG/SHORT opportunities) → Futures Analyzer Agent (calculates entry/SL/TP) → Signal Executor (executes orders) → Hyperliquid
+### Agent Types
+
+Rogue offers **two distinct futures trading modes**:
+
+**🤖 Classic Agent**:
+- Automatically copies **all** signals from Rogue's Futures Scanner/Analyzer
+- No filtering, maximum signal coverage
+- Ideal for hands-off traders who trust the full signal pipeline
+
+**🎯 Custom Agent**:
+- Filters signals based on **your custom prompt** before execution
+- AI interprets your trading rules and decides which trades to take
+- Example prompts: "Only take BTC/ETH longs", "Skip memecoins", "Only trade 90%+ confidence signals", "Avoid shorts in bull markets"
+- Ideal for personalized strategies and selective trading
+
+**Architecture**: Futures Scanner Agent (finds LONG/SHORT opportunities) → Futures Analyzer Agent (calculates entry/SL/TP) → **Agent Type Filter (Classic = all / Custom = user rules)** → Signal Executor (executes orders) → Hyperliquid
 
 ---
 
