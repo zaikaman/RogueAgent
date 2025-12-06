@@ -250,15 +250,15 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 - Analytics dashboard with performance metrics
 
 ### Voice Interaction (VAPI)
-
-![Ask Rogue](https://rogue-adk.vercel.app/ask-rogue.png)
-*Conversational AI terminal with real-time market analysis*
-
 - Natural language interface
 - Real-time X search via Grok
 - Custom tool calling for DB queries and price lookups
 
 ### "Ask Rogue" Terminal
+
+![Ask Rogue](https://rogue-adk.vercel.app/ask-rogue.png)
+*Chat interface with real-time market analysis and AI responses*
+
 - Web3 wallet connection for personalized responses
 - Tier-aware intel distribution
 - Streaming responses with conversation history

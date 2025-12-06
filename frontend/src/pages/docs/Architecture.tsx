@@ -18,6 +18,12 @@ export default function Architecture() {
 
         <section className="mb-16">
             <h2 className="text-3xl font-bold text-white mb-6">The Orchestrator</h2>
+            
+            <div className="mb-8">
+                <img src="/futures-agents-page.png" alt="Futures Agents" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                <p className="text-center text-gray-400 text-sm mt-2">Autonomous perpetual futures trading on Hyperliquid</p>
+            </div>
+            
             <p className="text-gray-300 mb-6">
                 The <strong className="text-white">Orchestrator</strong> is the conductor of the entire operation. It manages the lifecycle of all agent swarms and ensures coordinated execution.
             </p>

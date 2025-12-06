@@ -16,6 +16,11 @@ export default function Tiers() {
         <section className="mb-16">
             <h2 className="text-3xl font-bold text-white mb-6">Tier Overview</h2>
             
+            <div className="mb-8">
+                <img src="/telegram-bot.png" alt="Telegram Bot" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                <p className="text-center text-gray-400 text-sm mt-2">Multi-tier signal distribution via Telegram bot</p>
+            </div>
+            
             <div className="grid grid-cols-1 gap-6">
                 {/* DIAMOND */}
                 <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-2 border-blue-500/50 rounded-xl p-6 relative overflow-hidden">

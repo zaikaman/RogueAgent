@@ -16,6 +16,11 @@ export default function Telegram() {
         <section className="mb-16">
             <h2 className="text-3xl font-bold text-white mb-6">Getting Started</h2>
             
+            <div className="mb-8">
+                <img src="/telegram-bot.png" alt="Telegram Bot" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                <p className="text-center text-gray-400 text-sm mt-2">Connect with Rogue via Telegram for instant alerts</p>
+            </div>
+            
             <div className="space-y-6">
                 <div className="flex gap-4">
                     <div className="w-10 h-10 rounded-full bg-teal-glow/10 flex items-center justify-center flex-shrink-0 border border-teal-glow/30">

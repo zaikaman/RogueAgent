@@ -500,7 +500,7 @@ Rogue: *Searches Birdeye + X for Base trending tokens*
 ```
 
 ![Ask Rogue](https://rogue-adk.vercel.app/ask-rogue.png)
-*Conversational AI interface powered by Grok*
+*Chat interface powered by Grok for on-demand market analysis*
 
 ---
 

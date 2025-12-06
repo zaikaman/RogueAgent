@@ -64,6 +64,12 @@ export default function Introduction() {
 
         <section className="mb-16">
             <h2 className="text-3xl font-bold text-white mb-6">What is Rogue?</h2>
+            
+            <div className="mb-8">
+                <img src="/dashboard.png" alt="Rogue Dashboard" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                <p className="text-center text-gray-400 text-sm mt-2">Mission Control - Your 24/7 autonomous trading command center</p>
+            </div>
+            
             <p className="text-gray-300 mb-6">
                 Rogue is not just a bot; it's an <strong className="text-white">autonomous Crypto Trading Oracle</strong>—a sophisticated multi-agent system that goes beyond analysis to actually execute trades. Your personal institutional-grade trading desk that never sleeps.
             </p>
@@ -214,6 +220,10 @@ export default function Introduction() {
                     </div>
                     <div>
                         <h3 className="text-white font-semibold text-lg mb-2">Futures Trading</h3>
+                        <div className="mb-4">
+                            <img src="/futures-agents-page.png" alt="Futures Trading" className="w-full rounded-lg border border-white/10 shadow-xl" />
+                            <p className="text-center text-gray-500 text-xs mt-1">Classic and Custom futures agents</p>
+                        </div>
                         <p className="text-gray-400 mb-2">Autonomous perpetual futures trading on <strong className="text-white">Hyperliquid</strong> with both <strong className="text-green-400">Mainnet</strong> (real funds) and <strong className="text-amber-400">Testnet</strong> (paper trading) modes:</p>
                         <ul className="text-sm text-gray-400 space-y-1">
                             <li>• <strong className="text-white">LONG and SHORT</strong> positions supported</li>
@@ -223,7 +233,32 @@ export default function Introduction() {
                         </ul>
                     </div>
                 </div>
+
+                <div className="flex gap-4">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center flex-shrink-0 border border-indigo-500/30">
+                        <span className="text-indigo-400 font-bold">💬</span>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-semibold text-lg mb-2">Ask Rogue Terminal</h3>
+                        <div className="mb-4">
+                            <img src="/ask-rogue.png" alt="Ask Rogue" className="w-full rounded-lg border border-white/10 shadow-xl" />
+                            <p className="text-center text-gray-500 text-xs mt-1">Chat interface for on-demand market analysis</p>
+                        </div>
+                        <p className="text-gray-400">Chat with Rogue using natural language. Ask about market conditions, specific tokens, or request custom analysis via the Ask Rogue terminal.</p>
+                    </div>
+                </div>
             </div>
+        </section>
+
+        <section className="mb-16">
+            <h2 className="text-3xl font-bold text-white mb-6">Analytics & Performance</h2>
+            <div className="mb-8">
+                <img src="/analytics.png" alt="Analytics Dashboard" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                <p className="text-center text-gray-400 text-sm mt-2">Comprehensive performance tracking and market insights</p>
+            </div>
+            <p className="text-gray-300 mb-4">
+                Track your trading performance, signal accuracy, and market insights with Rogue's built-in analytics dashboard. Monitor win rates, P&L, and identify the most profitable trading patterns.
+            </p>
         </section>
 
         <section className="mb-16">
