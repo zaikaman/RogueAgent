@@ -32,6 +32,9 @@
 
 ### Core Capabilities
 
+![Dashboard](https://rogue-adk.vercel.app/dashboard.png)
+*Mission Control - Real-time market intelligence dashboard*
+
 - **30+ data sources**: CoinGecko, Birdeye, DeFi Llama, CoinMarketCap, **Binance Futures**
 - **122 unified tradeable tokens** verified on both Binance Futures AND Hyperliquid
 - **Real-time social sentiment** from X (Twitter) and crypto news
@@ -133,10 +136,13 @@ The Orchestrator calls each agent sequentially via the `.runner` interface. The 
 
 ## 📈 Futures Trading on Hyperliquid
 
+![Futures Agents](https://rogue-adk.vercel.app/futures-agents-page.png)
+*Autonomous perpetual futures trading on Hyperliquid*
+
 **Autonomous perpetual futures trading** with support for Mainnet (real funds) and Testnet (paper trading).
 
 | Feature | Details |
-|---------|---------|------|
+|---------|---------|
 | **Network** | Mainnet or Testnet - switchable in UI |
 | **Authentication** | EIP-712 typed data signing |
 | **Directions** | LONG and SHORT positions |
@@ -147,6 +153,15 @@ The Orchestrator calls each agent sequentially via the `.runner` interface. The 
 ### Agent Types
 
 Rogue offers **two distinct futures trading modes**:
+
+<div align="center">
+
+| Classic Agent | Custom Agent |
+|:-------------:|:------------:|
+| ![Classic Agent](https://rogue-adk.vercel.app/classic-agent.png) | ![Custom Agent](https://rogue-adk.vercel.app/custom-agent.png) |
+| Auto-copy all signals | Filter with custom rules |
+
+</div>
 
 **🤖 Classic Agent**:
 - Automatically copies **all** signals from Rogue's Futures Scanner/Analyzer
@@ -199,13 +214,40 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 ## 🚀 Key Features
 
 ### Live Alpha Dashboard
+
+![Signals Feed](https://rogue-adk.vercel.app/signals.png)
+*Live trading signals with technical analysis and confidence scoring*
+
 - Real-time signal feed with confidence indicators
+
+![Intel Feed](https://rogue-adk.vercel.app/intel.png)
+*Market intelligence and narrative analysis*
+
 - Intel feed with market narrative analysis
+
+![Yield Farming](https://rogue-adk.vercel.app/yield.png)
+*DeFi yield farming opportunities across all chains*
+
 - Yield farming hub (10-30 curated opportunities)
+
+![Airdrop Tracker](https://rogue-adk.vercel.app/airdrops.png)
+*Fresh airdrop opportunities with Rogue scoring*
+
 - Airdrop tracker with Rogue Score
+
+![Analytics](https://rogue-adk.vercel.app/analytics.png)
+*Performance analytics and market insights*
+
+![Predictions](https://rogue-adk.vercel.app/predictions.png)
+*Polymarket prediction opportunities (Diamond tier exclusive)*
+
 - Analytics dashboard with performance metrics
 
 ### Voice Interaction (VAPI)
+
+![Ask Rogue](https://rogue-adk.vercel.app/ask-rogue.png)
+*Conversational AI terminal with real-time market analysis*
+
 - Natural language interface
 - Real-time X search via Grok
 - Custom tool calling for DB queries and price lookups

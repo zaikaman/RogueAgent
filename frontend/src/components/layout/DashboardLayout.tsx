@@ -10,7 +10,8 @@ import {
   Coins01Icon,
   Cancel01Icon,
   Rocket01Icon,
-  Message01Icon
+  Message01Icon,
+  AiInnovation01Icon
 } from '@hugeicons/core-free-icons';
 import { Send, Terminal, DollarSign, Bot } from 'lucide-react';
 import { WalletConnect } from '../WalletConnect';
@@ -169,7 +170,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: News01Icon, label: 'Intel', path: '/app/intel' },
     { icon: Coins01Icon, label: 'Yield', path: '/app/yield' },
     { icon: Rocket01Icon, label: 'Airdrops', path: '/app/airdrops' },
-    { icon: ChartHistogramIcon, label: 'Predictions', path: '/app/predictions' },
+    { icon: AiInnovation01Icon, label: 'Predictions', path: '/app/predictions' },
     { icon: ChartHistogramIcon, label: 'Analytics', path: '/app/analytics' },
     { icon: null, label: 'Futures Agents', path: '/app/futures', lucideIcon: Bot },
   ];
