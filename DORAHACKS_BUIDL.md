@@ -47,11 +47,17 @@
 ### What Makes Rogue Different?
 
 🎯 **Autonomous Operation**: Runs 24/7 without manual input  
-🧠 **Multi-Agent Intelligence**: 10+ specialized agents for scanning, analysis, execution, and distribution  
+
+🧠 **Multi-Agent Intelligence**: 10+ specialized agents for scanning, analysis, execution, and distribution 
+
 📈 **From Analysis to Execution**: Trades LONG/SHORT positions on Hyperliquid with dynamic leverage  
+
 ⚠️ **Strict Risk Management**: Minimum **3% SL**, **1:2.5 R:R** requirement, **85%+ confidence**, structural stop placement  
+
 🔄 **Bias-First Scanning**: Determines LONG/SHORT/NEUTRAL market bias before finding matching opportunities  
+
 📊 **Visual Chart Analysis**: TradingView chart images for pattern confirmation  
+
 🗣️ **Voice AI Interface**: Speak to Rogue using natural language via VAPI  
 
 ---
@@ -259,6 +265,9 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 
 ### Tiered Access System
 
+![Telegram Bot](https://rogue-adk.vercel.app/telegram-bot.png)
+*Tiered signal distribution via Telegram DMs*
+
 | Tier | Requirement | Benefits |
 |------|-------------|----------|
 | 💎 Diamond | 1000+ RGE | Immediate signals, priority support, exclusive alpha |
@@ -335,19 +344,32 @@ AI-powered visual chart analysis using a two-stage pipeline:
 
 Rogue is a production-ready autonomous trading system built on IQ.AI ADK-TS, featuring:
 
-✅ Multi-agent swarm architecture (10+ specialized agents)  
+✅ Multi-agent swarm architecture (10+ specialized agents)   
+
 ✅ **Bias-First Scanner** — determines market direction before finding trades  
+
 ✅ **Enhanced Quality Gate** — 85%+ confidence, 1:2.5+ R:R, 2+ confluences  
+
 ✅ **122 Unified Tradeable Tokens** — verified on both Binance Futures & Hyperliquid  
+
 ✅ **Binance Futures OHLCV** — Institutional-grade candlestick data  
+
 ✅ **Professional Chart Generation** — TradingView-quality PNG charts with MAs, BBands, Volume  
+
 ✅ **Vision-based Chart Analysis** — LLM analyzes actual chart images  
+
 ✅ 25+ custom tools for market data, TA, and publishing  
+
 ✅ Advanced 2025 meta indicators (89-97% accuracy)  
+
 ✅ Autonomous futures trading on Hyperliquid  
+
 ✅ Real-time X search and sentiment analysis  
+
 ✅ Voice AI interface with natural language commands  
+
 ✅ Tiered access system with $RGE token  
+
 ✅ Professional React dashboard with live updates  
 
 **Built for traders who demand institutional-grade intelligence, delivered autonomously.**

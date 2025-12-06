@@ -589,6 +589,9 @@ cvd divergence + poc support + network upgrade catalyst
 
 **Role**: Distributes content across Telegram, Twitter, and database with tiered timing.
 
+![Telegram Distribution](https://rogue-adk.vercel.app/telegram-bot.png)
+*Multi-tier signal distribution via Telegram bot*
+
 **Distribution Strategy**:
 
 | Tier | Delivery Time | Channels | Coverage |
