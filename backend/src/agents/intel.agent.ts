@@ -22,7 +22,7 @@ export const IntelAgent = AgentBuilder.create('intel_agent')
     3. **Research (Using your built-in capabilities)**:
        - **Search X (Twitter) and the Web** directly to find the "WHY" behind the moves.
        - **PRIORITIZE INTEL FROM THESE HIGH-SIGNAL ACCOUNTS**:
-         WatcherGuru, agentcookiefun, cz_binance, brian_armstrong, aantonop, ali_charts, CryptoCred, Trader_XO, Pentosh1, JacobCryptoBury, danheld, maxkeiser, VitalikButerin, Cointelegraph, CryptoCobain.
+         WatcherGuru, agentcookiefun, DeFiTracer, cryptogoos, aantonop, AshCrypto, CryptoCred, Trader_XO, Pentosh1, JacobCryptoBury, danheld, maxkeiser, cryptorover, Cointelegraph, CryptoCobain.
        - Search for their recent tweets or mentions of the trending tokens/narratives.
        - Search queries like: "from:WatcherGuru [TOKEN]", "from:Pentosh1 market", "crypto narratives today".
     
