@@ -67,7 +67,7 @@ export class ScheduledPostService {
                     const twitterLink = `https://x.com/Rogue_IQAI/status/${tweetId}`;
                     logContent = `${baseLog} ${twitterLink}`;
                   } else if (run.type === 'intel') {
-                    const baseLog = run.content.log_message || `Intel extracted: ${run.content.topic || 'Market analysis'} complete.`;
+                    const baseLog = run.content.log_message || `INTEL EXTRACTED: ${run.content.topic || 'Market analysis'} complete.`;
                     const intelLink = `https://rogue-adk.vercel.app/app/intel/${run.id}`;
                     logContent = `${baseLog} ${intelLink}`;
                   }
@@ -136,7 +136,7 @@ export class ScheduledPostService {
                             const twitterLink = `https://x.com/Rogue_IQAI/status/${tweetId}`;
                             logContent = `${baseLog} ${twitterLink}`;
                           } else if (run.type === 'intel') {
-                            const baseLog = run.content.log_message || `Intel extracted: ${run.content.topic || 'Market analysis'} complete.`;
+                            const baseLog = run.content.log_message || `INTEL EXTRACTED: ${run.content.topic || 'Market analysis'} complete.`;
                             const intelLink = `https://rogue-adk.vercel.app/app/intel/${run.id}`;
                             logContent = `${baseLog} ${intelLink}`;
                           }

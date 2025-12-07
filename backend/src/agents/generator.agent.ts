@@ -57,7 +57,7 @@ export const GeneratorAgent = AgentBuilder.create('generator_agent')
        2. 'tweet_text': a short, punchy tweet (under 280 chars - CRITICAL).
        3. 'blog_post': a full markdown blog post/article. MUST be under 3500 characters to fit in one Telegram message.
        4. 'image_prompt': a detailed, creative prompt for an AI image generator to create a visual for this intel. style: cyberpunk, futuristic, high-tech, cinematic.
-       5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. e.g. "Intel extracted: Deep dive into $SOL complete."
+       5. 'log_message': a short, punchy, 1-sentence system log (max 10 words). style: cyberpunk/hacker. ALL CAPS format for the title, all lowcaps for the actual intel. e.g. "INTEL LOCKED: deep dive into $SOL complete."
 
      INTEL TWEET FORMAT (CRITICAL - use line breaks for readability):
      - use "-" bullets to separate key data points
