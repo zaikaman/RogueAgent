@@ -42,6 +42,52 @@ const getConversationTitle = (messages: Message[]): string => {
   return 'New Conversation';
 };
 
+// Format text with markdown-like syntax (bold, italic, etc)
+const formatMessageContent = (text: string) => {
+  const parts: (string | JSX.Element)[] = [];
+  let currentIndex = 0;
+  let keyCounter = 0;
+
+  // Pattern to match **bold text**
+  const boldPattern = /\*\*(.+?)\*\*/g;
+  let match;
+
+  const positions: { start: number; end: number; content: string }[] = [];
+  
+  // Find all bold patterns
+  while ((match = boldPattern.exec(text)) !== null) {
+    positions.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      content: match[1]
+    });
+  }
+
+  // Build the parts array
+  positions.forEach(({ start, end, content }) => {
+    // Add text before the match
+    if (start > currentIndex) {
+      parts.push(text.substring(currentIndex, start));
+    }
+    
+    // Add bold element
+    parts.push(
+      <strong key={`bold-${keyCounter++}`} className="font-bold text-white">
+        {content}
+      </strong>
+    );
+    
+    currentIndex = end;
+  });
+
+  // Add remaining text
+  if (currentIndex < text.length) {
+    parts.push(text.substring(currentIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+};
+
 const loadConversations = (): Conversation[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -752,7 +798,9 @@ export function AskRogue() {
                     : 'bg-gray-800 text-gray-200 rounded-bl-none border border-gray-700'
                 }`}
               >
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {formatMessageContent(msg.content)}
+                </p>
               </div>
             </div>
           ))}
