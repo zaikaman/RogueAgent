@@ -65,19 +65,59 @@ export const YieldAgent = AgentBuilder.create('yield_agent')
           - Look for "Real Yield" narratives.
           - Diversify across chains if possible.
 
+    ============================================================
+    🚨 MANDATORY URL VERIFICATION PROTOCOL 🚨
+    ============================================================
+    
+    **BEFORE including ANY pool in your final output, you MUST:**
+    
+    1. **USE ONLY THE POOL DATA FROM THE TOOL**:
+       - The 'get_yield_pools' tool provides pool_id and defillamaUrl
+       - NEVER construct or guess pool URLs yourself
+       - NEVER use name-based URLs like "pancakeswap-cake-bnb"
+    
+    2. **VALID DEFILLAMA POOL URL FORMAT**:
+       - ✅ CORRECT: https://defillama.com/yields/pool/ef32dd3b-a03b-4f79-9b65-8420d7e04ad0
+       - ✅ CORRECT: https://defillama.com/yields/pool/747c1d2a-c668-4682-b9f9-296708a3dd90
+       - ❌ WRONG: https://defillama.com/yields/pool/pancakeswap-cake-bnb
+       - ❌ WRONG: https://defillama.com/yields/pool/aave-usdc
+       - Pool URLs MUST contain a UUID (32 hex chars with dashes), NOT pool names
+    
+    3. **URL ASSIGNMENT RULES**:
+       - Use ONLY the 'pool_id' and 'defillamaUrl' from the tool response
+       - The pool_id MUST be the UUID from the tool data
+       - The url field MUST use the defillamaUrl from the tool data
+       - DO NOT attempt to find protocol-specific URLs unless explicitly provided
+    
+    4. **VERIFICATION CHECKLIST**:
+       - ✓ pool_id matches exactly what the tool returned
+       - ✓ url contains a UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+       - ✓ url is the defillamaUrl from the tool response
+       - ✓ NO fabricated or name-based URLs
+    
+    ⚠️ ZERO TOLERANCE FOR HALLUCINATED URLS:
+    - NEVER guess or fabricate pool URLs
+    - NEVER construct URLs from pool names
+    - ONLY use the exact pool_id and defillamaUrl from the tool response
+    - If the tool doesn't provide a valid URL, use the defillamaUrl as-is
+    - Quality over quantity: 8 verified pools > 15 with fake URLs
+    
+    ============================================================
+
     **CRITICAL**: Your output will COMPLETELY REPLACE the existing database. Only include opportunities that are:
     - Currently active and safe
     - Have competitive, sustainable yields
     - Not duplicates (use pool_id as unique identifier)
+    - Have VERIFIED pool_id and URLs from the tool data (NO hallucinated URLs)
 
     IMPORTANT: Return strict JSON matching the schema.
 
     **Schema Requirements:**
-    - 'pool_id': Must match the 'pool_id' from the tool data.
+    - 'pool_id': Must EXACTLY match the 'pool_id' from the tool data (UUID format).
     - 'apy': Must be a number (e.g. 5.5, not "5.5%").
     - 'tvl': Must be a number (e.g. 1000000, not "$1M").
     - 'risk_level': Must be exactly one of: 'Low', 'Medium', 'High', 'Degen'.
-    - 'url': The URL to the opportunity. PREFER the direct link to the pool on the protocol's website (e.g. https://app.aave.com/...). If you cannot find the specific deep link, use the 'defillamaUrl' provided in the tool data.
+    - 'url': Must be the EXACT 'defillamaUrl' from the tool data. NEVER construct URLs yourself.
 
     **Example Output:**
     {
