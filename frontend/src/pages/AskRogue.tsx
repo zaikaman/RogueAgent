@@ -413,6 +413,24 @@ export function AskRogue() {
 
     try {
       // Start the chat job (async background processing)
+      // Format history properly - convert message pairs to proper history format
+      // Each history entry needs both user and assistant messages
+      const formattedHistory: { user: string; assistant: string }[] = [];
+      
+      // Find user-assistant pairs in the message history
+      for (let i = 0; i < messages.length; i++) {
+        if (messages[i].role === 'user') {
+          // Look for the next assistant message
+          const nextAssistant = messages.slice(i + 1).find(m => m.role === 'assistant');
+          if (nextAssistant) {
+            formattedHistory.push({
+              user: messages[i].content,
+              assistant: nextAssistant.content
+            });
+          }
+        }
+      }
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/chat`, {
         method: 'POST',
         headers: {
@@ -425,10 +443,7 @@ export function AskRogue() {
             tier: tier,
             telegramUserId: null
           },
-          history: messages.slice(-10).map(m => ({
-            user: m.role === 'user' ? m.content : '',
-            assistant: m.role === 'assistant' ? m.content : ''
-          }))
+          history: formattedHistory.slice(-10) // Last 10 message pairs
         }),
       });
 
