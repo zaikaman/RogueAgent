@@ -110,6 +110,17 @@ AI-powered visual chart analysis using a two-stage pipeline:
 
 **Flow**: Scanner finds 3 candidates → Charts generated for each → Vision LLM analyzes images → Text analysis passed to Analyzer Agent
 
+**Multi-Timeframe Chart Examples**:
+
+![ETH 4H Chart](https://rogue-adk.vercel.app/ETH_4h_chart.png)
+*ETH 4-Hour Chart - Higher timeframe trend analysis*
+
+![ETH 1H Chart](https://rogue-adk.vercel.app/ETH_1h_chart.png)
+*ETH 1-Hour Chart - Mid-timeframe structure and momentum*
+
+![ETH 15M Chart](https://rogue-adk.vercel.app/ETH_15m_chart.png)
+*ETH 15-Minute Chart - Lower timeframe entry precision*
+
 The platform operates autonomously on a configurable schedule (default: every 1 hour), running coordinated "swarms" of specialized AI agents that collaborate to identify, analyze, and distribute high-signal opportunities.
 
 ### What Makes Rogue Different?
@@ -298,6 +309,7 @@ The **Orchestrator** is the conductor of the entire operation. It:
    - **Bollinger Bands Squeeze + Keltner Channel**: Pre-breakout volatility detection
    - **Volume-Weighted MACD**: Enhanced accuracy on low-liquidity L2 chains
    - **Fibonacci Retracement/Extension**: Precision entry/exit zones
+   - **Multi-Timeframe Alignment**: 4H/1H/15M confluence analysis (see chart examples above)
    - **Multi-Timeframe Alignment**: Confluence scoring across timeframes (89-97% accuracy)
    - **ATR (Average True Range)**: Volatility-based stop-loss calculation
    - Traditional: RSI, MACD, EMAs, SMA

@@ -374,6 +374,24 @@ export default function Agents() {
                             <li className="flex items-start gap-3"><span className="text-purple-400">✅</span>Combines numerical TA with visual confirmation for higher accuracy</li>
                         </ul>
                     </div>
+                    
+                    <div className="mt-6">
+                        <h5 className="text-white font-semibold mb-4 text-sm">📊 Multi-Timeframe Chart Examples:</h5>
+                        <div className="space-y-6">
+                            <div>
+                                <img src="https://rogue-adk.vercel.app/ETH_4h_chart.png" alt="ETH 4H Chart" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                                <p className="text-center text-gray-400 text-sm mt-2">ETH 4-Hour Chart - Higher timeframe trend and structure analysis</p>
+                            </div>
+                            <div>
+                                <img src="https://rogue-adk.vercel.app/ETH_1h_chart.png" alt="ETH 1H Chart" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                                <p className="text-center text-gray-400 text-sm mt-2">ETH 1-Hour Chart - Mid-timeframe momentum and order flow</p>
+                            </div>
+                            <div>
+                                <img src="https://rogue-adk.vercel.app/ETH_15m_chart.png" alt="ETH 15M Chart" className="w-full rounded-xl border border-white/10 shadow-2xl" />
+                                <p className="text-center text-gray-400 text-sm mt-2">ETH 15-Minute Chart - Precise entry timing and execution zones</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

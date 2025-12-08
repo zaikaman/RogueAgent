@@ -197,6 +197,17 @@ Rogue uses **8 advanced indicators** achieving **89-97% accuracy**:
 7. **Volume-Weighted MACD** - Enhanced for low-liquidity chains
 8. **Fibonacci Levels** - Precision entry/exit zones
 
+**Multi-Timeframe Chart Analysis Examples**:
+
+![ETH 4H Chart](https://rogue-adk.vercel.app/ETH_4h_chart.png)
+*ETH 4-Hour Chart - Higher timeframe trend and structure*
+
+![ETH 1H Chart](https://rogue-adk.vercel.app/ETH_1h_chart.png)
+*ETH 1-Hour Chart - Mid-timeframe momentum and order flow*
+
+![ETH 15M Chart](https://rogue-adk.vercel.app/ETH_15m_chart.png)
+*ETH 15-Minute Chart - Precise entry timing and execution zones*
+
 **Signal Quality Gate (Updated)**:
 
 | Metric | Minimum | Preferred |
