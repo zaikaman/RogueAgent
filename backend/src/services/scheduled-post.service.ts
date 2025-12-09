@@ -41,9 +41,10 @@ export class ScheduledPostService {
 
       logger.info(`Processing ${pendingPosts.length} scheduled posts...`);
 
-      for (const post of pendingPosts) {
+      for (let i = 0; i < pendingPosts.length; i++) {
+        const post = pendingPosts[i];
         try {
-          logger.info(`Publishing scheduled post ${post.id} to ${post.tier}`);
+          logger.info(`Publishing scheduled post ${post.id} (${i + 1}/${pendingPosts.length}) to ${post.tier}`);
 
           if (post.tier === 'PUBLIC') {
             // Post to Twitter
@@ -93,6 +94,13 @@ export class ScheduledPostService {
           });
 
           logger.info(`Successfully published scheduled post ${post.id}`);
+
+          // Add delay between posts to avoid rate limiting (only if more posts remain)
+          if (i < pendingPosts.length - 1 && post.tier === 'PUBLIC') {
+            const delaySeconds = 10;
+            logger.info(`Waiting ${delaySeconds}s before next post to avoid rate limits...`);
+            await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+          }
 
         } catch (error: any) {
           logger.error(`Error publishing scheduled post ${post.id}:`, error);

@@ -176,7 +176,39 @@ class TwitterService {
 
         if (!response.ok) {
           if (response.status === 429) {
-            logger.warn('X API rate limit hit (429)');
+            // Extract rate limit information from headers
+            const rateLimitInfo: any = {
+              status: 429,
+              error: data
+            };
+
+            // Capture all rate limit headers
+            const headers = [
+              'x-rate-limit-limit',
+              'x-rate-limit-remaining', 
+              'x-rate-limit-reset',
+              'x-app-limit-24hour-limit',
+              'x-app-limit-24hour-remaining',
+              'x-app-limit-24hour-reset',
+              'x-user-limit-24hour-limit',
+              'x-user-limit-24hour-remaining',
+              'x-user-limit-24hour-reset',
+              'retry-after'
+            ];
+
+            headers.forEach(header => {
+              const value = response.headers.get(header);
+              if (value) {
+                rateLimitInfo[header] = value;
+                // Convert reset timestamps to readable dates
+                if (header.includes('reset')) {
+                  const resetTime = new Date(parseInt(value) * 1000);
+                  rateLimitInfo[`${header}_readable`] = resetTime.toISOString();
+                }
+              }
+            });
+
+            logger.warn('X API rate limit hit (429)', rateLimitInfo);
             throw new Error('Rate limit hit');
           }
           if (response.status === 401) {
