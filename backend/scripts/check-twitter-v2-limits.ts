@@ -15,6 +15,7 @@
 import 'dotenv/config';
 import { config } from '../src/config/env.config';
 import crypto from 'crypto';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // Set to false to do a real post, true to just check (but may not show all headers)
 const DRY_RUN = false;
@@ -102,7 +103,29 @@ async function checkV2Limits() {
     process.exit(1);
   }
 
-  console.log('✅ All credentials present\n');
+  console.log('✅ All credentials present');
+
+  // Setup proxy if available
+  let proxyAgent: HttpsProxyAgent<string> | undefined;
+  if (config.PROXY) {
+    const proxyStr = config.PROXY;
+    let proxyUrl: string;
+    
+    if (proxyStr.includes('@')) {
+      proxyUrl = proxyStr.startsWith('http') ? proxyStr : `http://${proxyStr}`;
+    } else if (proxyStr.split(':').length === 4) {
+      const [ip, port, username, password] = proxyStr.split(':');
+      proxyUrl = `http://${username}:${password}@${ip}:${port}`;
+    } else {
+      proxyUrl = `http://${proxyStr}`;
+    }
+
+    proxyAgent = new HttpsProxyAgent(proxyUrl);
+    console.log(`✅ Using proxy: ${proxyUrl.replace(/:[^:@]+@/, ':***@')}`);
+  } else {
+    console.log('ℹ️  No proxy configured');
+  }
+  console.log();
 
   // Make request to v2 tweets endpoint
   const url = 'https://api.x.com/2/tweets';
@@ -112,14 +135,21 @@ async function checkV2Limits() {
   console.log(`Message: "${TEST_MESSAGE}"\n`);
 
   try {
-    const response = await fetch(url, {
+    const fetchOptions: RequestInit = {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ text: TEST_MESSAGE })
-    });
+    };
+
+    // Add proxy if configured
+    if (proxyAgent) {
+      (fetchOptions as any).agent = proxyAgent;
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     console.log(`\n📊 RESPONSE STATUS: ${response.status} ${response.statusText}\n`);
 

@@ -2,6 +2,7 @@ import { config } from '../config/env.config';
 import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
 import crypto from 'crypto';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 /**
  * X API v2 Service
@@ -12,6 +13,7 @@ class TwitterService {
   private readonly baseUrl = 'https://api.x.com/2/tweets';
   private lastPostTime: number = 0;
   private minPostIntervalMs: number = 5 * 60 * 1000; // Minimum 5 minutes between posts
+  private proxyAgent: HttpsProxyAgent<string> | undefined;
 
   private get hasCredentials(): boolean {
     return !!(config.X_API_KEY && config.X_API_KEY_SECRET && 
@@ -24,6 +26,29 @@ class TwitterService {
       logger.warn('   Required: X_API_KEY, X_API_KEY_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET');
     } else {
       logger.info('✅ X API v2 initialized with OAuth 1.0a User Context');
+    }
+
+    // Setup proxy if PROXY env var is set
+    if (config.PROXY) {
+      // Format: IP:PORT:USERNAME:PASSWORD or http://username:password@ip:port
+      const proxyStr = config.PROXY;
+      
+      // Parse the proxy string
+      let proxyUrl: string;
+      if (proxyStr.includes('@')) {
+        // Already in URL format: http://user:pass@ip:port
+        proxyUrl = proxyStr.startsWith('http') ? proxyStr : `http://${proxyStr}`;
+      } else if (proxyStr.split(':').length === 4) {
+        // Format: IP:PORT:USERNAME:PASSWORD
+        const [ip, port, username, password] = proxyStr.split(':');
+        proxyUrl = `http://${username}:${password}@${ip}:${port}`;
+      } else {
+        // Simple format: IP:PORT
+        proxyUrl = `http://${proxyStr}`;
+      }
+
+      this.proxyAgent = new HttpsProxyAgent(proxyUrl);
+      logger.info(`✅ X API proxy configured: ${proxyUrl.replace(/:[^:@]+@/, ':***@')}`);
     }
   }
 
@@ -163,14 +188,21 @@ class TwitterService {
       try {
         const authHeader = this.generateOAuthHeader('POST', this.baseUrl);
 
-        const response = await fetch(this.baseUrl, {
+        const fetchOptions: RequestInit = {
           method: 'POST',
           headers: {
             'Authorization': authHeader,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ text })
-        });
+        };
+
+        // Add proxy agent if configured
+        if (this.proxyAgent) {
+          (fetchOptions as any).agent = this.proxyAgent;
+        }
+
+        const response = await fetch(this.baseUrl, fetchOptions);
 
         const data = await response.json().catch(() => ({}));
 
