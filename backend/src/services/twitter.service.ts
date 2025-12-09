@@ -175,10 +175,15 @@ class TwitterService {
     // Add human-like delay before posting
     await this.addHumanLikeDelay();
 
-    // Custom retry logic - don't retry on auth errors
+    // Custom retry logic - don't retry on auth errors OR rate limits
     const shouldRetryFn = (error: any) => {
       const msg = error?.message || '';
+      // Don't retry auth errors
       if (msg.includes('401') || msg.includes('403') || msg.includes('Unauthorized') || msg.includes('Forbidden')) {
+        return false;
+      }
+      // Don't retry rate limit errors (429) - it won't help and wastes quota
+      if (msg.includes('Rate limit hit') || msg.includes('429')) {
         return false;
       }
       return true;
@@ -240,8 +245,9 @@ class TwitterService {
               }
             });
 
-            logger.warn('X API rate limit hit (429)', rateLimitInfo);
-            throw new Error('Rate limit hit');
+            logger.warn('X API rate limit hit (429) - Skipping post to preserve quota', rateLimitInfo);
+            // Return null instead of throwing - skip this post entirely
+            return null;
           }
           if (response.status === 401) {
             logger.error('X API authentication failed (401). Check your OAuth credentials.');
