@@ -266,7 +266,37 @@ class TwitterService {
         // Success response from X API v2
         if (data.data && data.data.id) {
           this.lastPostTime = Date.now();
-          logger.info('Tweet posted successfully via X API v2', { id: data.data.id, text: data.data.text?.substring(0, 50) });
+          
+          // Capture rate limit info on success too
+          const rateLimitInfo: any = {
+            status: 200,
+            tweetId: data.data.id
+          };
+
+          const headers = [
+            'x-rate-limit-limit',
+            'x-rate-limit-remaining', 
+            'x-rate-limit-reset',
+            'x-app-limit-24hour-limit',
+            'x-app-limit-24hour-remaining',
+            'x-app-limit-24hour-reset',
+            'x-user-limit-24hour-limit',
+            'x-user-limit-24hour-remaining',
+            'x-user-limit-24hour-reset'
+          ];
+
+          headers.forEach(header => {
+            const value = response.headers.get(header);
+            if (value) {
+              rateLimitInfo[header] = value;
+              if (header.includes('reset')) {
+                const resetTime = new Date(parseInt(value) * 1000);
+                rateLimitInfo[`${header}_readable`] = resetTime.toISOString();
+              }
+            }
+          });
+
+          logger.info('Tweet posted successfully via X API v2', rateLimitInfo);
           return data.data.id;
         } else {
           logger.warn('Unexpected response format from X API', data);
