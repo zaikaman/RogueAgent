@@ -3,6 +3,7 @@ import { logger } from '../utils/logger.util';
 import { retry } from '../utils/retry.util';
 import crypto from 'crypto';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { rateLimitTracker } from './rate-limit-tracker.service';
 
 /**
  * X API v2 Service
@@ -50,6 +51,11 @@ class TwitterService {
       this.proxyAgent = new HttpsProxyAgent(proxyUrl);
       logger.info(`✅ X API proxy configured: ${proxyUrl.replace(/:[^:@]+@/, ':***@')}`);
     }
+
+    // Initialize rate limit tracker from database
+    rateLimitTracker.initialize().catch((err: any) => 
+      logger.error('Failed to initialize rate limit tracker:', err)
+    );
   }
 
   /**
@@ -166,6 +172,19 @@ class TwitterService {
       return null;
     }
 
+    // Check rate limit tracker FIRST - don't even attempt if we're rate limited
+    const rateLimitCheck = rateLimitTracker.canPost();
+    if (!rateLimitCheck.allowed) {
+      const waitHours = Math.floor(rateLimitCheck.waitMinutes! / 60);
+      const waitMins = rateLimitCheck.waitMinutes! % 60;
+      logger.warn(`Skipping post - X API rate limited until ${rateLimitCheck.resumeAt?.toISOString()}`, {
+        reason: rateLimitCheck.reason,
+        waitTime: `${waitHours}h ${waitMins}m`,
+        resumeAt: rateLimitCheck.resumeAt
+      });
+      return null;
+    }
+
     // Check self-imposed rate limiting (minimum interval between posts)
     if (!this.checkRateLimit()) {
       logger.warn('Self-imposed rate limit active. Skipping post to avoid spam detection.');
@@ -210,6 +229,9 @@ class TwitterService {
         const response = await fetch(this.baseUrl, fetchOptions);
 
         const data = await response.json().catch(() => ({}));
+
+        // Update rate limit tracker from response headers (success or failure)
+        await rateLimitTracker.updateFromHeaders(response.headers);
 
         if (!response.ok) {
           if (response.status === 429) {

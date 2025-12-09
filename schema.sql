@@ -237,6 +237,15 @@ CREATE TABLE public.users (
   temp_diamond_expires_at timestamp with time zone,
   CONSTRAINT users_pkey PRIMARY KEY (wallet_address)
 );
+CREATE TABLE public.x_api_rate_limits (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  service text NOT NULL DEFAULT 'twitter'::text UNIQUE,
+  user_limit_reset timestamp with time zone,
+  app_limit_reset timestamp with time zone,
+  is_rate_limited boolean NOT NULL DEFAULT false,
+  last_updated timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT x_api_rate_limits_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.yield_opportunities (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   pool_id text NOT NULL UNIQUE,
