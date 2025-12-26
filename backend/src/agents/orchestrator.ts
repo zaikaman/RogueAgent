@@ -1141,16 +1141,7 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         if (intelResult.topic === 'SKIP' || intelResult.importance_score < 7) {
             logger.info('Intel Agent decided to SKIP (Low importance or no new topics).');
             this.broadcast('Intel Agent decided to SKIP (Low importance or no new topics).', 'warning');
-            await this.saveRun(
-                runId,
-                'intel',
-                { topic: 'SKIPPED', insight: 'Low importance' },
-                startTime,
-                0,
-                undefined,
-                null,
-                null
-            );
+            // Don't save anything to database - just skip this run completely
             return;
         }
 
