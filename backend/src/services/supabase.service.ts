@@ -38,7 +38,7 @@ export class SupabaseService {
     if (!config.SUPABASE_URL || !config.SUPABASE_SERVICE_KEY) {
       console.warn('⚠️ Supabase credentials missing. Database service will not function.');
     }
-    
+
     this.client = createClient(
       config.SUPABASE_URL || '',
       config.SUPABASE_SERVICE_KEY || '',
@@ -174,8 +174,8 @@ export class SupabaseService {
     // Check if any of the found signals are still active
     // We consider a signal active if it's NOT in a closed state (tp_hit, sl_hit, closed)
     const hasActive = data.some((run: any) => {
-        const status = run.content?.status;
-        return !['tp_hit', 'sl_hit', 'closed'].includes(status);
+      const status = run.content?.status;
+      return !['tp_hit', 'sl_hit', 'closed'].includes(status);
     });
 
     return hasActive;
@@ -214,7 +214,7 @@ export class SupabaseService {
 
   async getRecentSignalCount(hours: number = 24): Promise<number> {
     const timeAgo = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-    
+
     // Only count signals that were actually published (have telegram_delivered_at)
     // This excludes pending signals that haven't triggered yet
     const { count, error } = await this.client
@@ -228,7 +228,7 @@ export class SupabaseService {
       console.error('Error fetching recent signal count:', error);
       return 0;
     }
-    
+
     return count || 0;
   }
 
@@ -272,7 +272,6 @@ export class SupabaseService {
     last_verified_at?: string;
     telegram_user_id?: number;
     telegram_username?: string;
-    temp_diamond_expires_at?: string | null;
   }) {
     const { data, error } = await this.client
       .from('users')
@@ -285,44 +284,11 @@ export class SupabaseService {
   }
 
   /**
-   * Grant temporary diamond access to a wallet for 24 hours (for hackathon judges)
-   */
-  async grantTemporaryDiamondAccess(walletAddress: string): Promise<void> {
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours from now
-    
-    await this.upsertUser({
-      wallet_address: walletAddress,
-      temp_diamond_expires_at: expiresAt,
-    });
-  }
-
-  /**
-   * Check if a wallet has temporary diamond access that hasn't expired
-   */
-  async hasTemporaryDiamondAccess(walletAddress: string): Promise<boolean> {
-    const user = await this.getUser(walletAddress);
-    if (!user || !user.temp_diamond_expires_at) return false;
-    
-    const expiresAt = new Date(user.temp_diamond_expires_at).getTime();
-    return expiresAt > Date.now();
-  }
-
-  /**
-   * Get the effective tier for a user (considering temporary diamond access)
-   * Returns the user's actual tier, or DIAMOND if they have temporary access
+   * Get the tier for a user
    */
   async getEffectiveTier(walletAddress: string): Promise<string> {
     const user = await this.getUser(walletAddress);
     if (!user) return 'NONE';
-    
-    // Check for temporary diamond access
-    if (user.temp_diamond_expires_at) {
-      const expiresAt = new Date(user.temp_diamond_expires_at).getTime();
-      if (expiresAt > Date.now()) {
-        return 'DIAMOND';
-      }
-    }
-    
     return user.tier || 'NONE';
   }
 
@@ -451,7 +417,7 @@ export class SupabaseService {
 
   async getPendingScheduledPosts() {
     const now = new Date().toISOString();
-    
+
     const { data, error } = await this.client
       .from('scheduled_posts')
       .select('*')
@@ -501,7 +467,7 @@ export class SupabaseService {
       .range(from, to);
 
     if (error) throw error;
-    
+
     return {
       opportunities: data,
       pagination: {

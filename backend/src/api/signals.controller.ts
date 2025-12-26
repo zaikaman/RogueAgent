@@ -22,7 +22,6 @@ export const getSignalHistory = async (req: Request, res: Response) => {
     let requirePublicPosted = false;
 
     if (walletAddress) {
-      // Use getEffectiveTier to respect temporary diamond access
       const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
       if (effectiveTier) {
         if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {
@@ -73,7 +72,7 @@ export const getSignalHistory = async (req: Request, res: Response) => {
       public_posted_at: run.public_posted_at
     }));
 
-    res.json({ 
+    res.json({
       data: signals,
       pagination: {
         page,

@@ -10,7 +10,6 @@ export const getLatestStatus = async (req: Request, res: Response) => {
     let cutoffTime: string | undefined;
 
     if (walletAddress) {
-      // Use getEffectiveTier to respect temporary diamond access
       const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
       if (effectiveTier) {
         if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {
@@ -33,7 +32,7 @@ export const getLatestStatus = async (req: Request, res: Response) => {
       supabaseService.getLatestIntel(cutoffTime),
       supabaseService.getLatestRun()
     ]);
-    
+
     if (!latestRun && !realLatestRun) {
       return res.json({
         status: 'idle',

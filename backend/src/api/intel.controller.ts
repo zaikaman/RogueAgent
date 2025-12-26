@@ -15,7 +15,6 @@ export const getIntelHistory = async (req: Request, res: Response) => {
     let requirePublicPosted = false;
 
     if (walletAddress) {
-      // Use getEffectiveTier to respect temporary diamond access
       userTier = await supabaseService.getEffectiveTier(walletAddress);
       if (userTier) {
         if (userTier === TIERS.GOLD || userTier === TIERS.DIAMOND) {
@@ -39,7 +38,7 @@ export const getIntelHistory = async (req: Request, res: Response) => {
 
     // Gold/Diamond users see both 'intel' and 'deep_dive' types
     // Other users only see 'intel'
-    const allowedTypes = (userTier === TIERS.GOLD || userTier === TIERS.DIAMOND) 
+    const allowedTypes = (userTier === TIERS.GOLD || userTier === TIERS.DIAMOND)
       ? ['intel', 'deep_dive']
       : ['intel'];
 
@@ -75,7 +74,7 @@ export const getIntelHistory = async (req: Request, res: Response) => {
       public_posted_at: run.public_posted_at
     }));
 
-    res.json({ 
+    res.json({
       data: intel,
       pagination: {
         page,
@@ -111,14 +110,13 @@ export const getIntelById = async (req: Request, res: Response) => {
 
     // Allow if type is intel or deep_dive
     if (run.type !== 'intel' && run.type !== 'deep_dive') {
-         return res.status(404).json({ error: 'Intel not found' });
+      return res.status(404).json({ error: 'Intel not found' });
     }
 
     // Check tier-based access
     let hasAccess = false;
-    
+
     if (walletAddress) {
-      // Use getEffectiveTier to respect temporary diamond access
       const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
       if (effectiveTier) {
         if (effectiveTier === TIERS.GOLD || effectiveTier === TIERS.DIAMOND) {

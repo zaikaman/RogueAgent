@@ -5,7 +5,6 @@ import { SignalCard } from '../components/SignalCard';
 import { IntelCard } from '../components/IntelCard';
 import { TierDisplay } from '../components/TierDisplay';
 import { TelegramModal } from '../components/TelegramModal';
-import { JudgeAccessModal } from '../components/JudgeAccessModal';
 import { TerminalLog } from '../components/TerminalLog';
 import { useRunStatus } from '../hooks/useRunStatus';
 import { useLogs } from '../hooks/useLogs';
@@ -15,49 +14,26 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, Home01Icon } from '@hugeicons/core-free-icons';
 
 export function DashboardHome() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const { data: runStatus, isLoading: isRunLoading } = useRunStatus();
   // Fetch more logs to fill the scrollable area
   const { data: logsData } = useLogs(1, 100);
-  
-  const { 
-    tier: userTier, 
-    balance, 
+
+  const {
+    tier: userTier,
+    balance,
     telegramConnected,
-    shouldShowJudgeModal,
     shouldShowTelegramModal,
-    grantTemporaryAccess,
-    markModalShown,
     markTelegramModalShown
   } = useUserTier();
   const [showTelegramModal, setShowTelegramModal] = useState(false);
-  const [showJudgeModal, setShowJudgeModal] = useState(false);
 
-  // Show judge modal when wallet is connected for the first time
+  // Show telegram modal (if user has a tier, telegram not connected, and modal not shown before)
   useEffect(() => {
-    if (isConnected && shouldShowJudgeModal) {
-      setShowJudgeModal(true);
-    }
-  }, [isConnected, shouldShowJudgeModal]);
-
-  // Show telegram modal after judge modal is closed (if user has a tier, telegram not connected, and modal not shown before)
-  useEffect(() => {
-    if (userTier !== TIERS.NONE && !telegramConnected && !showJudgeModal && shouldShowTelegramModal) {
-       setShowTelegramModal(true);
-    }
-  }, [userTier, telegramConnected, showJudgeModal, shouldShowTelegramModal]);
-
-  const handleJudgeConfirm = (isJudge: boolean) => {
-    if (isJudge) {
-      grantTemporaryAccess();
-    }
-    markModalShown();
-    setShowJudgeModal(false);
-    // If they confirmed as judge, show telegram modal after (if not shown before)
-    if (isJudge && !telegramConnected && shouldShowTelegramModal) {
+    if (userTier !== TIERS.NONE && !telegramConnected && shouldShowTelegramModal) {
       setShowTelegramModal(true);
     }
-  };
+  }, [userTier, telegramConnected, shouldShowTelegramModal]);
 
   const handleTelegramModalClose = () => {
     markTelegramModalShown();
@@ -70,19 +46,10 @@ export function DashboardHome() {
 
   return (
     <div className="space-y-6">
-      <JudgeAccessModal
-        isOpen={showJudgeModal}
-        onClose={() => {
-          markModalShown();
-          setShowJudgeModal(false);
-        }}
-        onConfirm={handleJudgeConfirm}
-      />
-      
-      <TelegramModal 
-        isOpen={showTelegramModal} 
-        onClose={handleTelegramModalClose} 
-        walletAddress={address || ''} 
+      <TelegramModal
+        isOpen={showTelegramModal}
+        onClose={handleTelegramModalClose}
+        walletAddress={address || ''}
       />
 
       <div className="flex items-center justify-between">
@@ -98,15 +65,15 @@ export function DashboardHome() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Latest Intel Preview */}
           {latestIntel && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Latest Intelligence</h3>
-                 <Link to="/app/intel" className="text-xs text-cyan-500 hover:text-cyan-400 flex items-center gap-1">
-                   View Feed <HugeiconsIcon icon={ArrowRight01Icon} className="w-3 h-3" />
-                 </Link>
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Latest Intelligence</h3>
+                <Link to="/app/intel" className="text-xs text-cyan-500 hover:text-cyan-400 flex items-center gap-1">
+                  View Feed <HugeiconsIcon icon={ArrowRight01Icon} className="w-3 h-3" />
+                </Link>
               </div>
               <IntelCard intel={latestIntel} onClick={() => navigate(`/app/intel/${latestIntel.id}`)} />
             </div>
@@ -115,10 +82,10 @@ export function DashboardHome() {
           {/* Latest Signal Preview */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-               <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Latest Signal</h3>
-               <Link to="/app/signals" className="text-xs text-cyan-500 hover:text-cyan-400 flex items-center gap-1">
-                 View All <HugeiconsIcon icon={ArrowRight01Icon} className="w-3 h-3" />
-               </Link>
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Latest Signal</h3>
+              <Link to="/app/signals" className="text-xs text-cyan-500 hover:text-cyan-400 flex items-center gap-1">
+                View All <HugeiconsIcon icon={ArrowRight01Icon} className="w-3 h-3" />
+              </Link>
             </div>
             <SignalCard signal={latestSignal} isLoading={isRunLoading} isLatest={true} />
           </div>
@@ -127,11 +94,11 @@ export function DashboardHome() {
         {/* Sidebar Column */}
         <div className="lg:relative">
           <div className="flex flex-col gap-6 lg:absolute lg:inset-0">
-            <TierDisplay 
-              tier={userTier} 
-              balance={balance} 
+            <TierDisplay
+              tier={userTier}
+              balance={balance}
             />
-            
+
             {/* Quick Actions or Status */}
             <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-4 shrink-0">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">System Status</h3>
@@ -152,9 +119,9 @@ export function DashboardHome() {
             </div>
 
             {/* Terminal Log Preview */}
-            <TerminalLog 
-              logs={logsData?.data || []} 
-              className="flex-1 min-h-[300px] lg:min-h-0" 
+            <TerminalLog
+              logs={logsData?.data || []}
+              className="flex-1 min-h-[300px] lg:min-h-0"
             />
           </div>
         </div>
