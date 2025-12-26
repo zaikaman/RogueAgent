@@ -1,5 +1,5 @@
 import { ScannerAgent } from './scanner.agent';
-import { AnalyzerAgent } from './analyzer.agent';
+import { AnalyzerAgent, CustomAnalyzerAgent } from './analyzer.agent';
 import { GeneratorAgent } from './generator.agent';
 import { WriterAgent } from './writer.agent';
 import { IntelAgent } from './intel.agent';
@@ -37,13 +37,13 @@ async function validateSignalPrice(
   try {
     // Try to get real price from Binance (most reliable for futures symbols)
     let realPrice: number | null = null;
-    
+
     try {
       realPrice = await binanceService.getPrice(symbol);
     } catch (e) {
       logger.warn(`Failed to get Binance price for ${symbol}, trying CoinMarketCap...`);
     }
-    
+
     // Fallback to CoinMarketCap
     if (!realPrice) {
       try {
@@ -53,7 +53,7 @@ async function validateSignalPrice(
         logger.warn(`Failed to get CMC price for ${symbol}, trying CoinGecko...`);
       }
     }
-    
+
     // Fallback to CoinGecko
     if (!realPrice) {
       try {
@@ -65,18 +65,18 @@ async function validateSignalPrice(
         logger.warn(`Failed to get CoinGecko price for ${symbol}`);
       }
     }
-    
+
     if (!realPrice) {
       return { valid: false, realPrice: null, deviation: null, error: `Could not fetch real price for ${symbol}` };
     }
-    
+
     // Calculate deviation
     const deviation = Math.abs((entryPrice - realPrice) / realPrice) * 100;
-    
+
     // Market orders: entry price should be very close to current price (within 5%)
     // Limit orders: more lenient (within 15%) since they're waiting for a specific price
     const maxDeviation = orderType === 'market' ? 5 : 15;
-    
+
     if (deviation > maxDeviation) {
       return {
         valid: false,
@@ -85,7 +85,7 @@ async function validateSignalPrice(
         error: `Entry price $${entryPrice} deviates ${deviation.toFixed(1)}% from real price $${realPrice.toFixed(4)}. Max allowed: ${maxDeviation}% for ${orderType} orders. LLM may have hallucinated the price.`
       };
     }
-    
+
     return { valid: true, realPrice, deviation };
   } catch (error) {
     logger.error(`Price validation error for ${symbol}:`, error);
@@ -162,7 +162,7 @@ interface SignalQualityResult {
 function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
   const reasons: string[] = [];
   const details = result.signal_details;
-  
+
   if (!details || !details.entry_price || !details.target_price || !details.stop_loss) {
     return {
       isValid: false,
@@ -175,56 +175,56 @@ function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
   const target = details.target_price;
   const stop = details.stop_loss;
   const confidence = details.confidence;
-  
+
   // Determine direction
   const isLong = target > entry;
-  
+
   // Calculate R:R
   const risk = isLong ? Math.abs(entry - stop) : Math.abs(stop - entry);
   const reward = isLong ? Math.abs(target - entry) : Math.abs(entry - target);
   const riskRewardRatio = risk > 0 ? reward / risk : 0;
-  
+
   // Calculate stop loss percentage
-  const stopLossPercent = isLong 
-    ? ((entry - stop) / entry) * 100 
+  const stopLossPercent = isLong
+    ? ((entry - stop) / entry) * 100
     : ((stop - entry) / entry) * 100;
-  
+
   // Get optional quality metrics (default to passing if not provided)
   const confluencesCount = details.confluences_count || 2; // Assume minimum if not specified
   const mtfAlignmentScore = details.mtf_alignment_score || 50; // Assume minimum if not specified
 
   // VALIDATION RULES (balanced - selective but not impossible)
-  
+
   // 1. Confidence must be >= 85
   if (confidence < 85) {
     reasons.push(`Confidence ${confidence}% is below minimum 85%`);
   }
-  
+
   // 2. Risk:Reward must be >= 1:2
   if (riskRewardRatio < 2.0) {
     reasons.push(`R:R ratio ${riskRewardRatio.toFixed(2)} is below minimum 1:2`);
   }
-  
+
   // 3. Stop loss must be >= 3% from entry
   if (stopLossPercent < 3.0) {
     reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% is below minimum 3%`);
   }
-  
+
   // 4. Stop loss shouldn't be too wide (> 15% for day trades, > 20% for swings)
   const maxStop = details.trading_style === 'swing_trade' ? 20 : 15;
   if (stopLossPercent > maxStop) {
     reasons.push(`Stop loss ${stopLossPercent.toFixed(1)}% exceeds maximum ${maxStop}% for ${details.trading_style || 'day_trade'}`);
   }
-  
+
   // 5. Target should be realistic (not more than 50% for day trades, 100% for swings)
-  const targetPercent = isLong 
-    ? ((target - entry) / entry) * 100 
+  const targetPercent = isLong
+    ? ((target - entry) / entry) * 100
     : ((entry - target) / entry) * 100;
   const maxTarget = details.trading_style === 'swing_trade' ? 100 : 50;
   if (targetPercent > maxTarget) {
     reasons.push(`Target ${targetPercent.toFixed(1)}% seems unrealistic for ${details.trading_style || 'day_trade'}`);
   }
-  
+
   // 6. Entry, stop, and target must make logical sense
   if (isLong && stop >= entry) {
     reasons.push('LONG: Stop loss must be below entry price');
@@ -237,7 +237,7 @@ function validateSignalQuality(result: AnalyzerResult): SignalQualityResult {
   // This is critical: we only allow limit and market orders
   const currentPrice = details.current_price;
   const direction = details.direction;
-  
+
   if (currentPrice && direction) {
     if (direction === 'LONG' && entry > currentPrice) {
       // Entry above current price for LONG = buy stop order (FORBIDDEN)
@@ -301,7 +301,7 @@ interface WriterResult {
 export class Orchestrator extends EventEmitter {
   private logs: Array<{ id: number; message: string; type: string; timestamp: number; data?: any }> = [];
   private logCounter = 0;
-  
+
   private broadcast(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info', data?: any) {
     const log = { id: ++this.logCounter, message, type, timestamp: Date.now(), data };
     this.logs.push(log);
@@ -343,14 +343,14 @@ export class Orchestrator extends EventEmitter {
         defillamaService.getGlobalTVL().catch(e => { logger.error('DeFi Llama Chains Error', e); return []; }),
         defillamaService.getProtocolStats().catch(e => { logger.error('DeFi Llama Protocols Error', e); return []; }),
         (async () => {
-            try {
-                const price = await coinMarketCapService.getPriceWithChange('BTC');
-                if (price) return price;
-                throw new Error('CMC returned null');
-            } catch (e) {
-                logger.warn('CMC BTC Price Error, falling back to CG');
-                return coingeckoService.getPriceWithChange('bitcoin').catch(e2 => { logger.error('CG BTC Price Error', e2); return null; });
-            }
+          try {
+            const price = await coinMarketCapService.getPriceWithChange('BTC');
+            if (price) return price;
+            throw new Error('CMC returned null');
+          } catch (e) {
+            logger.warn('CMC BTC Price Error, falling back to CG');
+            return coingeckoService.getPriceWithChange('bitcoin').catch(e2 => { logger.error('CG BTC Price Error', e2); return null; });
+          }
         })(),
         // Fetch BTC OHLCV for technical analysis
         binanceService.getOHLCV('BTC', '4h', 30).catch(e => { logger.error('Binance BTC OHLCV Error', e); return []; })
@@ -362,7 +362,7 @@ export class Orchestrator extends EventEmitter {
         try {
           const prices = btcOhlcv.map((c: any) => c.close);
           const currentPrice = prices[prices.length - 1];
-          
+
           // Basic indicators
           const rsi = TechnicalAnalysis.calculateRSI(prices, 14);
           const macd = TechnicalAnalysis.calculateMACD(prices);
@@ -370,12 +370,12 @@ export class Orchestrator extends EventEmitter {
           const latestMACD = macd.macd[macd.macd.length - 1];
           const latestSignal = macd.signal[macd.signal.length - 1];
           const latestHistogram = macd.histogram[macd.histogram.length - 1];
-          
+
           // Advanced indicators
           const haCandles = TechnicalAnalysis.calculateHeikinAshi(btcOhlcv);
           const stResult = TechnicalAnalysis.calculateSuperTrend(haCandles, 10, 3);
           const currentSuperTrend = stResult.trend[stResult.trend.length - 1];
-          
+
           const bbResult = TechnicalAnalysis.calculateBollingerBands(prices, 20, 2);
           const kcResult = TechnicalAnalysis.calculateKeltnerChannel(btcOhlcv, 20, 2);
           const currentBBUpper = bbResult.upper[bbResult.upper.length - 1];
@@ -384,17 +384,17 @@ export class Orchestrator extends EventEmitter {
           const currentKCLower = kcResult.lower[kcResult.lower.length - 1];
           const bbSqueeze = bbResult.squeeze;
           const breakout = (currentPrice > currentKCUpper || currentPrice < currentKCLower) && bbSqueeze;
-          
+
           // CVD for accumulation/distribution
           const cvdResult = TechnicalAnalysis.calculateCVD(btcOhlcv);
-          
+
           // MTF Alignment
           const mtfResult = TechnicalAnalysis.calculateMTFAlignment(prices);
-          
+
           // Fibonacci levels
           const swingPoints = TechnicalAnalysis.detectSwingPoints(btcOhlcv, 20);
           const fibResult = TechnicalAnalysis.calculateFibonacci(swingPoints.swingHigh, swingPoints.swingLow);
-          
+
           btcTechnicalAnalysis = {
             current_price: currentPrice,
             rsi: {
@@ -407,8 +407,8 @@ export class Orchestrator extends EventEmitter {
               signal_line: latestSignal?.toFixed(2),
               histogram: latestHistogram?.toFixed(2),
               signal: latestHistogram > 0 ? 'BULLISH' : 'BEARISH',
-              crossover: latestHistogram > 0 && macd.histogram[macd.histogram.length - 2] <= 0 ? 'BULLISH_CROSS' : 
-                        latestHistogram < 0 && macd.histogram[macd.histogram.length - 2] >= 0 ? 'BEARISH_CROSS' : 'NONE'
+              crossover: latestHistogram > 0 && macd.histogram[macd.histogram.length - 2] <= 0 ? 'BULLISH_CROSS' :
+                latestHistogram < 0 && macd.histogram[macd.histogram.length - 2] >= 0 ? 'BEARISH_CROSS' : 'NONE'
             },
             supertrend: {
               trend: currentSuperTrend?.toUpperCase(),
@@ -419,8 +419,8 @@ export class Orchestrator extends EventEmitter {
               squeeze: bbSqueeze,
               breakout: breakout,
               breakout_direction: currentPrice > currentKCUpper ? 'BULLISH' : currentPrice < currentKCLower ? 'BEARISH' : 'NONE',
-              description: breakout ? `Volatility breakout ${currentPrice > currentKCUpper ? 'UP' : 'DOWN'}` : 
-                          bbSqueeze ? 'Bollinger squeeze - breakout imminent' : 'Normal volatility'
+              description: breakout ? `Volatility breakout ${currentPrice > currentKCUpper ? 'UP' : 'DOWN'}` :
+                bbSqueeze ? 'Bollinger squeeze - breakout imminent' : 'Normal volatility'
             },
             cvd: {
               divergence: cvdResult.divergence,
@@ -430,11 +430,11 @@ export class Orchestrator extends EventEmitter {
               score: mtfResult.score?.toFixed(0),
               bias: mtfResult.bias?.toUpperCase(),
               aligned: mtfResult.aligned,
-              description: mtfResult.aligned && mtfResult.score > 75 
-                ? `Strong ${mtfResult.bias} trend - all timeframes aligned` 
-                : mtfResult.score > 50 
-                ? `Moderate ${mtfResult.bias} bias` 
-                : 'Choppy - no clear trend'
+              description: mtfResult.aligned && mtfResult.score > 75
+                ? `Strong ${mtfResult.bias} trend - all timeframes aligned`
+                : mtfResult.score > 50
+                  ? `Moderate ${mtfResult.bias} bias`
+                  : 'Choppy - no clear trend'
             },
             fibonacci: {
               swing_high: swingPoints.swingHigh?.toFixed(2),
@@ -458,7 +458,7 @@ export class Orchestrator extends EventEmitter {
               if (mtfResult.bias === 'bearish' && mtfResult.score > 50) bearish.push(`MTF ${mtfResult.score.toFixed(0)}% bearish`);
               if (breakout && currentPrice > currentKCUpper) bullish.push('BB breakout UP');
               if (breakout && currentPrice < currentKCLower) bearish.push('BB breakout DOWN');
-              
+
               return {
                 bullish_signals: bullish,
                 bearish_signals: bearish,
@@ -512,10 +512,10 @@ export class Orchestrator extends EventEmitter {
         logger.info('Running Scanner Agent...');
         this.broadcast('Deploying Scanner Agent to determine market bias...', 'info');
         const { runner: scanner } = await ScannerAgent.build();
-        
+
         // Get symbols with active (non-closed) signals to exclude
         const activeSignalSymbols = await supabaseService.getActiveSignalSymbols();
-        const excludedSymbolsSection = activeSignalSymbols.length > 0 
+        const excludedSymbolsSection = activeSignalSymbols.length > 0
           ? `
 ═══════════════════════════════════════════════════════════════════════════════
 🚫 EXCLUDED SYMBOLS (Active trades - DO NOT select these)
@@ -525,7 +525,7 @@ DO NOT include any of these in your candidates list:
 ${activeSignalSymbols.join(', ')}
 `
           : '';
-        
+
         const scannerPrompt = `Determine the market bias and find matching trading opportunities.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -567,20 +567,20 @@ If LONG/SHORT bias is clear, find up to 3 tokens that align.
 If signals are conflicting or unclear, return NEUTRAL with empty candidates.
 
 REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak trade.`;
-        
+
         const scannerResult = await this.runAgentWithRetry<ScannerResult>(
           scanner,
           scannerPrompt,
           'Scanner Agent'
         );
         logger.info('Scanner result:', scannerResult);
-        
+
         // Log market bias
         const marketBias = (scannerResult as any).market_bias || 'UNKNOWN';
         const biasReasoning = (scannerResult as any).bias_reasoning || '';
         logger.info(`Market Bias: ${marketBias} - ${biasReasoning}`);
         this.broadcast(`Scanner determined ${marketBias} bias. Found ${scannerResult.candidates?.length || 0} candidates.`, 'success', scannerResult);
-        
+
         // Skip if NEUTRAL bias
         if (marketBias === 'NEUTRAL') {
           logger.info('Scanner determined NEUTRAL bias - skipping signal generation');
@@ -589,7 +589,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
           // 2. Analyzer - Pass market bias context with chart images
           logger.info('Running Analyzer Agent...');
           this.broadcast('Deploying Analyzer Agent for deep-dive technical analysis...', 'info');
-          
+
           // Generate multi-timeframe chart images for top candidates (limit to 3 candidates)
           // Each candidate gets 3 timeframes: 4H (higher timeframe), 1H (execution timeframe), 15m (precision entries)
           const topCandidates = scannerResult.candidates.slice(0, 3);
@@ -598,16 +598,16 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
             { interval: '1h', label: '1H', days: 7, maxCandles: 100 },     // Fetch 7 days, use last 100 candles
             { interval: '15m', label: '15m', days: 3, maxCandles: 100 },   // Fetch 3 days, use last 100 candles
           ];
-          
+
           // Store charts grouped by symbol with all timeframes
           const multiTimeframeCharts: Array<{
             symbol: string;
             charts: Array<{ timeframe: string; base64: string; mimeType: string }>;
           }> = [];
-          
+
           for (const candidate of topCandidates) {
             const symbolCharts: Array<{ timeframe: string; base64: string; mimeType: string }> = [];
-            
+
             for (const tf of timeframes) {
               try {
                 logger.info(`Generating ${tf.label} chart for ${candidate.symbol}...`);
@@ -639,7 +639,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
                 logger.warn(`Failed to generate ${tf.label} chart for ${candidate.symbol}:`, e);
               }
             }
-            
+
             if (symbolCharts.length > 0) {
               multiTimeframeCharts.push({
                 symbol: candidate.symbol,
@@ -647,24 +647,24 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
               });
             }
           }
-          
+
           const { runner: analyzer } = await AnalyzerAgent.build();
-          
+
           // If we have multi-timeframe chart images, use vision API for comprehensive analysis
           let chartAnalysisText = '';
           if (multiTimeframeCharts.length > 0) {
             const totalCharts = multiTimeframeCharts.reduce((sum, m) => sum + m.charts.length, 0);
             logger.info(`Performing multi-timeframe visual analysis for ${multiTimeframeCharts.length} coin(s), ${totalCharts} total chart(s)...`);
             this.broadcast(`Analyzing ${totalCharts} multi-timeframe charts with vision model (4H/1H/15m)...`, 'info');
-            
+
             try {
               // Build vision messages - analyze all timeframes together per symbol for coherent MTF analysis
               const visionAnalyses: string[] = [];
-              
+
               for (const symbolData of multiTimeframeCharts) {
                 const timeframeLabels = symbolData.charts.map(c => c.timeframe).join(', ');
                 logger.info(`Analyzing ${symbolData.symbol} across ${timeframeLabels}...`);
-                
+
                 const visionPrompt = `You are an ELITE multi-timeframe crypto technical analyst. You are viewing ${symbolData.charts.length} charts for ${symbolData.symbol}/USDT across different timeframes (${timeframeLabels}).
 
 **YOUR TASK:** Provide a COMPREHENSIVE multi-timeframe analysis with EXACT PRICE LEVELS for automated trading.
@@ -780,7 +780,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
 3. Do NOT estimate or use ranges like "around $X" - use EXACT prices from the chart scale
 4. The charts display multiple price levels on the right side - use these for precision
 5. ⚠️ ALWAYS verify: (entry - stop) / entry >= 0.03 for LONG, (stop - entry) / entry >= 0.03 for SHORT`;
-                
+
                 // Create multi-image message with all timeframes for this symbol
                 const images = symbolData.charts.map(c => ({ base64: c.base64, mimeType: c.mimeType }));
                 const visionMessage = createMultiImageVisionMessage(visionPrompt, images);
@@ -788,7 +788,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
                 visionAnalyses.push(`**${symbolData.symbol} Multi-Timeframe Analysis (${timeframeLabels}):**\n${visionResponse}`);
                 logger.info(`Multi-timeframe vision analysis complete for ${symbolData.symbol}`);
               }
-              
+
               chartAnalysisText = `\n\n📊 MULTI-TIMEFRAME VISUAL CHART ANALYSIS (4H/1H/15m from vision model):\n${visionAnalyses.join('\n\n' + '═'.repeat(80) + '\n\n')}`;
               logger.info('All multi-timeframe chart analyses complete');
             } catch (e) {
@@ -796,7 +796,7 @@ REMEMBER: Quality over quantity. It's better to return NEUTRAL than force a weak
               chartAnalysisText = '\n\n⚠️ Multi-timeframe chart image analysis unavailable - proceeding with numerical data only.';
             }
           }
-          
+
           const baseAnalyzerPrompt = `Analyze these ${marketBias} candidates for high-probability trading signals:
 
 Market Bias: ${marketBias}
@@ -807,7 +807,7 @@ Candidates: ${JSON.stringify(scannerResult.candidates)}
 Global Market Context: ${JSON.stringify(marketData.global_market_context)}
 
 IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates should be ${marketBias} setups.${chartAnalysisText}`;
-          
+
           // ═══════════════════════════════════════════════════════════════════════════════
           // ANALYZER WITH QUALITY GATE RETRY LOOP
           // Retry up to 10 times if signal fails quality validation
@@ -815,10 +815,10 @@ IMPORTANT: Direction MUST match market bias (${marketBias}). All candidates shou
           const MAX_QUALITY_RETRIES = 10;
           let qualityRetryAttempt = 0;
           let lastQualityFailureReasons: string[] = [];
-          
+
           while (qualityRetryAttempt < MAX_QUALITY_RETRIES) {
             qualityRetryAttempt++;
-            
+
             // Build prompt with quality feedback if this is a retry
             let analyzerPromptText = baseAnalyzerPrompt;
             if (lastQualityFailureReasons.length > 0) {
@@ -835,9 +835,9 @@ MANDATORY REQUIREMENTS - Your signal MUST satisfy ALL of these:
 
 Please provide a corrected signal that meets ALL quality requirements, or return action: "skip" if no valid setup exists.`;
             }
-            
+
             logger.info(`Running Analyzer Agent (attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES})...`);
-            
+
             // Use standard text-based agent call with the visual analysis embedded
             analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
               analyzer,
@@ -853,22 +853,22 @@ Please provide a corrected signal that meets ALL quality requirements, or return
               const symbol = analyzerResult.selected_token.symbol;
               const entryPrice = analyzerResult.signal_details.entry_price;
               const orderType = analyzerResult.signal_details.order_type || 'market';
-              
+
               if (symbol && entryPrice) {
                 logger.info(`Validating entry price for ${symbol}: $${entryPrice} (${orderType} order)...`);
                 const priceValidation = await validateSignalPrice(symbol, entryPrice, orderType);
-                
+
                 if (!priceValidation.valid) {
                   logger.error(`❌ PRICE VALIDATION FAILED for ${symbol}:`, priceValidation.error);
                   logger.error(`Signal entry: $${entryPrice}, Real price: $${priceValidation.realPrice}, Deviation: ${priceValidation.deviation?.toFixed(1)}%`);
                   this.broadcast(`⚠️ Signal rejected: ${symbol} entry price ($${entryPrice}) too far from real price ($${priceValidation.realPrice?.toFixed(4)}). LLM may have hallucinated the price.`, 'warning');
-                  
+
                   // Don't proceed with hallucinated price signal
                   signalGenerated = false;
                   break; // Price hallucination is not recoverable by retry
                 } else {
                   logger.info(`✅ Price validated for ${symbol}: Entry $${entryPrice}, Real $${priceValidation.realPrice?.toFixed(4)} (${priceValidation.deviation?.toFixed(1)}% deviation)`);
-                  
+
                   // Update signal with validated real price if available
                   if (priceValidation.realPrice && orderType === 'market') {
                     // For market orders, use real price as the entry price
@@ -876,17 +876,17 @@ Please provide a corrected signal that meets ALL quality requirements, or return
                     analyzerResult.signal_details.entry_price = priceValidation.realPrice;
                     logger.info(`Updated market order entry price to real price: $${priceValidation.realPrice.toFixed(4)}`);
                   }
-                  
+
                   // QUALITY GATE: Programmatic validation to catch signals that slip through
                   const qualityCheck = validateSignalQuality(analyzerResult);
-                  
+
                   if (!qualityCheck.isValid) {
                     logger.warn(`Signal REJECTED by quality gate for ${symbol} (attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES}):`, qualityCheck.reasons);
                     logger.info('Signal quality metrics:', qualityCheck.metrics);
-                    
+
                     // Store failure reasons for next retry
                     lastQualityFailureReasons = qualityCheck.reasons;
-                    
+
                     if (qualityRetryAttempt < MAX_QUALITY_RETRIES) {
                       this.broadcast(
                         `Signal for ${symbol} rejected by quality gate (attempt ${qualityRetryAttempt}/${MAX_QUALITY_RETRIES}): ${qualityCheck.reasons.join(', ')}. Retrying...`,
@@ -936,20 +936,20 @@ Please provide a corrected signal that meets ALL quality requirements, or return
 
       if (signalGenerated && analyzerResult && analyzerResult.signal_details) {
         const isLimitOrder = analyzerResult.signal_details.order_type === 'limit';
-        
+
         if (isLimitOrder) {
-            // Validate required fields for pending signals
-            // Symbol is required - coingecko_id will be resolved from mapping
-            if (!analyzerResult.selected_token?.symbol) {
-                logger.error('Cannot create pending signal: missing symbol for price monitoring');
-                return;
-            }
-            if (!analyzerResult.signal_details.entry_price) {
-                logger.error('Cannot create pending signal: missing entry_price');
-                return;
-            }
-            
-            logger.info(`Limit Order detected for ${analyzerResult.selected_token?.symbol}. Processing as PENDING signal.`);
+          // Validate required fields for pending signals
+          // Symbol is required - coingecko_id will be resolved from mapping
+          if (!analyzerResult.selected_token?.symbol) {
+            logger.error('Cannot create pending signal: missing symbol for price monitoring');
+            return;
+          }
+          if (!analyzerResult.signal_details.entry_price) {
+            logger.error('Cannot create pending signal: missing entry_price');
+            return;
+          }
+
+          logger.info(`Limit Order detected for ${analyzerResult.selected_token?.symbol}. Processing as PENDING signal.`);
         }
 
         // 3. Generator (Signal)
@@ -973,23 +973,23 @@ Please provide a corrected signal that meets ALL quality requirements, or return
         const content = rawContent ? formatSignalTweet(rawContent) : null;
 
         if (!content) {
-            logger.error('Generator failed to produce content', generatorResult);
-            await this.saveRun(
-                runId,
-                'signal',
-                { error: 'Generator failed to produce content', generatorResult },
-                startTime,
-                analyzerResult.signal_details.confidence,
-                'Generator failed to produce content'
-            );
-            return;
+          logger.error('Generator failed to produce content', generatorResult);
+          await this.saveRun(
+            runId,
+            'signal',
+            { error: 'Generator failed to produce content', generatorResult },
+            startTime,
+            analyzerResult.signal_details.confidence,
+            'Generator failed to produce content'
+          );
+          return;
         }
 
         // 4. Publisher (Tiered)
         // Ensure coingecko_id is set correctly using our mapping
         const tokenWithCorrectId = {
           ...analyzerResult.selected_token,
-          coingecko_id: analyzerResult.selected_token?.symbol 
+          coingecko_id: analyzerResult.selected_token?.symbol
             ? getCoingeckoId(analyzerResult.selected_token.symbol)
             : analyzerResult.selected_token?.coingecko_id,
         };
@@ -1003,10 +1003,10 @@ Please provide a corrected signal that meets ALL quality requirements, or return
 
         // Save run first to ensure ID exists for scheduled posts
         await this.saveRun(
-          runId, 
-          'signal', 
-          signalContent, 
-          startTime, 
+          runId,
+          'signal',
+          signalContent,
+          startTime,
           analyzerResult.signal_details.confidence,
           undefined,
           null, // publicPostedAt is now delayed
@@ -1025,7 +1025,7 @@ Please provide a corrected signal that meets ALL quality requirements, or return
           logger.info(`Processing signal for Diamond Futures Agents (${signalContent.order_type || 'market'} order)...`);
           const direction: 'LONG' | 'SHORT' = signalContent.target_price > signalContent.entry_price ? 'LONG' : 'SHORT';
           const triggerType: 'long_setup' | 'short_setup' = direction === 'LONG' ? 'long_setup' : 'short_setup';
-          
+
           signalExecutorService.processSignal({
             signalId: runId,
             signal: {
@@ -1077,16 +1077,16 @@ Please provide a corrected signal that meets ALL quality requirements, or return
         // Fallback to Intel
         logger.info('Running Intel Flow...');
         this.broadcast('Running Intel Flow...', 'info');
-        
+
         // Fetch recent topics to avoid repetition
         const recentTopics = await supabaseService.getRecentIntelTopics(5);
         logger.info('Recent Intel Topics:', recentTopics);
-        
+
         // Check if we should generate exclusive Deep Dive (only once per Sunday)
         const isSunday = new Date().getDay() === 0;
         const hasDeepDiveToday = isSunday ? await supabaseService.hasDeepDiveToday() : false;
         const shouldGenerateDeepDive = isSunday && !hasDeepDiveToday;
-        
+
         // 1. Intel Agent
         const { runner: intelAgent } = await IntelAgent.build();
         let intelPrompt = shouldGenerateDeepDive
@@ -1114,7 +1114,7 @@ Your task: Connect the dots between all these topics. How do they relate? What's
         AVOID these recently covered topics: ${recentTopics.join(', ')}`;
 
         if (shouldGenerateDeepDive) {
-            intelPrompt += `
+          intelPrompt += `
 
 Focus on:
 1. **Cross-Narrative Connections**: How did different sectors (DeFi, AI, Privacy, Gaming, etc.) interact this week? What capital rotations occurred?
@@ -1129,7 +1129,7 @@ IMPORTANCE SCORE: Set to 10 automatically for Deep Dives.
 TOPIC: Should be a bold, specific thesis (e.g., "The Silent Rotation: How Privacy Coins Became the Week's Contrarian Play")
 INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dates, and actionable takeaways.`;
         }
-        
+
         const intelResult = await this.runAgentWithRetry<IntelResult>(
           intelAgent,
           intelPrompt,
@@ -1139,17 +1139,17 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         this.broadcast(`Intel Agent generated report: ${intelResult.topic}`, 'success', intelResult);
 
         if (intelResult.topic === 'SKIP' || intelResult.importance_score < 7) {
-            logger.info('Intel Agent decided to SKIP (Low importance or no new topics).');
-            this.broadcast('Intel Agent decided to SKIP (Low importance or no new topics).', 'warning');
-            // Don't save anything to database - just skip this run completely
-            return;
+          logger.info('Intel Agent decided to SKIP (Low importance or no new topics).');
+          this.broadcast('Intel Agent decided to SKIP (Low importance or no new topics).', 'warning');
+          // Don't save anything to database - just skip this run completely
+          return;
         }
 
         // 2. Generator (Intel)
         logger.info('Running Generator Agent (Intel)...');
         this.broadcast('Running Generator Agent (Intel)...', 'info');
         const { runner: generator } = await GeneratorAgent.build();
-        const generatorPrompt = shouldGenerateDeepDive 
+        const generatorPrompt = shouldGenerateDeepDive
           ? `Generate content for this PREMIUM DEEP DIVE REPORT.
         
         This is exclusive Sunday content for Gold/Diamond users. Make it EXCEPTIONAL.
@@ -1178,7 +1178,7 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         I need both a 'tweet_text' (short, lowercase, alpha vibe) and a 'blog_post' (full markdown analysis).
         
         Report: ${JSON.stringify(intelResult)}`;
-        
+
         const generatorResult = await this.runAgentWithRetry<GeneratorResult>(
           generator,
           generatorPrompt,
@@ -1221,11 +1221,11 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         This should be indistinguishable from premium paid research.`
           : `Write a deep-dive article for this INTEL REPORT.
         Report: ${JSON.stringify(intelResult)}`;
-        
+
         const writerResult = await this.runAgentWithRetry<WriterResult>(
-            writer,
-            writerPrompt,
-            'Writer Agent (Intel)'
+          writer,
+          writerPrompt,
+          'Writer Agent (Intel)'
         );
         logger.info('Writer result:', writerResult);
         this.broadcast('Writer Agent completed deep-dive article.', 'success', writerResult);
@@ -1246,13 +1246,13 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         const rawTweetContent = generatorResult.tweet_text || generatorResult.formatted_content;
         const tweetContent = rawTweetContent ? formatIntelTweet(rawTweetContent) : null;
         const blogContent = generatorResult.blog_post || generatorResult.formatted_content;
-        
+
         // Save run first to ensure ID exists for scheduled posts
         await this.saveRun(
-          runId, 
-          shouldGenerateDeepDive ? 'deep_dive' : 'intel', 
-          { 
-            ...intelResult, 
+          runId,
+          shouldGenerateDeepDive ? 'deep_dive' : 'intel',
+          {
+            ...intelResult,
             tweet_text: tweetContent,
             blog_post: generatorResult.blog_post,
             long_form_content: writerResult.content,
@@ -1263,8 +1263,8 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
             formatted_tweet: tweetContent, // Keep for backward compat
             log_message: generatorResult.log_message,
             is_deep_dive: shouldGenerateDeepDive,
-          }, 
-          startTime, 
+          },
+          startTime,
           null,
           undefined,
           shouldGenerateDeepDive ? null : undefined, // Don't post deep dives publicly
@@ -1273,33 +1273,33 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
 
         // Immediate: Gold/Diamond (Blog Post)
         if (blogContent) {
-           const prefix = shouldGenerateDeepDive ? '📊 EXCLUSIVE DEEP DIVE 📊\n\n' : '';
-           logger.info(`Distributing ${shouldGenerateDeepDive ? 'Deep Dive' : 'Intel'} to GOLD/DIAMOND for run ${runId}...`);
-           const intelLink = `https://rogue-adk.vercel.app/app/intel/${runId}`;
-           // Use TLDR for Telegram, full content is on the website
-           const tldrText = writerResult.tldr || intelResult.insight || 'New intel available';
-           const messageWithLink = `${prefix}${writerResult.headline}\n\n${tldrText}\n\n[View full ${shouldGenerateDeepDive ? 'deep dive' : 'intel'} here](${intelLink})`;
-           telegramService.broadcastToTiers(messageWithLink, [TIERS.GOLD, TIERS.DIAMOND])
-             .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
+          const prefix = shouldGenerateDeepDive ? '📊 EXCLUSIVE DEEP DIVE 📊\n\n' : '';
+          logger.info(`Distributing ${shouldGenerateDeepDive ? 'Deep Dive' : 'Intel'} to GOLD/DIAMOND for run ${runId}...`);
+          const intelLink = `https://rogue-adk.vercel.app/app/intel/${runId}`;
+          // Use TLDR for Telegram, full content is on the website
+          const tldrText = writerResult.tldr || intelResult.insight || 'New intel available';
+          const messageWithLink = `${prefix}${writerResult.headline}\n\n${tldrText}\n\n[View full ${shouldGenerateDeepDive ? 'deep dive' : 'intel'} here](${intelLink})`;
+          telegramService.broadcastToTiers(messageWithLink, [TIERS.GOLD, TIERS.DIAMOND])
+            .catch(err => logger.error('Error distributing to GOLD/DIAMOND', err));
         }
 
         // Delayed 15-20m: Silver (Blog Post) - SKIP if it's an exclusive Deep Dive
         if (blogContent && !shouldGenerateDeepDive) {
-           logger.info(`Scheduling Intel Blog for SILVER (+15-20m) for run ${runId}...`);
-           await scheduledPostService.schedulePost(runId, 'SILVER', blogContent)
-             .catch(err => logger.error('Error scheduling SILVER intel post', err));
+          logger.info(`Scheduling Intel Blog for SILVER (+15-20m) for run ${runId}...`);
+          await scheduledPostService.schedulePost(runId, 'SILVER', blogContent)
+            .catch(err => logger.error('Error scheduling SILVER intel post', err));
         }
 
         // Delayed 30m: Public (Twitter) - SKIP if it's an exclusive Deep Dive
         if (tweetContent && !shouldGenerateDeepDive) {
-           logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
-           await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent)
-             .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
+          logger.info(`Scheduling Intel Tweet for PUBLIC (+30m) for run ${runId}...`);
+          await scheduledPostService.schedulePost(runId, 'PUBLIC', tweetContent)
+            .catch(err => logger.error('Error scheduling PUBLIC intel post', err));
         } else if (shouldGenerateDeepDive) {
-           logger.info(`Deep Dive is exclusive - skipping public distribution for run ${runId}`);
+          logger.info(`Deep Dive is exclusive - skipping public distribution for run ${runId}`);
         }
       }
-      
+
       logger.info('Run completed successfully.');
       this.broadcast('Run completed successfully.', 'success');
 
@@ -1312,7 +1312,7 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
 
   async processCustomRequest(requestId: string, tokenSymbol: string, walletAddress: string) {
     logger.info(`Processing custom request ${requestId} for ${tokenSymbol}`);
-    
+
     try {
       // Update status to processing
       await supabaseService.updateCustomRequest(requestId, { status: 'processing' });
@@ -1330,27 +1330,35 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         Focus on finding the 'why' behind the current price action.`,
         'Scanner Agent'
       );
-      
-      // 2. Analyzer
-      logger.info('Running Analyzer Agent for custom request...');
-      const { runner: analyzer } = await AnalyzerAgent.build();
-      const analyzerResult = await this.runAgentWithRetry<AnalyzerResult>(
-        analyzer,
-        `Analyze this data for a high-stakes trader.
-        Data: ${JSON.stringify(scannerResult)}
 
-        I need a 'Custom Alpha Report' that answers:
-        1. Is this token currently overbought or oversold?
-        2. What is the primary narrative driving it right now?
-        3. What are the key support/resistance levels to watch?
-        4. VERDICT: Bullish, Bearish, or Neutral? Give a confidence score (0-100%).
+      // 2. Analyzer (using CustomAnalyzerAgent with relaxed schema for analysis-only scans)
+      logger.info('Running Custom Analyzer Agent for custom request...');
+      const { runner: analyzer } = await CustomAnalyzerAgent.build();
+      const analyzerResult = await this.runAgentWithRetry<any>(
+        analyzer,
+        `Analyze ${tokenSymbol} for a VIP client requesting a custom deep-dive analysis.
         
-        IMPORTANT: You must fit this analysis into the strict output schema.
-        - Put the detailed answers to the above questions into the 'analysis' string field.
-        - You MUST provide 'entry_price', 'target_price', 'stop_loss' (use best estimates from support/resistance or null if strictly not applicable).
-        - You MUST provide 'confidence' (number 1-100).
-        - You MUST provide 'action' ('signal', 'skip', or 'no_signal').`,
-        'Analyzer Agent'
+        Scanner Data: ${JSON.stringify(scannerResult)}
+
+        Provide a comprehensive 'Custom Alpha Report' answering:
+        1. Is this token currently overbought or oversold? (Use RSI, momentum indicators from scanner data)
+        2. What is the primary narrative driving it right now? (News, social sentiment, catalysts)
+        3. What are the key support/resistance levels to watch?
+        4. VERDICT: Bullish, Bearish, or Neutral? With a confidence score (0-100%).
+        
+        IMPORTANT OUTPUT INSTRUCTIONS:
+        - Put your detailed analysis (answering all 4 questions) in the 'analysis' field
+        - Provide a brief 2-3 sentence summary in 'analysis_summary'
+        - Set 'selected_token' with the token info (symbol: "${tokenSymbol}")
+        - If there's a clear trade opportunity, include 'signal_details' with entry/target/stop
+        - If no clear trade setup, set 'action' to 'no_signal' and 'signal_details' to null
+        
+        Be HONEST with confidence scores:
+        - 80-100%: Very clear direction
+        - 60-79%: Moderate clarity
+        - 40-59%: Mixed signals
+        - 0-39%: Highly uncertain`,
+        'Custom Analyzer Agent'
       );
 
       // 3. Generator
@@ -1374,9 +1382,9 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
 
       // 4. Deliver via Telegram DM (if available) and always store result
       const content = generatorResult.formatted_content || generatorResult.blog_post || "Analysis generation failed.";
-      
+
       // Always store the result in the database for web polling
-      await supabaseService.updateCustomRequest(requestId, { 
+      await supabaseService.updateCustomRequest(requestId, {
         status: 'completed',
         analysis_result: generatorResult,
         delivered_at: new Date().toISOString(),
@@ -1397,9 +1405,25 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
 
     } catch (error: any) {
       logger.error(`Custom request processing failed for ${requestId}`, error);
-      await supabaseService.updateCustomRequest(requestId, { 
+
+      // Extract raw output from error message if present (ADK validation errors often include it)
+      let rawOutput: string | null = null;
+      const errorMessage = error.message || 'Unknown error';
+
+      // Try to extract the raw output from the error message
+      // Format: "...Raw output: <actual output here>{json...}"
+      const rawOutputMatch = errorMessage.match(/Raw output:\s*([\s\S]+)$/);
+      if (rawOutputMatch) {
+        rawOutput = rawOutputMatch[1].trim();
+      } else if (errorMessage.includes('validation') || errorMessage.includes('schema')) {
+        // If it's a validation error, the entire message might be useful as raw context
+        rawOutput = errorMessage;
+      }
+
+      await supabaseService.updateCustomRequest(requestId, {
         status: 'failed',
-        error_message: error.message,
+        error_message: errorMessage,
+        raw_output: rawOutput,
         completed_at: new Date().toISOString()
       });
     }
@@ -1466,9 +1490,9 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
   }
 
   private async saveRun(
-    id: string, 
-    type: 'signal' | 'intel' | 'skip' | 'deep_dive', 
-    content: any, 
+    id: string,
+    type: 'signal' | 'intel' | 'skip' | 'deep_dive',
+    content: any,
     startTime: number,
     confidence?: number | null,
     errorMessage?: string,
@@ -1476,11 +1500,11 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
     telegramDeliveredAt?: string | null
   ) {
     const endTime = Date.now();
-    
+
     // Confidence is now 1-100, no scaling needed
     let finalConfidence = confidence;
     if (typeof confidence === 'number') {
-        finalConfidence = Math.max(1, Math.min(100, confidence));
+      finalConfidence = Math.max(1, Math.min(100, confidence));
     }
 
     // Update the existing run record instead of creating a new one
@@ -1505,12 +1529,12 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
       try {
         attempts++;
         let currentPrompt = prompt;
-        
+
         if (attempts > 1) {
           // Add error context to help the agent fix the issue
           const errorMessage = lastError?.message || 'Unknown error';
           const isSchemaError = errorMessage.includes('schema') || errorMessage.includes('validation') || errorMessage.includes('parse') || errorMessage.includes('Tweet text must be under 280 characters');
-          
+
           if (isSchemaError) {
             currentPrompt = `${prompt}
 
@@ -1534,16 +1558,16 @@ Please retry with correctly formatted output.`;
 PREVIOUS ATTEMPT FAILED. Error: ${errorMessage}
 Please try again and ensure all requirements are met.`;
           }
-          
+
           logger.info(`${agentName} retry attempt ${attempts}/${maxAttempts} with enhanced prompt`);
         }
-          
+
         const result = await agentRunner.ask(currentPrompt) as T;
-        
+
         if (attempts > 1) {
           logger.info(`${agentName} succeeded on attempt ${attempts}/${maxAttempts}`);
         }
-        
+
         return result;
       } catch (error: any) {
         logger.warn(`${agentName} attempt ${attempts}/${maxAttempts} failed:`, {
@@ -1551,19 +1575,19 @@ Please try again and ensure all requirements are met.`;
           error: error.toString()
         });
         lastError = error;
-        
+
         if (attempts >= maxAttempts) {
           logger.error(`${agentName} failed after ${maxAttempts} attempts. Last error:`, error);
           throw new Error(`${agentName} failed after ${maxAttempts} retries: ${error.message}`);
         }
-        
+
         // Wait a bit before retrying (exponential backoff)
         const waitTime = Math.min(1000 * Math.pow(2, attempts - 1), 5000);
         logger.info(`Waiting ${waitTime}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
-    
+
     throw new Error(`${agentName} failed to produce a result after retries.`);
   }
 }

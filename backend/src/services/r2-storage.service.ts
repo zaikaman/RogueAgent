@@ -12,7 +12,7 @@ class R2StorageService {
     const accountId = config.R2_ACCOUNT_ID;
     const accessKeyId = config.R2_ACCESS_KEY_ID;
     const secretAccessKey = config.R2_SECRET_ACCESS_KEY;
-    
+
     this.bucketName = config.R2_BUCKET_NAME || 'rogue';
     this.publicUrl = config.R2_PUBLIC_URL || '';
 
@@ -58,7 +58,7 @@ class R2StorageService {
 
       const publicUrl = `${this.publicUrl}/${key}`;
       logger.info(`File uploaded successfully: ${publicUrl}`);
-      
+
       return publicUrl;
     } catch (error: any) {
       logger.error('R2 upload failed:', error.message);
@@ -77,7 +77,7 @@ class R2StorageService {
       });
 
       const response = await this.client.send(command);
-      return response.Contents?.map(obj => obj.Key || '') || [];
+      return response.Contents?.map((obj: { Key?: string }) => obj.Key || '') || [];
     } catch (error: any) {
       logger.error('Failed to list R2 objects:', error.message);
       throw error;

@@ -24,6 +24,8 @@
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",
+    "@aws-sdk/client-s3": "^3.958.0",
+    "@aws-sdk/lib-storage": "^3.958.0",
     "@gradio/client": "^2.0.0",
     "@iqai/adk": "^0.5.6",
     "@supabase/supabase-js": "^2.39.7",

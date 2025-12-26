@@ -15,25 +15,25 @@ export const scanController = {
 
       // Validate user exists and is DIAMOND tier (respects temporary access)
       const user = await supabaseService.getUser(walletAddress);
-      
+
       if (!user) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
           error: 'User not found. Please connect your wallet first.',
           tier_required: 'DIAMOND'
         });
       }
-      
+
       const effectiveTier = await supabaseService.getEffectiveTier(walletAddress);
       if (effectiveTier !== TIERS.DIAMOND) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           success: false,
           error: `Custom scans are exclusive to DIAMOND tier users (1,000+ $RGE). Your current tier: ${user.tier}`,
           tier_required: 'DIAMOND',
           current_tier: user.tier
         });
       }
-      
+
       // Create custom request
       logger.info('Creating custom scan request', { walletAddress, tokenSymbol });
       const request = await supabaseService.createCustomRequest({
@@ -41,18 +41,18 @@ export const scanController = {
         token_symbol: tokenSymbol.toUpperCase(),
         status: 'pending',
       });
-      
+
       // Trigger orchestrator (async)
       const { orchestrator } = await import('../agents/orchestrator');
       orchestrator.processCustomRequest(request.id, tokenSymbol.toUpperCase(), walletAddress)
         .catch((err: any) => logger.error('Error processing custom request:', err));
-      
+
       res.json({
         success: true,
         message: `Scan initiated for ${tokenSymbol.toUpperCase()}. You will receive the analysis shortly.`,
         request_id: request.id,
       });
-      
+
     } catch (error: any) {
       logger.error('Error in Scan Controller', error);
       res.status(500).json({ error: 'Failed to process scan request' });
@@ -69,9 +69,9 @@ export const scanController = {
       }
 
       const request = await supabaseService.getCustomRequest(requestId);
-      
+
       if (!request) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
           error: 'Request not found'
         });
@@ -79,9 +79,9 @@ export const scanController = {
 
       // Return status and result if completed
       if (request.status === 'completed') {
-        const content = request.analysis_result?.formatted_content || 
-                        request.analysis_result?.blog_post || 
-                        'Analysis completed.';
+        const content = request.analysis_result?.formatted_content ||
+          request.analysis_result?.blog_post ||
+          'Analysis completed.';
         res.json({
           success: true,
           status: 'completed',
@@ -93,6 +93,7 @@ export const scanController = {
           success: false,
           status: 'failed',
           error: request.error_message || 'Scan failed. Please try again.',
+          raw_output: request.raw_output || null, // Raw LLM output for advanced debugging
           token: request.token_symbol
         });
       } else {
@@ -106,7 +107,7 @@ export const scanController = {
 
     } catch (error: any) {
       logger.error('Error in getScanStatus', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Failed to get scan status'
       });

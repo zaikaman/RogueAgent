@@ -309,3 +309,118 @@ export const AnalyzerAgent = AgentBuilder.create('analyzer_agent')
       }).nullable().describe('Signal details, or null if action is no_signal or skip'),
     }) as any
   );
+
+/**
+ * CustomAnalyzerAgent - For custom scan requests (analysis only, not signal generation)
+ * 
+ * Key differences from AnalyzerAgent:
+ * - Confidence allows 0-100% (not enforced minimum)
+ * - signal_details is fully optional (custom scans are analysis, not trades)
+ * - analysis field is required and more detailed
+ */
+export const CustomAnalyzerAgent = AgentBuilder.create('custom_analyzer_agent')
+  .withModel(llm)
+  .withDescription('Elite crypto analyst for deep-dive token analysis and custom research reports. Provides comprehensive market intelligence without requiring trade signals.')
+  .withInstruction(dedent`
+    You are an ELITE crypto ANALYST providing in-depth token analysis for a VIP client.
+    This is a CUSTOM SCAN request - you are generating an ANALYSIS REPORT, NOT a trading signal.
+    
+    ⚠️ **OUTPUT FORMAT RULE**: You MUST return a SINGLE JSON object, NOT an array.
+    
+    **YOUR TASK**: Provide comprehensive analysis answering:
+    1. Is this token currently overbought or oversold? (RSI, momentum indicators)
+    2. What is the primary narrative driving it right now? (News, social sentiment, catalysts)
+    3. What are the key support/resistance levels to watch?
+    4. VERDICT: Bullish, Bearish, or Neutral? With a confidence score (0-100%).
+    
+    **CONFIDENCE SCORING FOR ANALYSIS** (Different from signal confidence):
+    - 80-100%: Very clear market direction, strong confluence of indicators
+    - 60-79%: Moderate clarity, some conflicting signals but overall bias is visible
+    - 40-59%: Mixed signals, choppy market, no clear direction
+    - 0-39%: Highly uncertain, lack of data, or conflicting narratives
+    
+    **YOUR ANALYSIS SHOULD BE HONEST**: If the market is uncertain, say so with low confidence.
+    Do NOT inflate confidence to meet arbitrary thresholds - this is an analysis report, not a trade.
+    
+    **TOOLS TO USE**:
+    - 'get_coingecko_id': Get the correct CoinGecko ID for the token
+    - 'get_token_price': Get REAL current price (MANDATORY - never use training data)
+    - 'get_technical_analysis': Get TA indicators (RSI, MACD, etc.)
+    - 'get_fundamental_analysis': Get fundamental data
+    - 'search_tavily': Search for recent news and sentiment
+    
+    **OUTPUT STRUCTURE**:
+    - Put detailed analysis in 'analysis' field (this is the main content)
+    - Summarize in 'analysis_summary' (2-3 sentences max)
+    - You MAY provide optional signal_details if there's a clear trade setup, but it's NOT required
+    - If no clear trade setup: set action to 'no_signal' and signal_details to null
+    - Confidence in signal_details reflects TRADE confidence (if you provide signal_details)
+    
+    Example Output (Analysis with no clear trade):
+    {
+      "action": "no_signal",
+      "analysis": "1) BTC is in a neutral-to-mildly range-bound state, trading in the 86k-89k zone with RSI at 52 (neutral). 2) Mixed narratives: Citi bullish on 143k target but on-chain shows distribution. 3) Support around 86,000; resistance around 89,500-90,000. 4) VERDICT: Neutral with 65% confidence due to conflicting signals.",
+      "analysis_summary": "BTC neutral in 86k-89k range with mixed signals. Watch 86k support and 90k resistance.",
+      "selected_token": {
+        "symbol": "BTC",
+        "name": "Bitcoin",
+        "coingecko_id": "bitcoin"
+      },
+      "signal_details": null
+    }
+    
+    Example Output (Analysis with trade opportunity):
+    {
+      "action": "signal",
+      "analysis": "1) ETH appears oversold with RSI at 28 after sharp selloff. 2) Strong accumulation narrative as institutions buy the dip. 3) Key support at $3,200 (previous swing low), resistance at $3,600 (recent high). 4) VERDICT: Bullish with 85% confidence.",
+      "analysis_summary": "ETH oversold at support, institutional accumulation visible. High-probability bounce setup.",
+      "selected_token": {
+        "symbol": "ETH",
+        "name": "Ethereum",
+        "coingecko_id": "ethereum"
+      },
+      "signal_details": {
+        "direction": "LONG",
+        "order_type": "limit",
+        "trading_style": "day_trade",
+        "current_price": 3250,
+        "entry_price": 3200,
+        "target_price": 3600,
+        "stop_loss": 3050,
+        "confidence": 85,
+        "analysis": "LONG limit at $3,200 support with stop at $3,050 (4.7% risk), target $3,600. R:R = 1:2.7.",
+        "trigger_event": null
+      }
+    }
+  `)
+  .withTools(getCoingeckoIdTool, getTokenPriceTool, getMarketChartTool, getTechnicalAnalysisTool, getFundamentalAnalysisTool, searchTavilyTool)
+  .withOutputSchema(
+    z.object({
+      action: z.enum(['signal', 'skip', 'no_signal']).describe('Use "no_signal" for analysis-only, "signal" if trade setup exists'),
+      analysis: z.string().describe('REQUIRED: Detailed analysis answering the 4 key questions'),
+      analysis_summary: z.string().describe('REQUIRED: Brief 2-3 sentence summary'),
+      selected_token: z.object({
+        symbol: z.string(),
+        name: z.string(),
+        coingecko_id: z.string().optional(),
+        chain: z.string().optional(),
+        address: z.string().nullable().optional(),
+      }).nullable().describe('The analyzed token info'),
+      signal_details: z.object({
+        direction: z.enum(['LONG', 'SHORT']).optional(),
+        order_type: z.enum(['market', 'limit']).default('market').optional(),
+        trading_style: z.enum(['day_trade', 'swing_trade']).default('day_trade').optional(),
+        expected_duration: z.string().optional(),
+        current_price: z.number().optional(),
+        entry_price: z.number().nullable().optional(),
+        target_price: z.number().nullable().optional(),
+        stop_loss: z.number().nullable().optional(),
+        confidence: z.number().min(0).max(100).optional().describe('Trade confidence 0-100% (only if signal_details provided)'),
+        analysis: z.string().optional(),
+        trigger_event: z.object({
+          type: z.string(),
+          description: z.string(),
+        }).nullable().optional(),
+      }).nullable().optional().describe('Optional trade signal details - only provide if clear setup exists'),
+    }) as any
+  );
