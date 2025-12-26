@@ -323,6 +323,15 @@ export class Orchestrator extends EventEmitter {
     logger.info(`Starting swarm run ${runId}`);
     this.broadcast(`Initializing Rogue Swarm Protocol... Run ID: ${runId.slice(0, 8)}`, 'info');
 
+    // Create initial run record to track start time immediately
+    await supabaseService.createRun({
+      id: runId,
+      type: 'skip', // Temporary, will be updated when we know the actual type
+      content: { status: 'running' },
+      cycle_started_at: new Date(startTime).toISOString(),
+      cycle_completed_at: null,
+    });
+
     try {
       // Fetch data manually to avoid tool calling issues with custom LLM
       logger.info('Fetching market data...');
@@ -1483,11 +1492,10 @@ INSIGHT: 3-5 paragraphs of genuine strategic analysis with specific numbers, dat
         finalConfidence = Math.max(1, Math.min(100, confidence));
     }
 
-    await supabaseService.createRun({
-      id,
+    // Update the existing run record instead of creating a new one
+    await supabaseService.updateRun(id, {
       type,
       content,
-      cycle_started_at: new Date(startTime).toISOString(),
       cycle_completed_at: new Date(endTime).toISOString(),
       execution_time_ms: endTime - startTime,
       confidence_score: finalConfidence,
@@ -1521,10 +1529,10 @@ Error: ${errorMessage}
 
 CRITICAL INSTRUCTIONS TO FIX:
 1. You MUST return valid JSON that exactly matches the output schema
-2. ALL required fields must be present (especially 'action' field)
+2. ALL required fields must be present (especially 'action' field if applicable)
 3. Field types must match exactly (strings as strings, numbers as numbers, etc.)
 4. Enum values must be exactly as specified (e.g., 'signal', 'skip', or 'no_signal')
-5. Do NOT include any conversational text - ONLY the JSON object
+5. Do NOT include any conversational text, explanations, or the error message itself - ONLY the JSON object
 6. Double-check your JSON syntax is valid
 7. IF THE ERROR WAS ABOUT TWEET LENGTH: You MUST shorten the 'tweet_text' to be under 280 characters. This is a HARD requirement.
 

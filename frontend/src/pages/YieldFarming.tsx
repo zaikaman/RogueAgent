@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
-import { useAllYield, YieldOpportunity } from '../hooks/useYield';
+import { useYield, YieldOpportunity } from '../hooks/useYield';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
@@ -57,8 +57,9 @@ export function YieldFarming() {
     chain: 'all',
   });
 
-  const { data: yieldData, isLoading, isError } = useAllYield();
+  const { data: yieldData, isLoading, isError } = useYield(page, ITEMS_PER_PAGE);
   const allOpportunities = yieldData?.opportunities || [];
+  const serverPagination = yieldData?.pagination;
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -76,11 +77,26 @@ export function YieldFarming() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Check if we have active filters
+  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'apy-high' || filters.risk !== 'all' || filters.chain !== 'all';
+
   // Filter, sort, and paginate logic
-  const { featuredOpportunity, paginatedOpportunities, totalPages, totalFiltered } = useMemo(() => {
-    // First one is always featured
-    const featured = allOpportunities[0] || null;
+  const { featuredOpportunity, displayOpportunities, totalPages } = useMemo(() => {
+    // First one is always featured (only on page 1)
+    const featured = page === 1 && allOpportunities[0] || null;
     const latestId = featured?.pool_id;
+
+    if (!hasActiveFilters) {
+      // No filters: use server-side pagination directly
+      const list = allOpportunities.filter((o: YieldOpportunity) => o.pool_id !== latestId);
+      return {
+        featuredOpportunity: featured,
+        displayOpportunities: list,
+        totalPages: serverPagination?.pages || 1,
+      };
+    }
+
+    // Has filters: apply client-side filtering
     let list = allOpportunities.filter((o: YieldOpportunity) => o.pool_id !== latestId);
 
     // Search filter
@@ -124,13 +140,12 @@ export function YieldFarming() {
       }
     });
 
-    const totalFiltered = list.length;
-    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const paginatedOpportunities = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    return { featuredOpportunity: featured, paginatedOpportunities, totalPages, totalFiltered };
-  }, [allOpportunities, searchQuery, sortBy, filters, page]);
+    return { 
+      featuredOpportunity: featured, 
+      displayOpportunities: list, 
+      totalPages: 1 // Only show current page results when filtering
+    };
+  }, [allOpportunities, searchQuery, sortBy, filters, hasActiveFilters, serverPagination, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -201,10 +216,10 @@ export function YieldFarming() {
               />
             </div>
 
-            {paginatedOpportunities.length > 0 ? (
+            {displayOpportunities.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedOpportunities.map((opp: YieldOpportunity, index: number) => (
+                  {displayOpportunities.map((opp: YieldOpportunity, index: number) => (
                     <YieldCard key={opp.pool_id || index + 1} opportunity={opp} index={index + 1} />
                   ))}
                 </div>
@@ -221,7 +236,7 @@ export function YieldFarming() {
                     </button>
                     <span className="text-sm text-gray-500">
                       Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                      <span className="text-gray-600 ml-2">({totalFiltered} total)</span>
+                      {serverPagination && <span className="text-gray-600 ml-2">({serverPagination.total} total)</span>}
                     </span>
                     <button
                       onClick={handleNextPage}

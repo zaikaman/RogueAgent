@@ -154,26 +154,30 @@ class PredictionMarketsService {
   }
 
   /**
-   * Get high-edge markets from database
+   * Get high-edge markets from database with pagination
    */
-  async getHighEdgeMarkets(limit = 15): Promise<AnalyzedMarket[]> {
+  async getHighEdgeMarkets(page = 1, limit = 15): Promise<{ markets: AnalyzedMarket[], total: number }> {
     try {
       const client = supabaseService.getClient();
+      const offset = (page - 1) * limit;
       
-      const { data, error } = await client
+      const { data, error, count } = await client
         .from('prediction_markets_cache')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('is_active', true)
         .gte('edge_percent', MIN_EDGE_THRESHOLD)
         .order('confidence_score', { ascending: false })
-        .limit(limit);
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
       
-      return (data || []) as AnalyzedMarket[];
+      return { 
+        markets: (data || []) as AnalyzedMarket[], 
+        total: count || 0 
+      };
     } catch (error) {
       logger.error('[PredictionMarkets] Error fetching markets:', error);
-      return [];
+      return { markets: [], total: 0 };
     }
   }
 

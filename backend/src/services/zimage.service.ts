@@ -1,27 +1,32 @@
 import { Client } from '@gradio/client';
 import { logger } from '../utils/logger.util';
-import { supabaseService } from './supabase.service';
+import { r2StorageService } from './r2-storage.service';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 
-// Response format from mrfakename/Z-Image-Turbo: [image, seed]
-// image is a FileData object with { url, path, ... }
+// Response format from Tongyi-MAI/Z-Image-Turbo: [gallery_images, seed_used, seed]
+// (Some spaces may return the older 2-element format: [gallery_images, seed_used])
+// gallery_images is an array of objects with { image: FileData, caption: null }
 interface ImageResult {
   url?: string;
   path?: string;
 }
 
-const STORAGE_BUCKET = 'intel-images';
+interface GalleryItem {
+  image: ImageResult;
+  caption: string | null;
+}
+
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 2000;
 
-// Image dimensions for 16:9 widescreen format
-const IMAGE_WIDTH = 1600;
-const IMAGE_HEIGHT = 896;
+// Default resolution: 2048x1152 (16:9)
+// Z-Image-Turbo supports multiple resolutions via dropdown
+const DEFAULT_RESOLUTION = '2048x1152 ( 16:9 )';
 
 class ZImageService {
-  // Using mrfakename's mirror of Z-Image-Turbo (more reliable)
-  private readonly spaceUrl: string = 'mrfakename/Z-Image-Turbo';
+  // Using Tongyi-MAI/Z-Image-Turbo
+  private readonly spaceUrl: string = 'Tongyi-MAI/Z-Image-Turbo';
   private readonly hfToken: string | undefined;
 
   constructor() {
@@ -85,8 +90,8 @@ class ZImageService {
   }
 
   /**
-   * Download image from URL and upload to Supabase storage
-   * Returns the permanent public URL from Supabase
+   * Download image from URL and upload to R2 storage
+   * Returns the permanent public URL from R2
    */
   private async uploadToStorage(tempImageUrl: string): Promise<string | null> {
     try {
@@ -106,30 +111,16 @@ class ZImageService {
       const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const filename = `${timestamp}/${randomUUID()}.${extension}`;
       
-      logger.info(`Uploading image to Supabase storage: ${filename}`);
+      logger.info(`Uploading image to R2 storage: ${filename}`);
       
-      const supabase = supabaseService.getClient();
+      // Upload to R2
+      const publicUrl = await r2StorageService.uploadFile(
+        imageBuffer,
+        filename,
+        contentType
+      );
       
-      const { data, error } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filename, imageBuffer, {
-          contentType,
-          cacheControl: '31536000', // Cache for 1 year
-          upsert: false,
-        });
-      
-      if (error) {
-        logger.error('Failed to upload to Supabase storage:', error.message);
-        return null;
-      }
-      
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filename);
-      
-      const publicUrl = publicUrlData.publicUrl;
-      logger.info('Image uploaded to Supabase storage:', publicUrl);
+      logger.info('Image uploaded to R2 storage:', publicUrl);
       
       return publicUrl;
       
@@ -146,24 +137,38 @@ class ZImageService {
 
       logger.info('Sending image generation request to Z-Image-Turbo...');
       
-      // mrfakename/Z-Image-Turbo API parameters:
-      // prompt, height, width, num_inference_steps, seed, randomize_seed
-      const result = await client.predict('/generate_image', {
+      // Tongyi-MAI/Z-Image-Turbo API parameters for /generate endpoint:
+      // prompt (required), resolution, seed, steps, shift, random_seed, gallery_images
+      const result = await client.predict('/generate', {
         prompt: prompt,
-        height: IMAGE_HEIGHT,
-        width: IMAGE_WIDTH,
-        num_inference_steps: 8, // Fast turbo model (8 steps is optimal)
-        seed: 0,
-        randomize_seed: true,
+        resolution: DEFAULT_RESOLUTION, // "1024x1024 ( 1:1 )"
+        seed: -1, // -1 with random_seed=true for random
+        steps: 8, // Inference steps (default: 8)
+        shift: 3, // Time shift parameter (default: 3)
+        random_seed: true, // Randomize seed
+        gallery_images: [], // Previous gallery images (empty for new generation)
       });
 
       logger.info('Z-Image-Turbo response received');
       
-      // Response format: [image, seed] where image is a FileData object
-      const data = result.data as [ImageResult, number];
-      const imageData = data[0];
+      // Response format (documented): [gallery_images, seed_used, seed]
+      // Back-compat: some variants return [gallery_images, seed_used]
+      const data = result.data as unknown;
+
+      const galleryImages = Array.isArray(data) ? (data[0] as GalleryItem[] | undefined) : undefined;
+      const seedUsed = Array.isArray(data) ? (data[1] as string | undefined) : undefined;
+      const seedEcho = Array.isArray(data) ? data[2] : undefined;
+
+      if (seedUsed !== undefined) {
+        logger.info(`Seed used: ${seedUsed}`);
+      }
+      if (seedEcho !== undefined) {
+        logger.info(`Seed returned: ${String(seedEcho)}`);
+      }
       
-      if (imageData) {
+      if (galleryImages && galleryImages.length > 0) {
+        const galleryItem = galleryImages[0]; // Get first item from gallery
+        const imageData = galleryItem.image; // Extract the image FileData
         const tempImageUrl = imageData.url || imageData.path;
         
         if (tempImageUrl) {

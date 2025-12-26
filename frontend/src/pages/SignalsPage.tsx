@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
 import { useRunStatus } from '../hooks/useRunStatus';
-import { useAllSignalsHistory, Signal } from '../hooks/useSignals';
+import { useSignalsHistory, Signal } from '../hooks/useSignals';
 import { useUserTier } from '../hooks/useUserTier';
 import { SignalCard } from '../components/SignalCard';
 import { GatedContent } from '../components/GatedContent';
@@ -54,7 +54,7 @@ export function SignalsPage() {
   });
 
   const { data: runStatus, isLoading: isStatusLoading } = useRunStatus();
-  const { data: historyData, isLoading: isHistoryLoading } = useAllSignalsHistory();
+  const { data: historyData, isLoading: isHistoryLoading } = useSignalsHistory(page, ITEMS_PER_PAGE);
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -74,9 +74,24 @@ export function SignalsPage() {
 
   const latestSignal = runStatus?.latest_signal;
   const historySignals = historyData?.data || [];
+  const serverPagination = historyData?.pagination;
 
-  // Filter, sort, and paginate
-  const { paginatedSignals, totalPages, totalFiltered } = useMemo(() => {
+  // Check if we have active filters
+  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'newest' || filters.status !== 'all' || filters.direction !== 'all';
+
+  // Client-side filtering when search/filter/sort is active
+  const { displaySignals, totalPages } = useMemo(() => {
+    if (!hasActiveFilters) {
+      // No filters: use server-side pagination directly
+      const latestId = latestSignal?.id;
+      const archive = historySignals.filter((s: Signal) => s.id !== latestId);
+      return {
+        displaySignals: archive,
+        totalPages: serverPagination?.pages || 1,
+      };
+    }
+
+    // Has filters: apply client-side filtering on current page data
     const latestId = latestSignal?.id;
     let list = historySignals.filter((s: Signal) => s.id !== latestId);
 
@@ -125,13 +140,11 @@ export function SignalsPage() {
       }
     });
 
-    const totalFiltered = list.length;
-    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const paginatedSignals = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    return { paginatedSignals, totalPages, totalFiltered };
-  }, [historySignals, latestSignal, searchQuery, sortBy, filters, page]);
+    return {
+      displaySignals: list,
+      totalPages: 1, // Only show current page results when filtering
+    };
+  }, [historySignals, latestSignal, searchQuery, sortBy, filters, hasActiveFilters, serverPagination, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage((p) => p - 1);
@@ -188,10 +201,10 @@ export function SignalsPage() {
             />
           </div>
 
-          {paginatedSignals.length > 0 ? (
+          {displaySignals.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {paginatedSignals.map((signal: Signal) => (
+                {displaySignals.map((signal: Signal) => (
                   <SignalCard key={signal.id} signal={signal} />
                 ))}
               </div>
@@ -208,7 +221,7 @@ export function SignalsPage() {
                   </button>
                   <span className="text-sm text-gray-500">
                     Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                    <span className="text-gray-600 ml-2">({totalFiltered} results)</span>
+                    {serverPagination && <span className="text-gray-600 ml-2">({serverPagination.total} total)</span>}
                   </span>
                   <button
                     onClick={handleNextPage}

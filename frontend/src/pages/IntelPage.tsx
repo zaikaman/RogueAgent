@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useConnect } from 'wagmi';
-import { useAllIntelHistory, useIntelDetail, IntelItem } from '../hooks/useIntel';
+import { useIntelHistory, useIntelDetail, IntelItem } from '../hooks/useIntel';
 import { useUserTier } from '../hooks/useUserTier';
 import { IntelBlog } from '../components/IntelBlog';
 import { IntelCard } from '../components/IntelCard';
@@ -41,7 +41,7 @@ export function IntelPage() {
     type: 'all',
   });
 
-  const { data: historyData, isLoading: isHistoryLoading } = useAllIntelHistory();
+  const { data: historyData, isLoading: isHistoryLoading } = useIntelHistory(page, ITEMS_PER_PAGE);
   const { data: detailData, isLoading: isDetailLoading } = useIntelDetail(id);
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
@@ -63,12 +63,27 @@ export function IntelPage() {
   };
 
   const intelItems = historyData?.data || [];
+  const serverPagination = historyData?.pagination;
   
-  // latestIntel: the first item is the Latest Report
-  const latestIntel = intelItems.length > 0 ? intelItems[0] : null;
+  // latestIntel: the first item is the Latest Report (only on page 1)
+  const latestIntel = page === 1 && intelItems.length > 0 ? intelItems[0] : null;
 
-  // Filter, sort, and paginate archive
-  const { paginatedArchive, totalPages, totalFiltered } = useMemo(() => {
+  // Check if we have active filters
+  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'newest' || filters.type !== 'all';
+
+  // Client-side filtering when search/filter/sort is active
+  const { displayItems, totalPages } = useMemo(() => {
+    if (!hasActiveFilters) {
+      // No filters: use server-side pagination directly
+      const latestId = latestIntel?.id;
+      const archive = intelItems.filter((it: IntelItem) => it.id !== latestId);
+      return {
+        displayItems: archive,
+        totalPages: serverPagination?.pages || 1,
+      };
+    }
+
+    // Has filters: apply client-side filtering on current page data
     const latestId = latestIntel?.id;
     let list = intelItems.filter((it: IntelItem) => it.id !== latestId);
 
@@ -94,20 +109,17 @@ export function IntelPage() {
     }
 
     // Sort
-    list = [...list].sort((a: IntelItem, b: IntelItem) => {
-      if (sortBy === 'oldest') {
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    if (sortBy === 'oldest') {
+      list = [...list].sort((a: IntelItem, b: IntelItem) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    }
 
-    const totalFiltered = list.length;
-    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const paginatedArchive = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    return { paginatedArchive, totalPages, totalFiltered };
-  }, [intelItems, latestIntel, searchQuery, sortBy, filters, page]);
+    return {
+      displayItems: list,
+      totalPages: 1, // Only show current page results when filtering
+    };
+  }, [intelItems, latestIntel, searchQuery, sortBy, filters, hasActiveFilters, serverPagination, page]);
 
   const selectedIntel = id ? detailData : null;
 
@@ -200,10 +212,10 @@ export function IntelPage() {
           onConnect={!isConnected ? handleConnect : undefined}
           isLoading={isTierLoading}
         >
-          {paginatedArchive.length > 0 ? (
+          {displayItems.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedArchive.map((intel: IntelItem) => (
+                {displayItems.map((intel: IntelItem) => (
                   <IntelCard 
                     key={intel.id} 
                     intel={intel} 
@@ -224,7 +236,7 @@ export function IntelPage() {
                   </button>
                   <span className="text-sm text-gray-500">
                     Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                    <span className="text-gray-600 ml-2">({totalFiltered} results)</span>
+                    {serverPagination && <span className="text-gray-600 ml-2">({serverPagination.total} total)</span>}
                   </span>
                   <button
                     onClick={handleNextPage}

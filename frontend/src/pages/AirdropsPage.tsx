@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
-import { useAllAirdrops, Airdrop } from '../hooks/useAirdrops';
+import { useAirdrops, Airdrop } from '../hooks/useAirdrops';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
@@ -56,8 +56,9 @@ export function AirdropsPage() {
     type: 'all',
   });
 
-  const { data: airdropData, isLoading, isError } = useAllAirdrops();
+  const { data: airdropData, isLoading, isError } = useAirdrops(page, ITEMS_PER_PAGE);
   const allAirdrops = airdropData?.airdrops || [];
+  const serverPagination = airdropData?.pagination;
   const { tier, isConnected } = useUserTier();
   const { connect, connectors } = useConnect();
 
@@ -75,11 +76,26 @@ export function AirdropsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Check if we have active filters
+  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'newest' || filters.chain !== 'all' || filters.type !== 'all';
+
   // Filter, sort, and paginate logic
-  const { featuredAirdrop, paginatedAirdrops, totalPages, totalFiltered } = useMemo(() => {
-    // First one is always featured
-    const featured = allAirdrops[0] || null;
+  const { featuredAirdrop, displayAirdrops, totalPages } = useMemo(() => {
+    // First one is always featured (only on page 1)
+    const featured = page === 1 && allAirdrops[0] || null;
     const latestId = featured?.id;
+
+    if (!hasActiveFilters) {
+      // No filters: use server-side pagination directly
+      const list = allAirdrops.filter((o: Airdrop) => o.id !== latestId);
+      return {
+        featuredAirdrop: featured,
+        displayAirdrops: list,
+        totalPages: serverPagination?.pages || 1,
+      };
+    }
+
+    // Has filters: apply client-side filtering
     let list = allAirdrops.filter((o: Airdrop) => o.id !== latestId);
 
     // Search filter
@@ -128,13 +144,12 @@ export function AirdropsPage() {
       }
     });
 
-    const totalFiltered = list.length;
-    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const paginatedAirdrops = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    return { featuredAirdrop: featured, paginatedAirdrops, totalPages, totalFiltered };
-  }, [allAirdrops, searchQuery, sortBy, filters, page]);
+    return { 
+      featuredAirdrop: featured, 
+      displayAirdrops: list, 
+      totalPages: 1 // Only show current page results when filtering
+    };
+  }, [allAirdrops, searchQuery, sortBy, filters, hasActiveFilters, serverPagination, page]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
@@ -204,10 +219,10 @@ export function AirdropsPage() {
               />
             </div>
 
-            {paginatedAirdrops.length > 0 ? (
+            {displayAirdrops.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedAirdrops.map((drop: Airdrop, index: number) => (
+                  {displayAirdrops.map((drop: Airdrop, index: number) => (
                     <AirdropCard key={drop.id || index + 1} airdrop={drop} index={index + 1} />
                   ))}
                 </div>
@@ -224,7 +239,7 @@ export function AirdropsPage() {
                     </button>
                     <span className="text-sm text-gray-500">
                       Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                      <span className="text-gray-600 ml-2">({totalFiltered} total)</span>
+                      {serverPagination && <span className="text-gray-600 ml-2">({serverPagination.total} total)</span>}
                     </span>
                     <button
                       onClick={handleNextPage}

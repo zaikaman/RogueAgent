@@ -14,6 +14,7 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
   try {
     const walletAddress = req.query.wallet as string | undefined;
+    const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 15;
     
     // Check user tier if wallet provided (respects temporary diamond access)
@@ -24,15 +25,21 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     if (isDiamond) {
-      // Diamond users get all high-edge markets
-      const markets = await predictionMarketsService.getHighEdgeMarkets(limit);
+      // Diamond users get paginated high-edge markets
+      const { markets, total } = await predictionMarketsService.getHighEdgeMarkets(page, limit);
       const status = predictionMarketsService.getStatus();
       
       res.json({
         markets,
-        total: markets.length,
+        total,
         tier: 'DIAMOND',
         scan_status: status,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
       });
     } else {
       // Public users get only 1 featured market for demo
@@ -45,6 +52,12 @@ router.get('/', async (req: Request, res: Response) => {
         tier: 'PUBLIC',
         scan_status: status,
         message: 'Hold 1000+ $RGE to unlock all high-edge markets',
+        pagination: {
+          page: 1,
+          limit: 1,
+          total: featuredMarket ? 1 : 0,
+          pages: featuredMarket ? 1 : 0
+        }
       });
     }
   } catch (error) {

@@ -192,7 +192,33 @@ export const ScannerAgent = AgentBuilder.create('scanner_agent')
       "bias_reasoning": "TECHNICALS: BTC RSI 52 (neutral), MACD flat, SuperTrend UP but weak, MTF 48% (choppy). X SENTIMENT: Mixed - bulls and bears fighting, no consensus. WEB NEWS: FOMC meeting tomorrow, uncertainty. CONFLUENCE: Technicals are neutral/choppy and sentiment is mixed. No clear edge - staying out.",
       "candidates": []
     }
-    
+
+    Example (Mode 2 - Single Token Deep Dive):
+    {
+      "analysis": {
+        "symbol": "IQ",
+        "name": "Everipedia",
+        "coingecko_id": "everipedia",
+        "chain": "ethereum",
+        "address": "0x579ce11dc600647ad27351823338b660b00f391c",
+        "current_price_usd": 0.001566,
+        "market_cap": 37800000,
+        "volume_24h": 1190000,
+        "price_action": {
+          "1h_change": "-0.2%",
+          "24h_change": "+0.5%",
+          "7d_change": "-12.4%"
+        },
+        "top_narratives": [
+          "Year-end market consolidation",
+          "ATP platform developments",
+          "Low social engagement"
+        ],
+        "suggested_direction": "NEUTRAL",
+        "price_driver_summary": "IQ is mirroring broader market consolidation with low independent momentum."
+      }
+    }
+
     **IMPORTANT - CHAIN AND ADDRESS**:
     - ALL candidates MUST include 'chain' and 'address' fields
     - For native coins (BTC, ETH, SOL, BNB): use their native chain and native address

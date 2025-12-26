@@ -223,11 +223,19 @@ export class SignalMonitorService {
                 continue;
             }
             
-            // Check if price hit entry (0.5% tolerance for slippage)
-            const isTriggered = currentPrice <= entryPrice * 1.005;
+            // Determine trade direction to check correct trigger condition
+            const direction = content.direction || (content.target_price > content.entry_price ? 'LONG' : 'SHORT');
+            const isLong = direction === 'LONG';
+            
+            // Check if price hit entry based on direction
+            // LONG: Limit buy triggers when price drops TO or BELOW entry (buying at support)
+            // SHORT: Limit sell triggers when price rises TO or ABOVE entry (selling at resistance)
+            const isTriggered = isLong 
+                ? currentPrice <= entryPrice * 1.005  // LONG: price dropped to entry
+                : currentPrice >= entryPrice * 0.995; // SHORT: price rose to entry
 
             if (isTriggered) {
-                logger.info(`PENDING Signal ${run.id} TRIGGERED! Price ${currentPrice} <= Entry ${entryPrice}`);
+                logger.info(`PENDING Signal ${run.id} (${direction}) TRIGGERED! Price ${currentPrice} ${isLong ? '<=' : '>='} Entry ${entryPrice}`);
                 
                 // If content already exists (new behavior), just activate
                 // Note: The limit order was already placed on Hyperliquid when the signal was created

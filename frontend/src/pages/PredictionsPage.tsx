@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
 import { useConnect } from 'wagmi';
-import { useAllPredictions, PredictionMarket } from '../hooks/usePredictions';
+import { usePredictions, PredictionMarket } from '../hooks/usePredictions';
 import { useUserTier } from '../hooks/useUserTier';
 import { GatedContent } from '../components/GatedContent';
 import { SearchAndSort, SortOption, FilterConfig } from '../components/ui/SearchAndSort';
@@ -57,11 +57,12 @@ export function PredictionsPage() {
     bet: 'all',
   });
 
-  const { data, isLoading, isError } = useAllPredictions();
+  const { data, isLoading, isError } = usePredictions(page, ITEMS_PER_PAGE);
   const { tier, isConnected, isLoading: isTierLoading } = useUserTier();
   const { connect, connectors } = useConnect();
 
   const allMarkets = data?.markets || [];
+  const serverPagination = data?.pagination;
 
   // Reset to page 1 when search/sort/filters change
   useEffect(() => {
@@ -77,19 +78,34 @@ export function PredictionsPage() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Check if we have active filters
+  const hasActiveFilters = searchQuery.trim() !== '' || sortBy !== 'edge-high' || filters.platform !== 'all' || filters.bet !== 'all';
+
   const handlePrevPage = () => {
     if (page > 1) setPage(p => p - 1);
   };
 
   const handleNextPage = () => {
-    if (page < totalPages) setPage(p => p + 1);
+    if (totalPages > 1 && page < totalPages) setPage(p => p + 1);
   };
 
   // Filter, sort, and paginate logic
-  const { featuredMarket, paginatedMarkets, totalPages, totalFiltered } = useMemo(() => {
-    // First one is always featured
-    const featured = allMarkets.length > 0 ? allMarkets[0] : null;
+  const { featuredMarket, displayMarkets, totalPages } = useMemo(() => {
+    // First one is always featured (only on page 1)
+    const featured = page === 1 && allMarkets.length > 0 ? allMarkets[0] : null;
     const latestId = featured?.market_id;
+
+    if (!hasActiveFilters) {
+      // No filters: use server-side pagination directly
+      const list = allMarkets.filter((m: PredictionMarket) => m.market_id !== latestId);
+      return {
+        featuredMarket: featured,
+        displayMarkets: list,
+        totalPages: serverPagination?.pages || 1,
+      };
+    }
+
+    // Has filters: apply client-side filtering
     let list = allMarkets.filter((m: PredictionMarket) => m.market_id !== latestId);
 
     // Search filter
@@ -137,13 +153,12 @@ export function PredictionsPage() {
       }
     });
 
-    const totalFiltered = list.length;
-    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    const paginatedMarkets = list.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    return { featuredMarket: featured, paginatedMarkets, totalPages, totalFiltered };
-  }, [allMarkets, searchQuery, sortBy, filters, page]);
+    return { 
+      featuredMarket: featured, 
+      displayMarkets: list, 
+      totalPages: 1 // Only show current page results when filtering
+    };
+  }, [allMarkets, searchQuery, sortBy, filters, hasActiveFilters, serverPagination, page]);
 
   if (isLoading) {
     return (
@@ -206,10 +221,10 @@ export function PredictionsPage() {
               />
             </div>
 
-            {paginatedMarkets.length > 0 ? (
+            {displayMarkets.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedMarkets.map((market: PredictionMarket, index: number) => (
+                  {displayMarkets.map((market: PredictionMarket, index: number) => (
                     <MarketCard key={market.market_id || index + 1} market={market} index={index + 1} />
                   ))}
                 </div>
@@ -226,7 +241,7 @@ export function PredictionsPage() {
                     </button>
                     <span className="text-sm text-gray-500">
                       Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
-                      <span className="text-gray-600 ml-2">({totalFiltered} total)</span>
+                      {serverPagination && <span className="text-gray-600 ml-2">({serverPagination.total} total)</span>}
                     </span>
                     <button
                       onClick={handleNextPage}

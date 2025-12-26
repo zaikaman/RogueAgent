@@ -41,38 +41,27 @@ interface PredictionsResponse {
   tier: 'DIAMOND' | 'PUBLIC';
   scan_status: ScanStatus;
   message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
-export function usePredictions() {
+export function usePredictions(page = 1, limit = 15) {
   const { address } = useAccount();
 
   return useQuery({
-    queryKey: ['predictions', address],
+    queryKey: ['predictions', page, limit, address],
     queryFn: async () => {
       const response = await api.get<PredictionsResponse>('/predictions', {
-        params: { wallet: address, limit: 15 },
+        params: { wallet: address, page, limit },
       });
       return response.data;
     },
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
     staleTime: 1000 * 60 * 2, // Consider stale after 2 minutes
-  });
-}
-
-// Fetch all predictions for client-side filtering/sorting/pagination
-export function useAllPredictions() {
-  const { address } = useAccount();
-
-  return useQuery({
-    queryKey: ['predictions-all', address],
-    queryFn: async () => {
-      const response = await api.get<PredictionsResponse>('/predictions', {
-        params: { wallet: address, limit: 1000 },
-      });
-      return response.data;
-    },
-    refetchInterval: 1000 * 60 * 5,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
